@@ -15,6 +15,8 @@ interface Chain {
   insertTable(a: { rows: number; cols: number; withHeaderRow: boolean }): Chain;
 }
 
+const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
+
 export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUploadImage(f: File): Promise<string> }) {
   const t = useT();
   const [, rerender] = useReducer((x: number) => x + 1, 0);
@@ -31,7 +33,8 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
     fn(editor.chain().focus() as unknown as Chain).run();
   };
   const active = (name: string, attrs?: Record<string, unknown>) => !!editor?.isActive(name, attrs);
-  const style = active('heading', { level: 1 }) ? 'h1' : active('heading', { level: 2 }) ? 'h2' : active('heading', { level: 3 }) ? 'h3' : 'p';
+  const level = HEADING_LEVELS.find((l) => active('heading', { level: l }));
+  const style = level ? `h${level}` : 'p';
 
   const btn = (label: string, on: boolean, act: () => void, content: React.ReactNode) => (
     <button className={'ico' + (on ? ' on' : '')} title={label} aria-label={label} aria-pressed={on} onMouseDown={(e) => e.preventDefault()} onClick={act} disabled={!editor}>
@@ -73,9 +76,9 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
         }}
       >
         <option value="p">{t('toolbar.body')}</option>
-        <option value="h1">{t('toolbar.h1')}</option>
-        <option value="h2">{t('toolbar.h2')}</option>
-        <option value="h3">{t('toolbar.h3')}</option>
+        {HEADING_LEVELS.map((l) => (
+          <option key={l} value={`h${l}`}>{t(`toolbar.h${l}`)}</option>
+        ))}
       </select>
       <span className="sep" />
       {btn(t('toolbar.bold'), active('bold'), () => run((c) => c.toggleBold()), <b>B</b>)}
