@@ -57,8 +57,14 @@ export function HistoryPage() {
   const tree = useTree();
   const { t, lang } = useI18n();
   const kindText = (k: VersionDTO['kind']) => t(KIND_KEY[k]);
+  // Older restore points were saved with an English "Before restoring <ISO time>" label.
+  const verLabel = (v: Pick<VersionDTO, 'kind' | 'label'>) =>
+    v.label && !(v.kind === 'restore' && v.label.startsWith('Before restoring ')) ? v.label : kindText(v.kind);
   const [doc, setDoc] = useState<DocumentDTO | null>(null);
   const [versions, setVersions] = useState<VersionDTO[] | null>(null);
+  // In-page instead of prompt()/confirm(): embedded browsers often block native dialogs, and the buttons did nothing.
+  const [naming, setNaming] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
   const [contents, setContents] = useState<Record<string, VersionContent>>({});
   const [current, setCurrent] = useState<VersionContent | null>(null);
@@ -115,9 +121,9 @@ export function HistoryPage() {
     return diffStats(diffDocs(a?.content ?? null, b.content));
   };
 
-  async function nameCurrent() {
-    const label = prompt(t('history.namePrompt'), '');
-    if (!label?.trim()) return;
+  async function nameCurrent(label: string) {
+    if (!label.trim()) return;
+    setNaming(null);
     try {
       const v = await api.createVersion(docId, label.trim());
       const vs = await load();
@@ -129,8 +135,7 @@ export function HistoryPage() {
   }
   async function restore() {
     if (!sel || !selected) return;
-    const label = selected.version.label ?? kindText(selected.version.kind);
-    if (!confirm(t('history.restoreConfirm', { label }))) return;
+    setConfirming(false);
     setBusy(true);
     try {
       await api.restoreVersion(docId, sel);
@@ -173,7 +178,7 @@ export function HistoryPage() {
                 <span>
                   {selVer ? (
                     <>
-                      {t('history.viewing')} <b>“{selVer.label ?? kindText(selVer.kind)}”</b> · {dayLabel(t, selVer.createdAt, lang)} {hm(new Date(selVer.createdAt))}
+                      {t('history.viewing')} <b>“{verLabel(selVer)}”</b> · {dayLabel(t, selVer.createdAt, lang)} {hm(new Date(selVer.createdAt))}
                       {highlight && !isHead ? t('history.vsCurrent') : ''}
                     </>
                   ) : (
@@ -181,14 +186,29 @@ export function HistoryPage() {
                   )}
                 </span>
                 <span className="spacer" />
-                <button className="btn" onClick={() => nav(`/d/${docId}`)}>
-                  {t('history.backToCurrent')}
-                </button>
-                {doc && can.edit(doc.role) && selVer && (
-                  <button className="btn primary" disabled={busy || !selected} onClick={restore}>
-                    <Icon name="restore" />
-                    {t('history.restoreThis')}
-                  </button>
+                {confirming && selVer ? (
+                  <>
+                    <span role="alert">{t('history.restoreConfirm', { label: verLabel(selVer) })}</span>
+                    <button className="btn" onClick={() => setConfirming(false)}>
+                      {t('common.cancel')}
+                    </button>
+                    <button className="btn primary" disabled={busy || !selected} onClick={restore} autoFocus>
+                      <Icon name="restore" />
+                      {t('history.restoreThis')}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="btn" onClick={() => nav(`/d/${docId}`)}>
+                      {t('history.backToCurrent')}
+                    </button>
+                    {doc && can.edit(doc.role) && selVer && (
+                      <button className="btn primary" disabled={busy || !selected} onClick={() => setConfirming(true)}>
+                        <Icon name="restore" />
+                        {t('history.restoreThis')}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
               <article className="page">
@@ -201,12 +221,35 @@ export function HistoryPage() {
                 <b style={{ fontSize: 14 }}>{t('history.title')}</b>
                 <span className="spacer" />
                 {doc && can.edit(doc.role) && (
-                  <button className="btn" style={{ fontSize: 12, padding: '3px 8px' }} onClick={nameCurrent}>
+                  <button className="btn" style={{ fontSize: 12, padding: '3px 8px' }} onClick={() => setNaming((n) => (n === null ? '' : null))}>
                     <Icon name="plus" />
                     {t('history.nameCurrent')}
                   </button>
                 )}
               </div>
+              {naming !== null && (
+                <form
+                  className="name-ver"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void nameCurrent(naming);
+                  }}
+                >
+                  <input
+                    className="field-in"
+                    autoFocus
+                    value={naming}
+                    placeholder={t('history.namePrompt')}
+                    aria-label={t('history.namePrompt')}
+                    maxLength={200}
+                    onChange={(e) => setNaming(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Escape' && setNaming(null)}
+                  />
+                  <button className="btn primary" type="submit" disabled={!naming.trim()}>
+                    {t('history.nameCurrent')}
+                  </button>
+                </form>
+              )}
               <button className="toggle" style={{ padding: '8px 6px 0', fontSize: 12 }} onClick={() => setHighlight((h) => !h)} aria-pressed={highlight}>
                 <span className={'sw' + (highlight ? ' on' : '')} />
                 {t('history.highlight')}
@@ -223,7 +266,7 @@ export function HistoryPage() {
                     <button className={'ver' + (v.kind === 'manual' ? ' named' : '') + (v.id === sel ? ' on' : '')} onClick={() => setSel(v.id)}>
                       <span className="dot" />
                       <span>
-                        <b>{v.label ?? kindText(v.kind)}</b>
+                        <b>{verLabel(v)}</b>
                         <small>
                           {v.authors[0] && <Avatar sm name={v.authors[0].name} color={v.authors[0].color} />}
                           {v.authors.map((a) => a.name).join(', ') || t('history.system')} · {hm(new Date(v.createdAt))}

@@ -424,6 +424,7 @@ input,textarea,select{font:inherit;color:var(--fg)}
 /* history extras */
 .diff-block{margin:0 0 14px;white-space:pre-wrap}
 .diff-block.title{font-family:var(--f-display)}
+.name-ver{display:flex;gap:6px;padding:8px 6px 0}.name-ver .field-in{flex:1;min-width:0;padding:5px 8px;font-size:13px}.name-ver .btn{font-size:12px;padding:3px 8px}
 .ver .who-line{display:flex;gap:6px;align-items:center}
 .cards .card{cursor:pointer;color:inherit}
 .list tr{cursor:pointer}
