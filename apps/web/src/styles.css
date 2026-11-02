@@ -724,3 +724,28 @@ svg.i.star-on{fill:var(--honey);stroke:var(--honey)}
   .tpl-nav p,.tpl-nav .spacer{display:none}
   .tpl-side{width:auto;border-left:0;border-top:1px solid var(--line);max-height:40%}
 }
+
+/* ---------- request access ---------- */
+.req-access{max-width:440px;margin:70px auto;padding:0 20px;display:flex;flex-direction:column;gap:12px;color:var(--fg)}
+.req-access>svg.i{color:var(--fg-3);stroke-width:1.4}
+.req-access h2{font-family:var(--f-display);font-size:24px;margin:0}
+.req-access p{margin:0;color:var(--fg-2)}
+.req-access label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--fg-2)}
+.req-access select,.req-access textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:7px;padding:7px 10px;resize:vertical}
+.req-actions{display:flex;gap:8px;flex-wrap:wrap}
+.req-actions a.btn{text-decoration:none}
+.req-access small{color:var(--fg-3);font-size:12.5px}
+
+/* ---------- settings: notifications ---------- */
+.notif-pref{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line)}
+.notif-pref>div:first-child{flex:1;min-width:260px;display:flex;flex-direction:column;gap:2px}
+.notif-pref b{font-weight:500}
+.notif-pref small{color:var(--fg-3);font-size:13px}
+.notif-pref.is-soon b{color:var(--fg-3)}
+.soon{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--honey-ink);background:var(--honey-wash);border:1px solid var(--honey-line);border-radius:4px;padding:0 6px;margin-left:6px}
+.switch{width:38px;height:22px;border-radius:11px;background:var(--line);position:relative;flex:none}
+.switch::after{content:'';position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch:disabled{cursor:not-allowed}
+.notif-kinds{display:flex;flex-direction:column;gap:6px;padding-top:12px}
+.notif-kinds .lbl{font-size:12px;color:var(--fg-3);font-weight:700;letter-spacing:.04em}
+.notif-kinds label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--fg-2)}

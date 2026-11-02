@@ -4,7 +4,8 @@ import { useSession, TreeProvider } from '../state/session';
 import { Sidebar } from './Sidebar';
 import { ListsProvider } from '../state/lists';
 import { SearchDialog } from './SearchDialog';
-import { useT } from '../i18n';
+import { useI18n } from '../i18n';
+import { api } from '../api/http';
 import { PHONE_QUERY, useKeyboardInset, useMediaQuery } from '../lib/media';
 
 /** openSidebar is null outside the signed-in shell (share pages have no sidebar). */
@@ -13,11 +14,15 @@ export const useShell = () => useContext(Ctx);
 
 /** Signed-in workspace chrome: folder tree on the left, page content on the right. */
 export function Shell() {
-  const { session, loading, workspace } = useSession();
+  const { session, loading, workspace, setSession } = useSession();
   const loc = useLocation();
   const [sideOpen, setSideOpen] = useState(false);
   const [search, setSearch] = useState(false);
-  const t = useT();
+  const { t, lang } = useI18n();
+  // Browser notifications are written in the language the user last used Bee in.
+  useEffect(() => {
+    if (session && session.user.prefs.lang !== lang) api.updateMe({ prefs: { lang } }).then(setSession, () => {});
+  }, [lang, session?.user.id]);
   // Phones: full-screen panels (comments, Ask AI) end above the on-screen keyboard.
   const keyboard = useKeyboardInset(useMediaQuery(PHONE_QUERY));
   useEffect(() => {
