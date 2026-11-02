@@ -17,7 +17,7 @@ type Item = { kind: 'folder'; f: FolderDTO } | { kind: 'doc'; d: DocumentDTO };
 const VIEW_KEY = 'bee-folder-view';
 const KIND_KEY: Record<string, MessageKey> = { doc: 'kind.doc', whiteboard: 'kind.whiteboard', sheet: 'kind.sheet' };
 
-function Thumb({ d }: { d: DocumentDTO }) {
+export function Thumb({ d }: { d: DocumentDTO }) {
   const t = useT();
   if (d.type === 'whiteboard')
     return (
@@ -85,7 +85,7 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
     );
 
   const title =
-    mode === 'root' ? t('nav.home') : mode === 'recent' ? t('nav.recent') : mode === 'shared' ? t('nav.shared') : mode === 'trash' ? t('nav.trash') : (folder?.name ?? '');
+    mode === 'root' ? t('nav.files') : mode === 'recent' ? t('nav.recent') : mode === 'shared' ? t('nav.shared') : mode === 'trash' ? t('nav.trash') : (folder?.name ?? '');
   const items: Item[] = [];
   if (mode === 'folder' || mode === 'root') {
     const fid = mode === 'root' ? null : folderId;

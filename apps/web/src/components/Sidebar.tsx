@@ -289,7 +289,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     </div>
   );
 
-  const navItem = (to: string, icon: 'home' | 'clock' | 'star' | 'trash' | 'globe' | 'bell', label: string, count?: number) => (
+  const navItem = (to: string, icon: 'home' | 'folder' | 'clock' | 'star' | 'trash' | 'globe' | 'bell', label: string, count?: number) => (
     <NavLink to={to} end className={({ isActive }) => (isActive ? 'on' : '')} onClick={onClose}>
       <Icon name={icon} />
       {label}
@@ -352,6 +352,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       </button>
       <nav className="nav">
         {navItem('/', 'home', t('nav.home'))}
+        {navItem('/files', 'folder', t('nav.files'))}
         {navItem('/notifications', 'bell', t('nav.notifications'), lists?.unread)}
         {navItem('/shared', 'globe', t('nav.shared'))}
       </nav>

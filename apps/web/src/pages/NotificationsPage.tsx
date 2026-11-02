@@ -9,7 +9,7 @@ import { useLists } from '../state/lists';
 import { errMsg, useToast } from '../state/toast';
 
 const ROLES: GrantableRole[] = ['viewer', 'commenter', 'editor'];
-const VERB: Record<NotificationDTO['kind'], MessageKey> = {
+export const VERB: Record<NotificationDTO['kind'], MessageKey> = {
   mention: 'notif.mention',
   reply: 'notif.reply',
   share: 'notif.share',
@@ -142,7 +142,7 @@ export function NotificationsPage() {
   );
 }
 
-function RequestActions({ n, onDone }: { n: NotificationDTO; onDone(r: NonNullable<NotificationDTO['request']>): void }) {
+export function RequestActions({ n, onDone }: { n: NotificationDTO; onDone(r: NonNullable<NotificationDTO['request']>): void }) {
   const t = useT();
   const toast = useToast();
   const lists = useLists();

@@ -4,6 +4,7 @@ import { Shell } from './components/Shell';
 import { DocPage } from './pages/DocPage';
 import { FolderPage } from './pages/FolderPage';
 import { HistoryPage } from './pages/HistoryPage';
+import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { SharePage } from './pages/SharePage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -25,7 +26,8 @@ export function App() {
               <Route path="/s/:token/d/:docId" element={<SharePage />} />
               <Route path="/p/:token" element={<SharePage />} />
               <Route element={<Shell />}>
-                <Route index element={<FolderPage mode="root" />} />
+                <Route index element={<HomePage />} />
+                <Route path="/files" element={<FolderPage mode="root" />} />
                 <Route path="/recent" element={<FolderPage mode="recent" />} />
                 <Route path="/shared" element={<FolderPage mode="shared" />} />
                 <Route path="/trash" element={<FolderPage mode="trash" />} />

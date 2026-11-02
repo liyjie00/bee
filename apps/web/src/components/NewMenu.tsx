@@ -84,7 +84,7 @@ export function useCreate(folderId: string | null, after?: () => void) {
   const dialog = templates ? (
     <TemplatesDialog onClose={() => setTemplates(false)} onUse={(title, markdown) => create('doc', { title: title === 'Untitled' ? '' : title, markdown })} />
   ) : null;
-  return { create, items, dialog };
+  return { create, items, dialog, openTemplates: () => setTemplates(true) };
 }
 
 /** "New" button + dropdown: document, template, whiteboard, folder, imports. */

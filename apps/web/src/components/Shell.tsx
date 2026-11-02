@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSession, TreeProvider } from '../state/session';
 import { Sidebar } from './Sidebar';
+import { LandingPage } from '../pages/LandingPage';
 import { ListsProvider } from '../state/lists';
 import { SearchDialog } from './SearchDialog';
 import { useI18n } from '../i18n';
@@ -42,6 +43,8 @@ export function Shell() {
     return () => document.removeEventListener('keydown', key, true);
   }, []);
   if (loading) return <div className="empty">{t('app.loading')}</div>;
+  // Signed-out visitors to the bare site see what Bee is; anything deeper asks them to sign in.
+  if (!session && loc.pathname === '/') return <LandingPage />;
   if (!session || !workspace)
     return <Navigate to={`/login?next=${encodeURIComponent(loc.pathname + loc.search + loc.hash)}`} replace />;
   return (
