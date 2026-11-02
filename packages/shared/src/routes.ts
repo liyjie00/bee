@@ -419,4 +419,5 @@ export interface CreateAccessRequestBody {
 export interface AccessRequestResponse {
   request: AccessRequestDTO | null;
 }
-export type HandleAccessRequestBody = { action: 'grant'; role: GrantableRole } | { action: 'decline' };
+export type HandleAccessRequestBody =
+  { action: 'grant'; role: GrantableRole } | { action: 'decline' };
