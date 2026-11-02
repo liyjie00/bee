@@ -1,7 +1,6 @@
 import type { AnyExtension } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import Collaboration from '@tiptap/extension-collaboration';
-import CollaborationCaret from '@tiptap/extension-collaboration-caret';
 import { Placeholder } from '@tiptap/extensions';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
 import type * as Y from 'yjs';
@@ -14,6 +13,7 @@ import { SlashCommand, type SlashHost } from './SlashMenu.js';
 import { ImageUpload, type UploadImage } from './image-upload.js';
 import { MarkdownPaste } from './markdown-paste.js';
 import type { BeeUser } from './collab.js';
+import { IdleCollaborationCaret } from './caret-idle.js';
 
 export interface BuildOptions {
   ydoc?: Y.Doc;
@@ -25,6 +25,8 @@ export interface BuildOptions {
   uploadImage?: UploadImage;
   onUploadError?: (err: unknown) => void;
   onCommentClick?: (id: string) => void;
+  /** Hide remote carets idle for this long; defaults to CURSOR_IDLE_MS. */
+  cursorIdleMs?: number;
 }
 
 /** Schema extensions plus React node views and editing UI. */
@@ -64,7 +66,13 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
   if (opts.ydoc) {
     extensions.push(Collaboration.configure({ document: opts.ydoc, field: 'default' }));
     if (opts.provider && opts.user) {
-      extensions.push(CollaborationCaret.configure({ provider: opts.provider, user: opts.user }));
+      extensions.push(
+        IdleCollaborationCaret.configure({
+          provider: opts.provider,
+          user: opts.user,
+          ...(opts.cursorIdleMs ? { idleMs: opts.cursorIdleMs } : {}),
+        }),
+      );
     }
   }
   return extensions;

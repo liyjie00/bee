@@ -20,6 +20,17 @@ export const collabUrl = () => `${location.origin.replace(/^http/, 'ws')}/collab
 const ACCESS_ICON = { private: 'lock', link: 'link', public: 'globe' } as const;
 const guestColor = '#7b8375';
 
+/** Dev builds only: `localStorage['bee.cursorIdleMs']` shortens the idle-caret threshold for testing. */
+function devCursorIdleMs(): number | undefined {
+  if (!import.meta.env.DEV) return undefined;
+  try {
+    const ms = Number(localStorage.getItem('bee.cursorIdleMs'));
+    return ms > 0 ? ms : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function DocView({
   doc,
   me,
@@ -269,6 +280,7 @@ export function DocView({
                   canComment={canComment}
                   locale={lang}
                   initialBlockId={initialBlockId}
+                  cursorIdleMs={devCursorIdleMs()}
                   onBlockMissing={() => toast(t('doc.blockGone'))}
                   comments={comments}
                   activeCommentId={activeId}

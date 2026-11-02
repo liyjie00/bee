@@ -48,6 +48,8 @@ export interface BeeEditorProps {
   onReady?: (editor: Editor) => void;
   onStatus?: (status: CollabStatus) => void;
   onPresence?: (users: BeeUser[]) => void;
+  /** Hide collaborators' carets after this many ms without movement (default 10 minutes). */
+  cursorIdleMs?: number;
   className?: string;
 }
 
@@ -124,6 +126,7 @@ function EditorInner(props: InnerProps) {
         uploadImage: props.uploadImage ? (file) => latest.current.uploadImage!(file) : undefined,
         onUploadError: (err) => latest.current.onUploadError?.(err),
         onCommentClick: (id) => latest.current.onCommentClick?.(id),
+        cursorIdleMs: props.cursorIdleMs,
       }),
     // The editor is rebuilt per connection / editability (see the key in BeeEditor).
     [],

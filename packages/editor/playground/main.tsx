@@ -62,6 +62,7 @@ function Pane({ name, role, color, locale, threads, setThreads, active, setActiv
         onBlockMissing={(id) => console.warn('block missing', id)}
         onStatus={setStatus}
         onPresence={(users) => setPresence(users.map((u) => u.name))}
+        cursorIdleMs={Number(params.get('idleMs')) || undefined}
         onReady={(e) => {
           ((window as unknown as { editors: Record<string, Editor> }).editors ??= {})[name] = e;
           onEditor?.(e);
