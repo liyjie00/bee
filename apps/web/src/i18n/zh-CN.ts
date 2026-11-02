@@ -32,6 +32,7 @@ export const zhCN: Record<MessageKey, string> = {
   'nav.newDoc': '新建文档',
   'nav.newFolder': '新建文件夹',
   'nav.newBoard': '新建白板',
+  'nav.moreCreate': '更多新建方式：模板、文件夹、导入',
   'nav.newMenu': '新建文档、白板或文件夹',
   'nav.emptyTree': '还没有内容。点上方「+ 新建」创建文档、白板或文件夹。',
   'nav.signOut': '退出登录',

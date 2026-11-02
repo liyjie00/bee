@@ -30,6 +30,7 @@ export const en = {
   'nav.newDoc': 'New document',
   'nav.newFolder': 'New folder',
   'nav.newBoard': 'New whiteboard',
+  'nav.moreCreate': 'More: template, folder, import',
   'nav.newMenu': 'Create a document, whiteboard or folder',
   'nav.emptyTree': 'Nothing here yet. Use + New above to create a document, whiteboard or folder.',
   'nav.signOut': 'Sign out',
