@@ -1,0 +1,76 @@
+# Bee self-host stack. Only the proxy is exposed publicly (port 8420).
+#   /api/*    -> api    (Fastify, :8421)
+#   /collab*  -> collab (Hocuspocus WebSocket, :8422)
+#   /*        -> web    (:8423)
+# Local dev: `docker compose up -d postgres` and run apps with `pnpm dev`.
+name: bee
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bee}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bee}
+      POSTGRES_DB: ${POSTGRES_DB:-bee}
+    ports:
+      - '127.0.0.1:54329:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-bee} -d ${POSTGRES_DB:-bee}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      PORT: 8421
+      DATABASE_URL: postgres://${POSTGRES_USER:-bee}:${POSTGRES_PASSWORD:-bee}@postgres:5432/${POSTGRES_DB:-bee}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
+      COLLAB_SECRET: ${COLLAB_SECRET:?set COLLAB_SECRET}
+      BEE_PUBLIC_URL: ${BEE_PUBLIC_URL:-http://localhost:8420}
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+
+  collab:
+    build: { context: ., dockerfile: apps/collab/Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      api: { condition: service_started }
+    environment:
+      NODE_ENV: production
+      PORT: 8422
+      DATABASE_URL: postgres://${POSTGRES_USER:-bee}:${POSTGRES_PASSWORD:-bee}@postgres:5432/${POSTGRES_DB:-bee}
+      API_INTERNAL_URL: http://api:8421
+      COLLAB_SECRET: ${COLLAB_SECRET:?set COLLAB_SECRET}
+      REDIS_URL: ${REDIS_URL:-}
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 8423
+      API_INTERNAL_URL: http://api:8421
+      BEE_PUBLIC_URL: ${BEE_PUBLIC_URL:-http://localhost:8420}
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [api, collab, web]
+    ports:
+      - '${BEE_PORT:-8420}:8420'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+
+volumes:
+  pgdata:
+  uploads:

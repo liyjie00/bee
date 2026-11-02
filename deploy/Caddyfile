@@ -1,0 +1,21 @@
+{
+	auto_https off
+	admin off
+}
+
+:8420 {
+	encode zstd gzip
+	request_body {
+		max_size 50MB
+	}
+
+	handle /api/* {
+		reverse_proxy api:8421
+	}
+	handle /collab* {
+		reverse_proxy collab:8422
+	}
+	handle {
+		reverse_proxy web:8423
+	}
+}
