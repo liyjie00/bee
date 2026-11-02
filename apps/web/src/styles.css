@@ -37,7 +37,7 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .mono{font-family:var(--f-mono)}
 
 /* rows pinned to the viewport so .view (not the page) scrolls */
-.app{display:grid;grid-template-columns:252px minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr);height:100%}
+.app{display:grid;grid-template-columns:280px minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr);height:100%}
 
 /* ---------- sidebar ---------- */
 .side{background:var(--sunk);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;padding-left:env(safe-area-inset-left,0px)}
