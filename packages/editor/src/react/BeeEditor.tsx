@@ -262,7 +262,7 @@ function SelectionBubble({
           {btn(editor.isActive('bold'), t.bold, () => editor.chain().focus().toggleBold().run(), <b>B</b>)}
           {btn(editor.isActive('italic'), t.italic, () => editor.chain().focus().toggleItalic().run(), <i>I</i>)}
           {btn(editor.isActive('strike'), t.strike, () => editor.chain().focus().toggleStrike().run(), <s>S</s>)}
-          {btn(editor.isActive('code'), t.code, () => editor.chain().focus().toggleCode().run(), <code>{'`'}</code>)}
+          {btn(editor.isActive('code'), t.code, () => editor.chain().focus().toggleCode().run(), <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block' }}><path d="M5 4.5 1.5 8 5 11.5M11 4.5l3.5 3.5-3.5 3.5M9.2 3 6.8 13" /></svg>)}
           {btn(editor.isActive('link'), t.link, setLink, <span>↗</span>)}
         </>
       )}

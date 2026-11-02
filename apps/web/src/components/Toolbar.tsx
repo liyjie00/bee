@@ -82,7 +82,7 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
       {btn(t('toolbar.italic'), active('italic'), () => run((c) => c.toggleItalic()), <i>I</i>)}
       {btn(t('toolbar.underline'), active('underline'), () => run((c) => c.toggleUnderline()), <u>U</u>)}
       {btn(t('toolbar.strike'), active('strike'), () => run((c) => c.toggleStrike()), <s>S</s>)}
-      {btn(t('toolbar.code'), active('code'), () => run((c) => c.toggleCode()), <span className="mono">`</span>)}
+      {btn(t('toolbar.code'), active('code'), () => run((c) => c.toggleCode()), <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block' }}><path d="M5 4.5 1.5 8 5 11.5M11 4.5l3.5 3.5-3.5 3.5M9.2 3 6.8 13" /></svg>)}
       <span className="sep" />
       {ib(t('toolbar.link'), 'link', active('link'), link)}
       {ib(t('toolbar.checklist'), 'check', active('taskList'), () => run((c) => c.toggleTaskList()))}
