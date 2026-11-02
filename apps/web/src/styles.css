@@ -90,7 +90,7 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 /* ---------- editor ---------- */
 .page{max-width:760px;margin:0 auto;padding:40px 56px 120px;position:relative}
 article.page{max-width:1140px}
-/* wide tables may spill past the text column up to 24px from the view's right edge */
+/* wide tables may spread past the text column on both sides, up to 24px from the view's edges */
 article.page .bee-prose{--bee-table-bleed:calc(max(0px,(100cqw - 1140px) / 2) + 32px)}
 .toolbar{position:sticky;top:0;z-index:5;display:flex;gap:2px;align-items:center;background:var(--surface);border-bottom:1px solid var(--line);padding:6px 16px;overflow-x:auto;scrollbar-width:none}
 .toolbar::-webkit-scrollbar{display:none}
