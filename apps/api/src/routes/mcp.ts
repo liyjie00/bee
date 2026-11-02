@@ -417,7 +417,7 @@ export const TOOLS: Tool[] = [
         .enum(['elbow', 'straight'])
         .optional()
         .describe(
-          'Connector style: elbow = right-angle lines routed between the shapes, like draw.io (default); straight = direct lines',
+          'Connector style: straight = direct lines (default); elbow = right-angle lines routed between the shapes, like draw.io',
         ),
       nodes: z
         .array(

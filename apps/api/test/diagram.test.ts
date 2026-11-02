@@ -79,6 +79,7 @@ describe('diagramElements', () => {
         { from: 'b', to: 'd' },
         { from: 'a', to: 'd' },
       ],
+      arrows: 'elbow',
     });
     const shapes = els.filter((e) => e.type === 'rectangle');
     for (const arrow of els.filter((e) => e.type === 'arrow')) {
@@ -102,8 +103,8 @@ describe('diagramElements', () => {
     }
   });
 
-  it('draws straight arrows on request', () => {
-    const els = diagramElements({ ...d, arrows: 'straight' });
+  it('draws straight arrows by default', () => {
+    const els = diagramElements(d);
     for (const a of els.filter((e) => e.type === 'arrow')) {
       expect(a.elbowed).toBe(false);
       expect((a.points as unknown[]).length).toBe(2);

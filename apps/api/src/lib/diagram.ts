@@ -29,7 +29,7 @@ export interface Diagram {
   nodes: DiagramNode[];
   edges?: DiagramEdge[];
   direction?: 'down' | 'right';
-  /** 'elbow' (default): right-angle connectors like draw.io; 'straight': direct lines. */
+  /** 'straight' (default): direct lines; 'elbow': right-angle connectors like draw.io. */
   arrows?: 'elbow' | 'straight';
 }
 
@@ -466,7 +466,7 @@ export function diagramElements(
     // Elbows for edges going forward between auto-placed shapes; back edges and pinned shapes
     // keep a straight line, which Excalidraw leaves alone.
     const elbow =
-      (d.arrows ?? 'elbow') === 'elbow' &&
+      d.arrows === 'elbow' &&
       layerOf.get(e.to)! > lf &&
       !pinned.has(e.from) &&
       !pinned.has(e.to);
