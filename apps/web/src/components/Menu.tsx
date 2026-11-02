@@ -11,11 +11,16 @@ export interface MenuItem {
   checked?: boolean;
   onSelect(): void;
 }
-/** A small caption above a group of items. */
+/** A small caption above a group of items; hint sits at its right edge (e.g. a shortcut). */
 export interface MenuCaption {
   caption: string;
+  hint?: string;
 }
-export type MenuEntry = MenuItem | MenuCaption | '-';
+/** A row of big choices, e.g. export formats: label with a greyed hint below. */
+export interface MenuTiles {
+  tiles: { label: string; hint?: string; onSelect(): void }[];
+}
+export type MenuEntry = MenuItem | MenuCaption | MenuTiles | '-';
 
 /** Floating context menu at a viewport point. Closes on outside click or Escape. */
 export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: MenuEntry[]; onClose(): void }) {
@@ -45,6 +50,25 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
           return (
             <div key={i} className="ctx-cap">
               {it.caption}
+              {it.hint && <small className="ctx-hint">{it.hint}</small>}
+            </div>
+          );
+        if ('tiles' in it)
+          return (
+            <div key={i} className="ctx-tiles">
+              {it.tiles.map((tl) => (
+                <button
+                  key={tl.label}
+                  role="menuitem"
+                  onClick={() => {
+                    onClose();
+                    tl.onSelect();
+                  }}
+                >
+                  <b>{tl.label}</b>
+                  {tl.hint && <small>{tl.hint}</small>}
+                </button>
+              ))}
             </div>
           );
         if (it.checked !== undefined) {
