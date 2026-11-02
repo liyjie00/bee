@@ -1,7 +1,8 @@
 **/node_modules
 **/dist
+**/.next
+**/build
+**/data
 .git
 .env
-.env.local
-data
-**/*.log
+*.log

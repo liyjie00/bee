@@ -10,4 +10,8 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
+  {
+    files: ['**/test/**', '**/*.test.ts', '**/*.test.tsx'],
+    rules: { '@typescript-eslint/no-explicit-any': 'off' },
+  },
 );
