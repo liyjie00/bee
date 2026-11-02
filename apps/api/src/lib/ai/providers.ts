@@ -38,7 +38,8 @@ export interface StepResult {
 
 /** One conversation with a model; the session keeps the provider-native message history. */
 export interface ChatSession {
-  step(onText: (delta: string) => void, signal: AbortSignal): Promise<StepResult>;
+  /** onChunk fires for every streamed event, text or not (stall detection) */
+  step(onText: (delta: string) => void, signal: AbortSignal, onChunk?: () => void): Promise<StepResult>;
   addToolResults(results: ToolOutput[]): void;
 }
 
@@ -153,7 +154,7 @@ class AnthropicSession implements ChatSession {
     }));
   }
 
-  async step(onText: (delta: string) => void, signal: AbortSignal): Promise<StepResult> {
+  async step(onText: (delta: string) => void, signal: AbortSignal, onChunk?: () => void): Promise<StepResult> {
     const fallback = FALLBACK_MODELS.test(this.input.model);
     const stream = this.client.beta.messages.stream(
       {
@@ -167,6 +168,7 @@ class AnthropicSession implements ChatSession {
       { signal },
     );
     for await (const event of stream) {
+      onChunk?.();
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta')
         onText(event.delta.text);
     }
@@ -221,7 +223,7 @@ class OpenAICompatSession implements ChatSession {
     }));
   }
 
-  async step(onText: (delta: string) => void, signal: AbortSignal): Promise<StepResult> {
+  async step(onText: (delta: string) => void, signal: AbortSignal, onChunk?: () => void): Promise<StepResult> {
     const stream = await this.client.chat.completions.create(
       { model: this.input.model, messages: this.messages, tools: this.tools, stream: true },
       { signal },
@@ -230,6 +232,7 @@ class OpenAICompatSession implements ChatSession {
     let finish: string | null = null;
     const calls: ToolCall[] = [];
     for await (const chunk of stream) {
+      onChunk?.();
       const choice = chunk.choices[0];
       if (!choice) continue;
       if (choice.delta.content) {

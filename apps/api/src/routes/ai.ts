@@ -276,22 +276,27 @@ export async function aiRoutes(app: FastifyInstance) {
           // Abandon a step whose stream goes quiet, instead of spinning forever.
           const stall = new AbortController();
           let timer = setTimeout(() => stall.abort(), STALL_MS);
+          let chunks = 0;
+          let firstMs: number | null = null;
           const r = await session
             .step(
-              (delta) => {
+              (delta) => send({ type: 'text', delta }),
+              AbortSignal.any([abort.signal, stall.signal]),
+              () => {
+                chunks++;
+                firstMs ??= Date.now() - t0;
                 clearTimeout(timer);
                 timer = setTimeout(() => stall.abort(), STALL_MS);
-                send({ type: 'text', delta });
               },
-              AbortSignal.any([abort.signal, stall.signal]),
             )
             .catch((err: unknown) => {
+              req.log.info({ step, ms: Date.now() - t0, firstMs, chunks }, 'ai chat step failed');
               if (stall.signal.aborted && !abort.signal.aborted)
                 throw Object.assign(new Error('The model stopped responding. Try again, or pick another model.'), { stalled: true });
               throw err;
             })
             .finally(() => clearTimeout(timer));
-          req.log.info({ step, ms: Date.now() - t0, stop: r.stop, tools: r.toolCalls.map((c) => c.name) }, 'ai chat step');
+          req.log.info({ step, ms: Date.now() - t0, firstMs, chunks, stop: r.stop, tools: r.toolCalls.map((c) => c.name) }, 'ai chat step');
           if (r.stop === 'refusal') {
             send({ type: 'error', message: 'The model declined this request.' });
             break;
