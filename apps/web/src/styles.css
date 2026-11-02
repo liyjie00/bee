@@ -10,6 +10,7 @@
   --f-body:"Noto Sans SC",-apple-system,"PingFang SC",system-ui,sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
   --f-serif:"Source Serif 4","Noto Serif SC","Songti SC",Georgia,serif;
+  --logo-ink:#231a05; --logo-sting:#e8a317;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#141613; --surface:#1b1e1a; --sunk:#111310; --line:#2a2e28; --line-strong:#3a4037;
@@ -17,14 +18,14 @@
   --honey:#f2b33a; --honey-ink:#ffd27a; --honey-wash:#3a2c0e; --honey-line:#6b5016;
   --ins:#173a1d; --ins-ink:#8fdc9b; --del:#45201c; --del-ink:#f5a39b;
   --p1:#6aa5f5; --p2:#f08a55; --p3:#a98bf7;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.45); color-scheme:dark}}
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.45); --logo-ink:#e9ece5; --logo-sting:#c98a0b; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#141613; --surface:#1b1e1a; --sunk:#111310; --line:#2a2e28; --line-strong:#3a4037;
   --fg:#e9ece5; --fg-2:#b5bcae; --fg-3:#838b7d;
   --honey:#f2b33a; --honey-ink:#ffd27a; --honey-wash:#3a2c0e; --honey-line:#6b5016;
   --ins:#173a1d; --ins-ink:#8fdc9b; --del:#45201c; --del-ink:#f5a39b;
   --p1:#6aa5f5; --p2:#f08a55; --p3:#a98bf7;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.45); color-scheme:dark}
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.45); --logo-ink:#e9ece5; --logo-sting:#c98a0b; color-scheme:dark}
 
 html,body,#root{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.55;overflow:hidden}

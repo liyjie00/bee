@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/http';
-import { BeeLogo } from '../components/Icon';
+import { BeeLogo } from '../components/Logo';
 import { useSession } from '../state/session';
 import { errMsg } from '../state/toast';
 import { useT } from '../i18n';
@@ -46,9 +46,8 @@ export function LoginPage() {
   return (
     <div className="auth">
       <form className="auth-card" onSubmit={submit}>
-        <h1>
-          <BeeLogo size={30} />
-          bee
+        <h1 aria-label="bee">
+          <BeeLogo height={40} />
         </h1>
         <p style={{ margin: 0, color: 'var(--fg-3)' }}>{mode === 'login' ? t('login.title') : t('login.registerTitle')}</p>
         {mode === 'register' && (

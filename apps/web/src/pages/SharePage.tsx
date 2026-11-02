@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, HttpError } from '../api/http';
 import type { SharedDocDTO } from '../api/types';
-import { BeeLogo } from '../components/Icon';
+import { BeeMark } from '../components/Logo';
 import { useSession } from '../state/session';
 import { DocView } from './DocView';
 import { useT } from '../i18n';
@@ -32,7 +32,7 @@ export function SharePage() {
     return (
       <div className="auth">
         <div className="auth-card" style={{ textAlign: 'center', alignItems: 'center' }}>
-          <BeeLogo size={36} />
+          <BeeMark size={40} />
           <h1 style={{ justifyContent: 'center' }}>{error === 401 ? t('share.needLogin') : t('share.invalid')}</h1>
           <p style={{ margin: 0, color: 'var(--fg-3)' }}>
             {error === 401 ? t('share.needLoginHint') : t('share.invalidHint')}

@@ -4,7 +4,8 @@ import { api } from '../api/http';
 import type { DocumentDTO, DocumentType, FolderDTO } from '../api/types';
 import { errMsg, useToast } from '../state/toast';
 import { useSession, useTree } from '../state/session';
-import { BeeLogo, Icon, docIcon } from './Icon';
+import { Icon, docIcon } from './Icon';
+import { BeeLogo } from './Logo';
 import { Avatar, useMenu, type MenuItem } from './Menu';
 import { useT } from '../i18n';
 import { prefetchProps } from '../lib/doc-cache';
@@ -267,8 +268,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
   return (
     <aside className={'side' + (open ? ' open' : '')} aria-label={t('nav.sidebar')}>
       <div className="brand">
-        <BeeLogo />
-        <b>bee</b>
+        <BeeLogo height={22} />
         <small>{workspace?.name}</small>
       </div>
       <button className="search" onClick={onSearch}>

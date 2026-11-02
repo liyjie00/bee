@@ -16,14 +16,6 @@ export function Icon({ name, size, className, style }: { name: IconName; size?: 
   );
 }
 
-export function BeeLogo({ size = 26 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} aria-hidden="true">
-      <use href="#i-bee" />
-    </svg>
-  );
-}
-
 export function IconSprite() {
   return (
     <svg
