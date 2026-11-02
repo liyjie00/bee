@@ -180,3 +180,21 @@ export interface CollabAuthResponse {
   readOnly: boolean;
   documentType: DocumentType;
 }
+
+/** A personal API token (the secret is only returned once, on creation). */
+export interface ApiTokenDTO {
+  id: string;
+  name: string;
+  /** first characters of the token, e.g. "bee_pat_AbCd" */
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+/** An app authorized through OAuth (e.g. a Claude connector). `id` is the grant id. */
+export interface ConnectedAppDTO {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}

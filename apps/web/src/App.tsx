@@ -6,6 +6,7 @@ import { FolderPage } from './pages/FolderPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { LoginPage } from './pages/LoginPage';
 import { SharePage } from './pages/SharePage';
+import { SettingsPage } from './pages/SettingsPage';
 import { SessionProvider } from './state/session';
 import { ToastProvider } from './state/toast';
 import { I18nProvider } from './i18n';
@@ -30,6 +31,7 @@ export function App() {
                 <Route path="/f/:folderId" element={<FolderPage mode="folder" />} />
                 <Route path="/d/:docId" element={<DocPage />} />
                 <Route path="/d/:docId/history" element={<HistoryPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

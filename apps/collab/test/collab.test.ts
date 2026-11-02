@@ -217,4 +217,67 @@ describe('collab server', () => {
     expect(res.status).toBe(204);
     expect(yUpdateToMarkdown(api.states.get('doc6')!)).toBe('restored\n');
   });
+  const edit = (id: string, body: unknown) =>
+    fetch(`${httpUrl}/internal/documents/${id}/markdown`, {
+      method: 'POST',
+      headers: { 'x-collab-secret': SECRET, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  it('applies Markdown edits to an open document and attributes them', async () => {
+    api.states.set('doc7', markdownToYUpdate('# Plan\n\nfirst\n\nsecond'));
+    const a = connect('doc7', 'editor-a');
+    await waitFor(() => a.isSynced());
+    const live = () => yUpdateToMarkdown(Y.encodeStateAsUpdate(a.document));
+
+    let res = await edit('doc7', { mode: 'str_replace', find: 'second', replace: 'second, edited', authorId: 'user-x' });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { markdown: string }).markdown).toBe('# Plan\n\nfirst\n\nsecond, edited\n');
+    await waitFor(() => live() === '# Plan\n\nfirst\n\nsecond, edited\n');
+
+    res = await edit('doc7', { mode: 'append', markdown: '- item', authorId: 'user-x' });
+    expect(res.status).toBe(200);
+    await waitFor(() => live() === '# Plan\n\nfirst\n\nsecond, edited\n\n- item\n');
+    await waitFor(() => (api.storeAuthors.get('doc7') ?? []).includes('user-x'));
+
+    res = await edit('doc7', { mode: 'str_replace', find: 'nope', replace: 'x' });
+    expect(res.status).toBe(409);
+    res = await edit('doc7', { mode: 'str_replace', find: 'e', replace: 'x' });
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('ambiguous');
+
+    const read = await fetch(`${httpUrl}/internal/documents/doc7/markdown`, { headers: { 'x-collab-secret': SECRET } });
+    expect(await read.json()).toEqual({ markdown: live(), live: true });
+  });
+
+  it('applies Markdown edits to a document nobody has open', async () => {
+    api.states.set('doc8', markdownToYUpdate('old'));
+    const res = await edit('doc8', { mode: 'replace', markdown: '## New\n\nbody' });
+    expect(res.status).toBe(200);
+    expect(yUpdateToMarkdown(api.states.get('doc8')!)).toBe('## New\n\nbody\n');
+    const read = await fetch(`${httpUrl}/internal/documents/doc8/markdown`, { headers: { 'x-collab-secret': SECRET } });
+    expect(await read.json()).toEqual({ markdown: '## New\n\nbody\n', live: false });
+  });
+  it('builds comment anchors for quoted text', async () => {
+    api.states.set('doc9', markdownToYUpdate('# Title\n\nSome **bold** words here.'));
+    const res = await fetch(`${httpUrl}/internal/documents/doc9/anchor`, {
+      method: 'POST',
+      headers: { 'x-collab-secret': SECRET },
+      body: JSON.stringify({ quote: 'bold words' }),
+    });
+    expect(res.status).toBe(200);
+    const { anchor } = (await res.json()) as { anchor: { blockId: string; from: unknown; to: unknown; quote: string } };
+    expect(anchor.blockId).toMatch(/^[A-Za-z0-9_-]{10}$/);
+    expect(anchor.quote).toBe('bold words');
+    const doc = new Y.Doc();
+    Y.applyUpdate(doc, api.states.get('doc9')!);
+    const from = Y.createAbsolutePositionFromRelativePosition(Y.createRelativePositionFromJSON(anchor.from), doc)!;
+    const to = Y.createAbsolutePositionFromRelativePosition(Y.createRelativePositionFromJSON(anchor.to), doc)!;
+    expect(to.index - from.index).toBe('bold words'.length);
+    const missing = await fetch(`${httpUrl}/internal/documents/doc9/anchor`, {
+      method: 'POST',
+      headers: { 'x-collab-secret': SECRET },
+      body: JSON.stringify({ quote: 'absent' }),
+    });
+    expect(missing.status).toBe(409);
+  });
 });

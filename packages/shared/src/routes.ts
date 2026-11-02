@@ -1,6 +1,7 @@
 /**
  * HTTP route contract for apps/api. Everything is JSON unless noted, under /api,
- * authenticated by the `bee_session` cookie (set by login/register).
+ * authenticated by the `bee_session` cookie (set by login/register), or by
+ * `Authorization: Bearer <token>` (personal API token or OAuth access token).
  * Errors: `ApiError` with status 400 (validation), 401 (not signed in),
  * 403 (no access), 404 (missing / no read access), 409 (conflict).
  *
@@ -9,10 +10,12 @@
  * its versions and comments.
  */
 import type {
+  ApiTokenDTO,
   BlockLinkDTO,
   CommentAnchor,
   CommentDTO,
   CommentThreadDTO,
+  ConnectedAppDTO,
   DocumentDTO,
   DocumentType,
   FolderDTO,
@@ -150,6 +153,29 @@ export interface UpdateDocumentBody {
 /** POST /api/documents/:id/restore → { document } (from trash) */
 /** POST /api/documents/:id/duplicate → { document } */
 /** GET /api/documents/:id/export.md → text/markdown */
+/** GET /api/documents/:id/markdown → live content as Markdown (docs only) */
+export interface MarkdownResponse {
+  documentId: string;
+  title: string;
+  markdown: string;
+}
+/**
+ * POST /api/documents/:id/markdown → MarkdownEditResponse (editor role; docs only).
+ * Applied through the collab server as ordinary Yjs edits, so open editors update live.
+ * replace: the document becomes `markdown` (unchanged blocks, their ids and comments are kept);
+ * append: `markdown` is added at the end;
+ * str_replace: `find` (exact text of the current Markdown) becomes `replace`; 409 when it does
+ * not occur, or occurs more than once without `replaceAll`.
+ */
+export type MarkdownEditBody =
+  | { mode: 'replace' | 'append'; markdown: string }
+  | { mode: 'str_replace'; find: string; replace: string; replaceAll?: boolean };
+export interface MarkdownEditResponse extends MarkdownResponse {
+  kept: number;
+  removed: number;
+  inserted: number;
+  occurrences?: number;
+}
 /** GET /api/documents/:id/blocks/:blockId → BlockLinkDTO */
 export type BlockLinkResponse = BlockLinkDTO;
 
@@ -262,6 +288,33 @@ export interface ActivityItem {
 export interface ActivityResponse {
   items: ActivityItem[];
 }
+
+// ---------- API tokens (browser session only) ----------
+/** GET /api/tokens → { tokens } */
+export interface TokensResponse {
+  tokens: ApiTokenDTO[];
+}
+/** POST /api/tokens { name } → { token, secret } (secret is shown once) ; DELETE /api/tokens/:id → Ok */
+export interface CreateTokenBody {
+  name: string;
+}
+export interface CreateTokenResponse {
+  token: ApiTokenDTO;
+  secret: string;
+}
+/** GET /api/connected-apps → { apps } ; DELETE /api/connected-apps/:id → Ok (revokes the grant) */
+export interface ConnectedAppsResponse {
+  apps: ConnectedAppDTO[];
+}
+
+// ---------- MCP and OAuth (outside /api) ----------
+/**
+ * POST /mcp  MCP Streamable HTTP endpoint (stateless, JSON responses), Authorization: Bearer
+ *            <personal token | OAuth access token>; 401 carries WWW-Authenticate resource_metadata.
+ * GET  /.well-known/oauth-protected-resource[/mcp], /.well-known/oauth-authorization-server
+ * POST /oauth/register (RFC 7591), GET|POST /oauth/authorize (consent page, PKCE S256),
+ * POST /oauth/token (authorization_code | refresh_token), POST /oauth/revoke
+ */
 
 // ---------- uploads ----------
 /** POST /api/documents/:id/uploads (multipart, field "file") → { url } ; GET /api/uploads/:id (authorized by doc) */

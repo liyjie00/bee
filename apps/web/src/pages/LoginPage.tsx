@@ -18,6 +18,12 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const next = params.get('next') || '/';
+  // OAuth consent pages are served by the api, outside the SPA, so they need a full page load.
+  const external = next.startsWith('/oauth/');
+  if (session && external) {
+    window.location.replace(next);
+    return null;
+  }
   if (session) return <Navigate to={next} replace />;
 
   async function submit(e: FormEvent) {
@@ -27,6 +33,7 @@ export function LoginPage() {
     setBusy(true);
     try {
       const s = mode === 'login' ? await api.login(email, password) : await api.register(name.trim() || email.split('@')[0]!, email, password);
+      if (external) return window.location.replace(next);
       setSession(s);
       nav(next, { replace: true });
     } catch (err) {

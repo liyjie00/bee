@@ -5,6 +5,7 @@ import { activity, documentViews, documents, type Db } from '@bee/db';
 import { can, type ActivityItem, type DocumentType } from '@bee/shared';
 import { docAccess, requireDocRole, type DocRow } from '../lib/access.js';
 import { logActivity } from '../lib/activity.js';
+import { CollabClient } from '../lib/collab.js';
 import { deriveCaches, markdownToYUpdate, yUpdateToMarkdown } from '../lib/content.js';
 import { badRequest, forbidden, notFound } from '../lib/errors.js';
 import { documentDTO, loadUserRefs, refOr } from '../lib/dto.js';
@@ -22,6 +23,15 @@ const createBody = z.object({
   type: z.enum(['doc', 'whiteboard', 'sheet']).optional(),
   markdown: z.string().max(5_000_000).optional(),
 });
+const markdownEditBody = z.discriminatedUnion('mode', [
+  z.object({ mode: z.enum(['replace', 'append']), markdown: z.string().max(5_000_000) }),
+  z.object({
+    mode: z.literal('str_replace'),
+    find: z.string().min(1).max(1_000_000),
+    replace: z.string().max(1_000_000),
+    replaceAll: z.boolean().optional(),
+  }),
+]);
 const updateBody = z.object({
   title: z.string().max(500).optional(),
   icon: z.string().max(64).nullable().optional(),
@@ -86,6 +96,7 @@ export async function insertDocument(
 
 export async function documentRoutes(app: FastifyInstance) {
   const { db } = app;
+  const collab = new CollabClient(app.config);
 
   const dto = async (doc: DocRow, role: Parameters<typeof documentDTO>[1]) => {
     const refs = await loadUserRefs(db, [doc.ownerId, doc.lastEditedById]);
@@ -277,6 +288,32 @@ export async function documentRoutes(app: FastifyInstance) {
         `attachment; filename*=UTF-8''${encodeURIComponent(filename)}.md`,
       )
       .send(body);
+  });
+
+  app.get('/documents/:id/markdown', async (req) => {
+    const { id } = parse(idParams, req.params);
+    const a = await docAccess(db, {
+      userId: req.user?.id ?? null,
+      documentId: id,
+      shareToken: req.shareToken,
+    });
+    if (a.doc.type !== 'doc') throw badRequest('Only docs have Markdown content');
+    return { documentId: id, title: a.doc.title, markdown: await collab.readMarkdown(id) };
+  });
+
+  app.post('/documents/:id/markdown', async (req) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    const body = parse(markdownEditBody, req.body);
+    const a = await requireDocRole(
+      db,
+      { userId: user.id, documentId: id, shareToken: req.shareToken },
+      can.edit,
+      'You cannot edit this document',
+    );
+    if (a.doc.type !== 'doc') throw badRequest('Only docs can be edited as Markdown');
+    const r = await collab.editMarkdown(id, body, user.id);
+    return { documentId: id, title: a.doc.title, ...r };
   });
 
   app.get('/documents/:id/blocks/:blockId', async (req) => {

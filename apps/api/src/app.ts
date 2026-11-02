@@ -16,6 +16,10 @@ import { commentRoutes } from './routes/comments.js';
 import { sharingRoutes } from './routes/sharing.js';
 import { uploadRoutes } from './routes/uploads.js';
 import { internalRoutes } from './routes/internal.js';
+import { tokenRoutes } from './routes/tokens.js';
+import { oauthRoutes } from './routes/oauth.js';
+import { mcpRoutes } from './routes/mcp.js';
+import { bearerFrom, userForBearer } from './lib/tokens.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -24,6 +28,8 @@ declare module 'fastify' {
   }
   interface FastifyRequest {
     user: UserRow | null;
+    /** how `user` was authenticated */
+    authKind: 'session' | 'token' | null;
     /** share token from x-share-token header or ?share= */
     shareToken: string | null;
   }
@@ -42,6 +48,7 @@ export async function buildApp(opts: {
   app.decorate('db', opts.db);
   app.decorate('config', opts.config);
   app.decorateRequest('user', null);
+  app.decorateRequest('authKind', null);
   app.decorateRequest('shareToken', null);
 
   await app.register(cookie, { secret: opts.config.sessionSecret });
@@ -53,6 +60,37 @@ export async function buildApp(opts: {
     { parseAs: 'buffer', bodyLimit: 50 * 1024 * 1024 },
     (_req, body, done) => done(null, body),
   );
+  // OAuth token / consent forms.
+  app.addContentTypeParser(
+    'application/x-www-form-urlencoded',
+    { parseAs: 'string', bodyLimit: 64 * 1024 },
+    (_req, body, done) => done(null, Object.fromEntries(new URLSearchParams(String(body)))),
+  );
+
+  // MCP and OAuth endpoints use bearer tokens or no credentials at all, so any origin
+  // may call them (browser-based MCP clients).
+  const isTokenEndpoint = (url: string) =>
+    url.startsWith('/mcp') ||
+    url.startsWith('/.well-known/') ||
+    url.startsWith('/oauth/token') ||
+    url.startsWith('/oauth/register') ||
+    url.startsWith('/oauth/revoke');
+  app.addHook('onRequest', async (req, reply) => {
+    if (!isTokenEndpoint(req.url)) return;
+    reply.header('access-control-allow-origin', '*');
+    reply.header('access-control-expose-headers', 'www-authenticate, mcp-session-id');
+    if (req.method === 'OPTIONS') {
+      reply
+        .header('access-control-allow-methods', 'GET, POST, DELETE, OPTIONS')
+        .header(
+          'access-control-allow-headers',
+          'authorization, content-type, mcp-protocol-version, mcp-session-id',
+        )
+        .header('access-control-max-age', '86400')
+        .status(204)
+        .send();
+    }
+  });
 
   // CSRF: browsers always send Origin on cross-site mutating requests.
   const allowedOrigins = new Set([
@@ -60,7 +98,13 @@ export async function buildApp(opts: {
     ...opts.config.allowedOrigins,
   ]);
   app.addHook('onRequest', async (req) => {
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.url.startsWith('/api/internal/'))
+    if (
+      ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ||
+      req.url.startsWith('/api/internal/') ||
+      isTokenEndpoint(req.url) ||
+      // Browsers cannot attach a bearer token cross-site without a CORS preflight.
+      bearerFrom(req.headers.authorization)
+    )
       return;
     const origin = req.headers.origin;
     if (origin && !allowedOrigins.has(origin) && process.env.NODE_ENV === 'production') {
@@ -73,6 +117,21 @@ export async function buildApp(opts: {
     const q = (req.query as Record<string, unknown> | undefined)?.share;
     req.shareToken = (typeof header === 'string' && header) || (typeof q === 'string' && q) || null;
     if (req.url.startsWith('/api/internal/')) return;
+    const bearer = bearerFrom(req.headers.authorization);
+    if (bearer) {
+      // An invalid bearer token never falls back to the cookie.
+      const hit = await userForBearer(app.db, bearer);
+      // /mcp answers with its own 401 that points clients at the OAuth metadata.
+      if (!hit && req.url.startsWith('/mcp')) return;
+      if (!hit) {
+        reply.header('www-authenticate', 'Bearer error="invalid_token"');
+        throw new HttpError(401, 'invalid_token', 'Invalid or expired token');
+      }
+      req.user = hit.user;
+      req.authKind = 'token';
+      return;
+    }
+    if (req.url.startsWith('/mcp')) return;
     const token = req.cookies[SESSION_COOKIE];
     if (!token) return;
     const s = await userForSession(app.db, token);
@@ -81,6 +140,7 @@ export async function buildApp(opts: {
       return;
     }
     req.user = s.user;
+    req.authKind = 'session';
     if (s.refreshedExpiry) setSessionCookie(reply, app.config, token, s.refreshedExpiry);
   });
 
@@ -113,6 +173,8 @@ export async function buildApp(opts: {
   );
 
   app.get('/api/health', async () => ({ ok: true }));
+  await app.register(oauthRoutes);
+  await app.register(mcpRoutes);
 
   await app.register(
     async (api) => {
@@ -125,6 +187,7 @@ export async function buildApp(opts: {
       await api.register(sharingRoutes);
       await api.register(uploadRoutes);
       await api.register(internalRoutes);
+      await api.register(tokenRoutes);
     },
     { prefix: '/api' },
   );

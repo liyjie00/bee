@@ -17,7 +17,7 @@ private / member / public-link sharing.
 
 ## Ports
 
-Public: **7070** (Caddy, config inline in `docker-compose.yml`) → `/api/*` api:8421, `/collab*` collab:1234, `/*` web:8423.
+Public: **7070** (Caddy, config inline in `docker-compose.yml`) → `/api/*`, `/mcp`, `/oauth/*`, `/.well-known/oauth-*` api:8421, `/collab*` collab:1234, `/*` web:8423.
 Dev Postgres: `localhost:54329`.
 
 ## Quick start (self-host)
@@ -73,6 +73,25 @@ Back them up with e.g. `docker compose exec postgres pg_dump -U bee bee > backup
 | `GUEST_COMMENT_RATE_LIMIT` | `5` | Guest (no sign-in) comments per IP per minute |
 | `GUEST_COMMENT_HOURLY_LIMIT` | `60` | Guest comments per share link per hour |
 | `BEE_PORT` | `7070` | Host port of the proxy |
+
+## Claude and other MCP clients
+
+Bee is a remote MCP server at `<BEE_PUBLIC_URL>/mcp` (Streamable HTTP). Claude can list
+folders and documents, search, read documents as Markdown, create and edit them, rename and
+move them, and read, add, reply to and resolve comments, always with the signed-in user's
+permissions. Edits go through the collab server as ordinary Yjs changes, so people who have
+the document open see them live; only the top-level blocks whose Markdown changed are
+replaced, so other paragraphs keep their comments and block links.
+
+- **Claude (claude.ai / desktop / mobile):** Settings → Connectors → Add custom connector,
+  URL `https://bee.zippyzoo.dev/mcp`. Claude registers itself (OAuth dynamic client
+  registration) and opens Bee's sign-in and consent page once. Connected apps can be revoked
+  in Bee under Settings.
+- **Claude Code / scripts:** create a personal API token in Bee under Settings, then
+  `claude mcp add --transport http bee https://bee.zippyzoo.dev/mcp --header "Authorization: Bearer <token>"`.
+  The same token works for the REST API (`Authorization: Bearer`).
+
+`BEE_PUBLIC_URL` must be the public origin: it is the OAuth issuer and the MCP resource.
 
 ## License
 

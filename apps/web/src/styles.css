@@ -415,3 +415,22 @@ input,textarea,select{font:inherit;color:var(--fg)}
 .search-box .res button:hover,.search-box .res button.hl{background:var(--sunk)}
 .search-box .res small{color:var(--fg-3);margin-left:auto;font-size:12px}
 .search{cursor:pointer;width:calc(100% - 24px);text-align:left}
+
+/* settings */
+.settings h1{font-family:var(--f-display);font-size:28px;margin:0 0 24px}
+.settings section{border-top:1px solid var(--line);padding:20px 0 8px}
+.settings h2{font-size:16px;margin:0 0 6px}
+.settings .lead{color:var(--fg-3);font-size:13.5px;margin:0 0 10px}
+.settings .lbl{display:block;font-size:12.5px;color:var(--fg-2);margin-bottom:6px}
+.copy-field{display:flex;gap:8px;align-items:center}
+.copy-field code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--sunk);font-family:var(--f-mono);font-size:12.5px}
+.token-form{display:flex;gap:8px;margin:4px 0 12px}
+.token-form .field-in{flex:1;min-width:0}
+.settings .secret{border:1px solid var(--honey-line);background:var(--honey-wash);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.settings .secret p{margin:0 0 8px;font-size:13px}
+.settings .rows{list-style:none;margin:0;padding:0}
+.settings .rows li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.settings .rows li:last-child{border-bottom:0}
+.settings .rows b{display:block;font-weight:500;font-size:14px}
+.settings .rows span{font-size:12px;color:var(--fg-3)}
+@media (max-width:640px){.settings.page{padding:24px 16px 80px}.copy-field{flex-direction:column;align-items:stretch}}

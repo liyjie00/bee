@@ -2,7 +2,10 @@
 export type * from '@bee/shared';
 export type { MeResponse as Session } from '@bee/shared';
 import type {
+  ApiTokenDTO,
   CommentAnchor,
+  ConnectedAppDTO,
+  CreateTokenResponse,
   CommentThreadDTO,
   DocumentDTO,
   DocumentType,
@@ -86,4 +89,11 @@ export interface BeeApi {
   resolveShare(token: string): Promise<SharedDocDTO>;
 
   activity(docId: string): Promise<ActivityDTO[]>;
+
+  tokens(): Promise<ApiTokenDTO[]>;
+  /** The secret is only returned here, once. */
+  createToken(name: string): Promise<CreateTokenResponse>;
+  deleteToken(id: string): Promise<void>;
+  connectedApps(): Promise<ConnectedAppDTO[]>;
+  revokeApp(id: string): Promise<void>;
 }

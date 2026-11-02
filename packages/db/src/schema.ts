@@ -327,3 +327,54 @@ export const documentViews = pgTable(
     index('views_user_idx').on(t.userId, t.viewedAt),
   ],
 );
+
+/** OAuth clients registered through dynamic client registration (e.g. Claude connectors). */
+export const oauthClients = pgTable('oauth_clients', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  redirectUris: jsonb('redirect_uris').$type<string[]>().notNull(),
+  createdAt: createdAt(),
+});
+
+/** Short-lived OAuth authorization codes (PKCE S256). */
+export const oauthCodes = pgTable('oauth_codes', {
+  /** sha256 of the code */
+  id: text('id').primaryKey(),
+  clientId: text('client_id')
+    .notNull()
+    .references(() => oauthClients.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  redirectUri: text('redirect_uri').notNull(),
+  codeChallenge: text('code_challenge').notNull(),
+  resource: text('resource'),
+  expiresAt: ts('expires_at').notNull(),
+  createdAt: createdAt(),
+});
+
+/**
+ * Bearer tokens: personal API tokens created in Settings, and OAuth access/refresh
+ * tokens. Tokens of one OAuth authorization share a `grantId`, so revoking a
+ * connected app removes all of them.
+ */
+export const apiTokens = pgTable(
+  'api_tokens',
+  {
+    /** sha256 of the token */
+    id: text('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'personal' | 'oauth_access' | 'oauth_refresh'>().notNull(),
+    name: text('name').notNull(),
+    /** first characters of the token, shown in Settings */
+    prefix: text('prefix').notNull(),
+    clientId: text('client_id').references(() => oauthClients.id, { onDelete: 'cascade' }),
+    grantId: uuid('grant_id'),
+    expiresAt: ts('expires_at'),
+    lastUsedAt: ts('last_used_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('api_tokens_user_idx').on(t.userId), index('api_tokens_grant_idx').on(t.grantId)],
+);

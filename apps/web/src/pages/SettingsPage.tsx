@@ -1,0 +1,148 @@
+import { useEffect, useState, type FormEvent } from 'react';
+import { api } from '../api/http';
+import type { ApiTokenDTO, ConnectedAppDTO } from '../api/types';
+import { Icon } from '../components/Icon';
+import { TopBar } from '../components/TopBar';
+import { copyText, errMsg, useToast } from '../state/toast';
+import { useAgo, useT } from '../i18n';
+
+function CopyField({ value }: { value: string }) {
+  const t = useT();
+  const toast = useToast();
+  return (
+    <div className="copy-field">
+      <code>{value}</code>
+      <button className="btn" onClick={async () => toast((await copyText(value)) ? t('settings.copied') : t('common.copyFailed'))}>
+        <Icon name="copy" />
+        {t('settings.copy')}
+      </button>
+    </div>
+  );
+}
+
+/** Account settings: connecting Claude (MCP), connected OAuth apps and personal API tokens. */
+export function SettingsPage() {
+  const t = useT();
+  const ago = useAgo();
+  const toast = useToast();
+  const [tokens, setTokens] = useState<ApiTokenDTO[] | null>(null);
+  const [apps, setApps] = useState<ConnectedAppDTO[] | null>(null);
+  const [name, setName] = useState('');
+  const [secret, setSecret] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const mcpUrl = `${window.location.origin}/mcp`;
+
+  const load = () => {
+    api.tokens().then(setTokens, (e) => toast(errMsg(e)));
+    api.connectedApps().then(setApps, (e) => toast(errMsg(e)));
+  };
+  useEffect(load, []);
+
+  async function create(e: FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setBusy(true);
+    try {
+      const r = await api.createToken(name.trim());
+      setSecret(r.secret);
+      setName('');
+      load();
+    } catch (err) {
+      toast(errMsg(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const used = (iso: string | null) => (iso ? t('settings.lastUsed', { when: ago(iso) }) : t('settings.neverUsed'));
+
+  return (
+    <main className="main">
+      <TopBar crumbs={[{ label: t('settings.title') }]} />
+      <div className="page settings">
+        <h1>{t('settings.title')}</h1>
+
+        <section>
+          <h2>{t('settings.claudeTitle')}</h2>
+          <p className="lead">{t('settings.claudeLead')}</p>
+          <label className="lbl">{t('settings.mcpUrl')}</label>
+          <CopyField value={mcpUrl} />
+          <p className="lead" style={{ marginTop: 14 }}>{t('settings.claudeCode')}</p>
+          <CopyField value={`claude mcp add --transport http bee ${mcpUrl} --header "Authorization: Bearer <token>"`} />
+        </section>
+
+        <section>
+          <h2>{t('settings.appsTitle')}</h2>
+          {apps && apps.length === 0 && <p className="lead">{t('settings.appsEmpty')}</p>}
+          <ul className="rows">
+            {apps?.map((a) => (
+              <li key={a.id}>
+                <div>
+                  <b>{a.name}</b>
+                  <span>
+                    {t('settings.connected', { when: ago(a.createdAt) })} · {used(a.lastUsedAt)}
+                  </span>
+                </div>
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    await api.revokeApp(a.id).then(() => toast(t('settings.revoked')), (e) => toast(errMsg(e)));
+                    load();
+                  }}
+                >
+                  {t('settings.revoke')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section>
+          <h2>{t('settings.tokensTitle')}</h2>
+          <p className="lead">{t('settings.tokensLead')}</p>
+          <form className="token-form" onSubmit={create}>
+            <input
+              className="field-in"
+              aria-label={t('settings.tokenName')}
+              placeholder={t('settings.tokenNamePlaceholder')}
+              value={name}
+              maxLength={100}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <button className="btn primary" type="submit" disabled={busy || !name.trim()}>
+              {t('settings.createToken')}
+            </button>
+          </form>
+          {secret && (
+            <div className="secret" role="status">
+              <p>{t('settings.tokenCreated')}</p>
+              <CopyField value={secret} />
+            </div>
+          )}
+          {tokens && tokens.length === 0 && <p className="lead">{t('settings.tokensEmpty')}</p>}
+          <ul className="rows">
+            {tokens?.map((k) => (
+              <li key={k.id}>
+                <div>
+                  <b>{k.name}</b>
+                  <span>
+                    <code>{k.prefix}…</code> · {t('settings.created', { when: ago(k.createdAt) })} · {used(k.lastUsedAt)}
+                  </span>
+                </div>
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    await api.deleteToken(k.id).then(() => toast(t('settings.revoked')), (e) => toast(errMsg(e)));
+                    load();
+                  }}
+                >
+                  {t('settings.revoke')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    </main>
+  );
+}

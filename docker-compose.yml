@@ -1,5 +1,6 @@
 # Bee self-host stack. Only the proxy is exposed publicly (port 7070).
 #   /api/*    -> api    (Fastify, :8421)
+#   /mcp, /oauth/*, /.well-known/oauth-* -> api (MCP server and its OAuth)
 #   /collab*  -> collab (Hocuspocus WebSocket, :1234)
 #   /*        -> web    (:8423)
 # Local dev: `docker compose up -d postgres` and run apps with `pnpm dev`.
@@ -96,6 +97,10 @@ configs:
       	}
 
       	handle /api/* {
+      		reverse_proxy api:8421
+      	}
+      	@mcp path /mcp /mcp/* /oauth/* /.well-known/oauth-*
+      	handle @mcp {
       		reverse_proxy api:8421
       	}
       	handle /collab* {

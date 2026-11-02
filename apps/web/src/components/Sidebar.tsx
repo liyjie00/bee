@@ -286,6 +286,9 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
             <div style={{ color: 'var(--fg)', fontSize: 13 }}>{session.user.name}</div>
             <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{session.user.email}</div>
           </div>
+          <button className="ico" title={t('nav.settings')} aria-label={t('nav.settings')} onClick={() => nav('/settings')}>
+            <Icon name="gear" />
+          </button>
           <button
             className="ico"
             title={t('nav.signOut')}

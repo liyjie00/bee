@@ -12,6 +12,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': { target: api, changeOrigin: true },
+      '/mcp': { target: api, changeOrigin: true },
+      '/oauth': { target: api, changeOrigin: true },
+      '/.well-known/oauth-': { target: api, changeOrigin: true },
       '/collab': { target: collab, ws: true, changeOrigin: true },
     },
   },

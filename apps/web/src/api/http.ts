@@ -12,6 +12,8 @@ import type {
   VersionResponse,
   VersionsResponse,
   BlockLinkResponse,
+  ConnectedAppsResponse,
+  TokensResponse,
 } from './types';
 
 export class HttpError extends Error {
@@ -167,4 +169,14 @@ export const api: BeeApi = {
   resolveShare: (token) => req('GET', `/share/${enc(token)}`),
 
   activity: async (id) => (await req<ActivityResponse>('GET', `/documents/${id}/activity`)).items,
+
+  tokens: async () => (await req<TokensResponse>('GET', '/tokens')).tokens,
+  createToken: (name) => req('POST', '/tokens', { name }),
+  deleteToken: async (id) => {
+    await req('DELETE', `/tokens/${id}`);
+  },
+  connectedApps: async () => (await req<ConnectedAppsResponse>('GET', '/connected-apps')).apps,
+  revokeApp: async (id) => {
+    await req('DELETE', `/connected-apps/${id}`);
+  },
 };
