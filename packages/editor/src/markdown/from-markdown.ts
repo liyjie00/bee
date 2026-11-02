@@ -17,6 +17,11 @@ function whiteboardAttrs(id: string, options: string): Record<string, unknown> {
   return attrs;
 }
 
+/** `<!-- bee:sheet <id> name="…" -->`, followed by the sheet's values as a Markdown table (ignored on import). */
+const SHEET_COMMENT = /^<!--\s*bee:sheet\s+([A-Za-z0-9_-]+)(?:\s[^]*?)?-->\s*$/;
+const sheetMark = (token: Token) =>
+  token.type === 'html' ? (SHEET_COMMENT.exec((token as Tokens.HTML).text.trim())?.[1] ?? null) : null;
+
 const columnsMark = (token: Token) =>
   token.type === 'html' ? (COLUMNS_MARK.exec((token as Tokens.HTML).text.trim())?.[1] ?? null) : null;
 
@@ -178,6 +183,15 @@ function block(token: Token, inList: boolean): JSONNode[] {
 function blocks(tokens: Token[] = [], inList = false): JSONNode[] {
   const out: JSONNode[] = [];
   for (let i = 0; i < tokens.length; i++) {
+    const sheetId = sheetMark(tokens[i]!);
+    if (sheetId) {
+      // The table after the marker is a read-only rendering of the sheet's values; the data stays in the doc.
+      let j = i + 1;
+      while (tokens[j]?.type === 'space') j++;
+      if (tokens[j]?.type === 'table') i = j;
+      out.push({ type: 'sheet', attrs: { sheetId } });
+      continue;
+    }
     if (columnsMark(tokens[i]!) !== 'columns') {
       out.push(...block(tokens[i]!, inList));
       continue;

@@ -6,8 +6,8 @@ import { editorToMarkdown } from '../src/react/markdown-paste.js';
 import '../src/styles.css';
 import './playground.css';
 
-const COLLAB_URL = 'ws://127.0.0.1:18234/collab';
 const params = new URLSearchParams(location.search);
+const COLLAB_URL = params.get('collab') ?? 'ws://127.0.0.1:18234/collab';
 const DOC = params.get('doc') ?? 'playground-doc';
 
 interface Thread {

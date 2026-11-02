@@ -4,12 +4,13 @@ import { prosemirrorJSONToYDoc, yXmlFragmentToProsemirrorJSON } from '@tiptap/y-
 import { generateUniqueIds } from '@tiptap/extension-unique-id';
 import { schemaExtensions } from '../schema/index.js';
 import { BLOCK_ID_ATTR } from '../schema/block-id.js';
+import { readSheet, sheetTextGrid } from '../schema/sheet-data.js';
 import { jsonToMarkdown } from './to-markdown.js';
 import { markdownToJSON } from './from-markdown.js';
 import type { JSONNode } from './types.js';
 
 export type { JSONNode, JSONMark } from './types.js';
-export { jsonToMarkdown } from './to-markdown.js';
+export { jsonToMarkdown, type MarkdownOptions } from './to-markdown.js';
 export { markdownToJSON } from './from-markdown.js';
 
 /** Name of the Y.XmlFragment holding rich text (Tiptap Collaboration default). */
@@ -34,7 +35,12 @@ export function yUpdateToJSON(update: Uint8Array, field = RICH_TEXT_FIELD): JSON
 }
 
 export function yDocToMarkdown(ydoc: Y.Doc, field = RICH_TEXT_FIELD): string {
-  return jsonToMarkdown(yDocToJSON(ydoc, field));
+  return jsonToMarkdown(yDocToJSON(ydoc, field), {
+    sheet: (id) => {
+      const sheet = readSheet(ydoc, id);
+      return sheet ? { name: sheet.name, rows: sheetTextGrid(sheet) } : null;
+    },
+  });
 }
 
 export function yUpdateToMarkdown(update: Uint8Array, field = RICH_TEXT_FIELD): string {

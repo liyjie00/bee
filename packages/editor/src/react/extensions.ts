@@ -8,6 +8,7 @@ import { schemaExtensions } from '../schema/index.js';
 import { BLOCK_ID_ATTR } from '../schema/block-id.js';
 import { CodeBlockView } from './CodeBlockView.js';
 import { WhiteboardView } from './WhiteboardView.js';
+import { SheetView } from './sheet/SheetView.js';
 import { CommentHighlights } from './comments.js';
 import { SlashCommand, type SlashHost } from './SlashMenu.js';
 import { ImageUpload, type UploadImage } from './image-upload.js';
@@ -54,6 +55,18 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
             // Excalidraw owns all input inside the board; ProseMirror must not handle it.
             stopEvent: ({ event }) =>
               !!(event.target as HTMLElement | null)?.closest?.('.bee-embed-body, .bee-embed-tools, .bee-embed-resize'),
+            ignoreMutation: () => true,
+          }),
+      });
+    }
+    if (ext.name === 'sheet') {
+      return ext.extend({
+        // The document's Y.Doc, where the sheet's cells live (see sheet/commands.ts sheetDoc).
+        addStorage: () => ({ ydoc: opts.ydoc ?? null }),
+        addNodeView: () =>
+          ReactNodeViewRenderer(SheetView, {
+            // Univer owns all input inside the grid and its menus; ProseMirror must not handle it.
+            stopEvent: ({ event }) => !!(event.target as HTMLElement | null)?.closest?.('.bee-ss-editor, .bee-ss-header input, .bee-ss-tools, .bee-ss-name'),
             ignoreMutation: () => true,
           }),
       });

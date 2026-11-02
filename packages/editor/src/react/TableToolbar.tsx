@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CELL_COLORS, type CellAlign, type CellColor } from '../schema/table-style.js';
 import { selectedTable, sortTableByColumn } from './table-sheet.js';
 import type { Messages } from './i18n.js';
+import { convertTableToSheet, sheetDoc } from './sheet/commands.js';
 
 type Menu = 'row' | 'col' | 'bg' | 'fg' | null;
 
@@ -147,6 +148,12 @@ export function TableToolbar({ editor, messages: t }: { editor: Editor; messages
       {button(t.alignCenter, () => setAlign('center'), <AlignIcon kind="center" />, { active: align === 'center' })}
       {button(t.alignRight, () => setAlign('right'), <AlignIcon kind="right" />, { active: align === 'right' })}
       <span className="bee-bubble-sep" />
+      {sheetDoc(editor) &&
+        button(t.tableToSheet, () => {
+          setPlace(null);
+          convertTableToSheet(editor, place.tablePos, t.sheetBaseName);
+        }, t.tableToSheet, { active: true })}
+      {sheetDoc(editor) && <span className="bee-bubble-sep" />}
       {button(t.tableDelete, () => run((c) => c.deleteTable()), <TrashIcon />, { danger: true })}
     </div>
   );

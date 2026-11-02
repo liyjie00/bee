@@ -13,6 +13,8 @@ COPY packages/shared packages/shared
 COPY packages/editor packages/editor
 COPY apps/web apps/web
 # Builds @bee/shared and @bee/editor first (workspace deps), then the Vite bundle.
+# Univer (spreadsheets) pushed the bundle past Node's default ~2 GB heap.
+ENV NODE_OPTIONS=--max-old-space-size=6144
 RUN pnpm --filter "@bee/web..." run build
 
 # Static SPA served by Caddy; the public proxy in deploy/Caddyfile routes / here.

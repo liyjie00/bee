@@ -11,6 +11,7 @@ import { blockAtCoords, blockLink, scrollToBlock } from './blocks.js';
 import { insertImages, type UploadImage } from './image-upload.js';
 import { MessagesContext, resolveMessages, type Locale, type Messages } from './i18n.js';
 import { BeeEditorContext, type BeeEditorContextValue } from './context.js';
+import { SheetDocContext } from './sheet/SheetView.js';
 import type { SlashHost } from './SlashMenu.js';
 import { TableToolbar } from './TableToolbar.js';
 import { LinkPopover, openLinkEditor, type LinkHost, type LinkPopoverState, type LinkTarget } from './links.js';
@@ -252,6 +253,7 @@ function EditorInner(props: InnerProps) {
 
   return (
     <BeeEditorContext.Provider value={ctx}>
+      <SheetDocContext.Provider value={conn.ydoc}>
       <div className={`bee-editor${ready ? '' : ' is-loading'} ${props.className ?? ''}`} aria-busy={!ready}>
         {editor && <SelectionBubble editor={editor} editable={editable} canComment={canComment} messages={t} onComment={props.onCreateComment} />}
         {editor && editable && <TableToolbar editor={editor} messages={t} />}
@@ -269,6 +271,7 @@ function EditorInner(props: InnerProps) {
         <EditorContent editor={editor} className="bee-editor-content" />
         <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={onFile} />
       </div>
+      </SheetDocContext.Provider>
     </BeeEditorContext.Provider>
   );
 }

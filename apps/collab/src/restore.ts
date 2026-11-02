@@ -1,8 +1,8 @@
 import * as Y from 'yjs';
 
-/** Root types Bee uses: rich text fragment, and the whiteboard element/file maps. */
+/** Root types Bee uses: rich text fragment, the whiteboard element/file maps, and spreadsheet data. */
 const FRAGMENTS = ['default'];
-const MAPS = ['elements', 'files'];
+const MAPS = ['elements', 'files', 'sheets'];
 
 /**
  * Replaces the content of `target` with the content of `snapshot`, as ordinary Yjs operations so

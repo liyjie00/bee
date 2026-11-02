@@ -13,6 +13,7 @@ export const BLOCK_TYPES = [
   'image',
   'table',
   'whiteboard',
+  'sheet',
   'horizontalRule',
 ];
 
