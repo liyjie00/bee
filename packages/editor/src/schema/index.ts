@@ -41,7 +41,8 @@ export function schemaExtensions({ collaborative = true }: SchemaOptions = {}): 
     TaskItem.configure({ nested: true }),
     TaskListShortcuts,
     // cellMinWidth also sets the table's min-width, so wide tables scroll instead of crushing columns.
-    TableKit.configure({ table: { resizable: true, cellMinWidth: 80 }, tableRow: false, tableCell: false, tableHeader: false }),
+    // Column resizing is added by the React layer (TableResize), since editors start read-only.
+    TableKit.configure({ table: { resizable: false, cellMinWidth: 80 }, tableRow: false, tableCell: false, tableHeader: false }),
     StyledTableRow,
     StyledTableCell,
     StyledTableHeader,
