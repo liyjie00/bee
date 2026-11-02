@@ -1,4 +1,5 @@
 import { NodeViewWrapper, type ReactNodeViewProps } from '@tiptap/react';
+import { useEffect, useRef } from 'react';
 import { BeeWhiteboard } from './Whiteboard.js';
 import { useBeeEditorContext } from './context.js';
 import { useMessages } from './i18n.js';
@@ -9,6 +10,19 @@ export function WhiteboardView({ node, selected }: ReactNodeViewProps) {
   const t = useMessages();
   const documentId = node.attrs.documentId as string | null;
   const height = Number(node.attrs.height) || 420;
+  const body = useRef<HTMLDivElement>(null);
+
+  // Excalidraw pans on every wheel event, which trapped the page scroll on the board. Let plain wheel
+  // events scroll the document; pinch / ctrl+wheel still zooms the board.
+  useEffect(() => {
+    const el = body.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) e.stopPropagation();
+    };
+    el.addEventListener('wheel', onWheel, { capture: true });
+    return () => el.removeEventListener('wheel', onWheel, { capture: true });
+  }, []);
 
   return (
     <NodeViewWrapper className={`bee-embed bee-embed-whiteboard${selected ? ' is-selected' : ''}`} data-drag-handle>
@@ -20,7 +34,7 @@ export function WhiteboardView({ node, selected }: ReactNodeViewProps) {
           </button>
         )}
       </div>
-      <div className="bee-embed-body" contentEditable={false} style={{ height }}>
+      <div ref={body} className="bee-embed-body" contentEditable={false} style={{ height }}>
         {documentId && ctx ? (
           <BeeWhiteboard
             documentId={documentId}
