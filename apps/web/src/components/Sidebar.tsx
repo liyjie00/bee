@@ -279,7 +279,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
           onClick={onClose}
           onContextMenu={(e) => menu.open(e, docMenu(d))}
         >
-          <Icon name={docIcon(d.type)} />
+          <Icon name={docIcon(d.type)} className={d.type === 'whiteboard' ? 't-board' : undefined} />
           <span className="nm">{d.title || t('common.untitled')}</span>
         </NavLink>
       )}
@@ -324,7 +324,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
                   onClick={onClose}
                   onContextMenu={(e) => menu.open(e, [starItem(d)])}
                 >
-                  {key === 'starred' ? <Icon name="star" className="star-on" /> : <Icon name={docIcon(d.type)} />}
+                  {key === 'starred' ? <Icon name="star" className="star-on" /> : <Icon name={docIcon(d.type)} className={d.type === 'whiteboard' ? 't-board' : undefined} />}
                   <span className="nm">{d.title || t('common.untitled')}</span>
                 </NavLink>
                 <button className="more" aria-label={t('common.moreFor', { name: d.title || t('common.untitled') })} onClick={(e) => menu.open(e, [starItem(d)])} style={{ width: 'auto' }}>
@@ -350,6 +350,28 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         {t('nav.search')}
         <kbd className="hide-phone">⌘K</kbd>
       </button>
+      <div className="side-create">
+        <button onClick={() => rootCreate.create('doc')}>
+          <Icon name="doc" className="t-doc" />
+          {t('tree.newDoc')}
+        </button>
+        <button onClick={() => rootCreate.create('whiteboard')}>
+          <Icon name="board" className="t-board" />
+          {t('tree.newBoard')}
+        </button>
+        <button
+          className="more"
+          aria-haspopup="menu"
+          title={t('nav.moreCreate')}
+          aria-label={t('nav.moreCreate')}
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            menu.open({ clientX: r.left, clientY: r.bottom + 4, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() }, rootCreate.items({ folder: () => newFolder(null), basics: false }));
+          }}
+        >
+          <Icon name="more" />
+        </button>
+      </div>
       <nav className="nav">
         {navItem('/', 'home', t('nav.home'))}
         {navItem('/notifications', 'bell', t('nav.notifications'), lists?.unread)}

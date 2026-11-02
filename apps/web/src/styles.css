@@ -46,6 +46,12 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .brand small{color:var(--fg-3);font-size:11px;margin-left:auto}
 .search{margin:4px 12px 10px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--fg-3)}
 .search kbd{margin-left:auto;font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.side-create{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin:0 12px 10px}
+.side-create button{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:13px;font-weight:500;white-space:nowrap;min-width:0}
+.side-create button:hover{border-color:var(--line-strong)}
+.side-create .more{padding:6px 7px;color:var(--fg-3)}
+svg.i.t-doc{color:var(--honey-ink)}
+svg.i.t-board{color:var(--p1)}
 .nav{padding:0 8px;display:flex;flex-direction:column;gap:1px}
 .nav button,.tree button,.nav a,.tree a{text-decoration:none;display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:6px 8px;border-radius:6px;color:var(--fg-2)}
 .nav button:hover,.tree button:hover,.nav a:hover,.tree a:hover{background:var(--line)}
