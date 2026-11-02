@@ -30,7 +30,8 @@ export function schemaExtensions({ collaborative = true }: SchemaOptions = {}): 
     StarterKit.configure({
       codeBlock: false,
       undoRedo: collaborative ? false : undefined,
-      link: { openOnClick: false, autolink: true, defaultProtocol: 'https' },
+      // Clicking a link opens it in a new tab (target=_blank is the Link default).
+      link: { openOnClick: true, autolink: true, defaultProtocol: 'https' },
       // Placeholder/dropcursor etc. are added by the React layer.
       trailingNode: false,
     }),

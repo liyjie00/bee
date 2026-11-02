@@ -73,6 +73,7 @@
   color: var(--be-p1);
   text-decoration: underline;
   text-underline-offset: 2px;
+  cursor: pointer;
 }
 .bee-prose code {
   font-family: var(--be-mono);
