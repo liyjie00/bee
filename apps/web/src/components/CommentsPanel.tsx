@@ -3,6 +3,7 @@ import type { ActivityDTO, CommentAnchor, CommentThreadDTO, UserDTO } from '../a
 import { useAgo, useT, type MessageKey } from '../i18n';
 import { Icon } from './Icon';
 import { Avatar } from './Menu';
+import { MentionInput, type LoadPeople } from './MentionInput';
 
 export interface Draft {
   anchor: CommentAnchor | null;
@@ -29,7 +30,7 @@ const VERB: Record<ActivityDTO['kind'], MessageKey> = {
 /** Renders "@name" mentions with the mockup's mention style. */
 function Body({ text }: { text: string }) {
   const parts = text.split(/(@[\p{L}\p{N}_.-]+)/u);
-  return <p>{parts.map((p, i) => (p.startsWith('@') ? <span key={i} className="mention">{p}</span> : p))}</p>;
+  return <p>{parts.map((p, i) => (p.startsWith('@') && p.length > 1 ? <span key={i} className="mention">{p}</span> : p))}</p>;
 }
 
 export function CommentsPanel({
@@ -49,7 +50,10 @@ export function CommentsPanel({
   onClose,
   onShowInDoc,
   onActivityTab,
+  loadPeople,
 }: {
+  /** people who can be @mentioned (signed-in commenters only) */
+  loadPeople?: LoadPeople;
   me: UserDTO | null;
   /** set for anonymous visitors who may comment */
   guest: GuestIdentity | null;
@@ -141,7 +145,7 @@ export function CommentsPanel({
             </div>
           )}
           {draft && author && (
-            <DraftCard author={author} draft={draft} ready={ready} onNeedName={needName} onCreate={onCreate} onCancel={onCancelDraft} />
+            <DraftCard author={author} draft={draft} ready={ready} onNeedName={needName} onCreate={onCreate} onCancel={onCancelDraft} loadPeople={loadPeople} />
           )}
           {shown.length === 0 && !draft && (
             <p style={{ color: 'var(--fg-3)', fontSize: 13, margin: '8px 2px' }}>
@@ -201,7 +205,7 @@ export function CommentsPanel({
                 </div>
               ))}
               {canComment && (
-                <ReplyBox thread={th} ready={ready} onNeedName={needName} onReply={onReply} onResolve={me ? onResolve : undefined} />
+                <ReplyBox thread={th} ready={ready} onNeedName={needName} onReply={onReply} onResolve={me ? onResolve : undefined} loadPeople={loadPeople} />
               )}
             </div>
           ))}
@@ -235,7 +239,9 @@ function DraftCard({
   onNeedName,
   onCreate,
   onCancel,
+  loadPeople,
 }: {
+  loadPeople?: LoadPeople;
   author: { name: string; color?: string };
   draft: Draft;
   ready: boolean;
@@ -268,11 +274,12 @@ function DraftCard({
         </div>
       </div>
       <div className="reply">
-        <input
+        <MentionInput
           autoFocus={ready}
           placeholder={t('comments.placeholder')}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onValue={setBody}
+          loadPeople={loadPeople}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) void send();
             if (e.key === 'Escape') onCancel();
@@ -292,7 +299,9 @@ function ReplyBox({
   onNeedName,
   onReply,
   onResolve,
+  loadPeople,
 }: {
+  loadPeople?: LoadPeople;
   thread: CommentThreadDTO;
   ready: boolean;
   onNeedName(): void;
@@ -311,11 +320,12 @@ function ReplyBox({
   };
   return (
     <div className="reply" onClick={(e) => e.stopPropagation()}>
-      <input
+      <MentionInput
         placeholder={t('comments.reply')}
         value={body}
         aria-label={t('comments.replyLabel')}
-        onChange={(e) => setBody(e.target.value)}
+        onValue={setBody}
+        loadPeople={loadPeople}
         onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && void send()}
       />
       {onResolve && (

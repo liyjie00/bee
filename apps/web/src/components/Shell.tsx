@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSession, TreeProvider } from '../state/session';
 import { Sidebar } from './Sidebar';
+import { ListsProvider } from '../state/lists';
 import { SearchDialog } from './SearchDialog';
 import { useT } from '../i18n';
 import { PHONE_QUERY, useKeyboardInset, useMediaQuery } from '../lib/media';
@@ -38,6 +39,7 @@ export function Shell() {
     return <Navigate to={`/login?next=${encodeURIComponent(loc.pathname + loc.search + loc.hash)}`} replace />;
   return (
     <TreeProvider workspaceId={workspace.id}>
+      <ListsProvider workspaceId={workspace.id}>
       <Ctx.Provider value={{ openSidebar: () => setSideOpen(true) }}>
         <div className="app">
           <Sidebar open={sideOpen} onClose={() => setSideOpen(false)} onSearch={() => setSearch(true)} />
@@ -46,6 +48,7 @@ export function Shell() {
         </div>
         {search && <SearchDialog workspaceId={workspace.id} onClose={() => setSearch(false)} />}
       </Ctx.Provider>
+      </ListsProvider>
     </TreeProvider>
   );
 }

@@ -9,8 +9,17 @@ import { BeeLogo } from './Logo';
 import { Avatar, useMenu, type MenuItem } from './Menu';
 import { useT } from '../i18n';
 import { prefetchProps } from '../lib/doc-cache';
+import { useLists } from '../state/lists';
 
 const EXPANDED_KEY = 'bee-tree-open';
+const COLLAPSED_KEY = 'bee-side-collapsed';
+function loadCollapsed(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]') as string[]);
+  } catch {
+    return new Set();
+  }
+}
 function loadOpen(): Set<string> {
   try {
     return new Set(JSON.parse(localStorage.getItem(EXPANDED_KEY) ?? '[]') as string[]);
@@ -32,6 +41,21 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
   const [expanded, setExpanded] = useState(loadOpen);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const lists = useLists();
+  const [collapsed, setCollapsed] = useState(loadCollapsed);
+  const toggleSection = (k: string) =>
+    setCollapsed((s) => {
+      const n = new Set(s);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      try {
+        localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...n]));
+      } catch {
+        /* ignore */
+      }
+      return n;
+    });
+  const star = (d: DocumentDTO, on: boolean) => lists?.setStar(d, on).catch((e) => toast(errMsg(e)));
 
   const toggle = (id: string, force?: boolean) =>
     setExpanded((s) => {
@@ -160,7 +184,12 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     ...moveItems({ kind: 'folder', id: f.id }, f.parentId),
     { label: t('tree.delete'), icon: 'trash', danger: true, onSelect: () => remove({ kind: 'folder', id: f.id }) },
   ];
+  const starItem = (d: DocumentDTO): MenuItem =>
+    lists?.isStarred(d.id)
+      ? { label: t('star.remove'), icon: 'star', onSelect: () => star(d, false) }
+      : { label: t('star.add'), icon: 'star', onSelect: () => star(d, true) };
   const docMenu = (d: DocumentDTO): (MenuItem | '-')[] => [
+    starItem(d),
     { label: t('tree.rename'), icon: 'pen', onSelect: () => setRenaming(d.id) },
     ...moveItems({ kind: 'doc', id: d.id }, d.folderId),
     { label: t('tree.delete'), icon: 'trash', danger: true, onSelect: () => remove({ kind: 'doc', id: d.id }) },
@@ -258,12 +287,55 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     </div>
   );
 
-  const navItem = (to: string, icon: 'home' | 'clock' | 'star' | 'trash' | 'globe', label: string) => (
+  const navItem = (to: string, icon: 'home' | 'clock' | 'star' | 'trash' | 'globe' | 'bell', label: string, count?: number) => (
     <NavLink to={to} end className={({ isActive }) => (isActive ? 'on' : '')} onClick={onClose}>
       <Icon name={icon} />
       {label}
+      {!!count && <span className="count">{count > 99 ? '99+' : count}</span>}
     </NavLink>
   );
+  /** A short list of docs (Starred, Recent) under a collapsible heading. */
+  const quickList = (key: string, label: string, docs: DocumentDTO[], empty: string, more?: string) => {
+    const open = !collapsed.has(key);
+    return (
+      <>
+        <div className="sec">
+          <button className="sec-toggle" aria-expanded={open} onClick={() => toggleSection(key)}>
+            <Icon name={open ? 'down' : 'chev'} size={11} />
+            {label}
+          </button>
+          {more && (
+            <NavLink to={more} className="sec-more" onClick={onClose}>
+              {t('nav.all')}
+            </NavLink>
+          )}
+        </div>
+        {open && (
+          <div className="tree quick">
+            {docs.map((d) => (
+              <div className="row" key={d.id}>
+                <NavLink
+                  to={`/d/${d.id}`}
+                  {...prefetchProps(d.id)}
+                  className={({ isActive }) => (isActive ? 'on' : '')}
+                  style={{ paddingLeft: 8 }}
+                  onClick={onClose}
+                  onContextMenu={(e) => menu.open(e, [starItem(d)])}
+                >
+                  {key === 'starred' ? <Icon name="star" className="star-on" /> : <Icon name={docIcon(d.type)} />}
+                  <span className="nm">{d.title || t('common.untitled')}</span>
+                </NavLink>
+                <button className="more" aria-label={t('common.moreFor', { name: d.title || t('common.untitled') })} onClick={(e) => menu.open(e, [starItem(d)])} style={{ width: 'auto' }}>
+                  <Icon name="more" size={14} />
+                </button>
+              </div>
+            ))}
+            {docs.length === 0 && <p className="quick-empty">{empty}</p>}
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <aside className={'side' + (open ? ' open' : '')} aria-label={t('nav.sidebar')}>
@@ -278,9 +350,12 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       </button>
       <nav className="nav">
         {navItem('/', 'home', t('nav.home'))}
-        {navItem('/recent', 'clock', t('nav.recent'))}
+        {navItem('/notifications', 'bell', t('nav.notifications'), lists?.unread)}
         {navItem('/shared', 'globe', t('nav.shared'))}
       </nav>
+      <div className="side-scroll">
+      {quickList('starred', t('nav.starred'), lists?.starred ?? [], t('nav.starredEmpty'))}
+      {quickList('recent', t('nav.recentSection'), lists?.recent ?? [], t('nav.recentEmpty'), '/recent')}
       <div className="sec">
         {t('nav.folders')}
         <button
@@ -306,6 +381,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         {tree.folders.length === 0 && tree.documents.length === 0 && (
           <p style={{ color: 'var(--fg-3)', fontSize: 12.5, padding: '6px 8px' }}>{t('nav.emptyTree')}</p>
         )}
+      </div>
       </div>
       <nav className="nav" style={{ paddingBottom: 6 }}>
         {navItem('/trash', 'trash', t('nav.trash'))}

@@ -17,6 +17,7 @@ import { useAgo, useI18n } from '../i18n';
 import { copyText, errMsg, useToast } from '../state/toast';
 import { takeDocState } from '../lib/doc-cache';
 import { collabUrl } from '../lib/collab';
+import { useLists } from '../state/lists';
 
 type Status = CollabStatus;
 type Presence = BeeUser;
@@ -78,6 +79,10 @@ export function DocView({
   const [access, setAccess] = useState<Access>('private');
   const [title, setTitle] = useState(doc.title);
   const [words, setWords] = useState(0);
+  const lists = useLists();
+  const canStar = !!lists && !!me && !shareToken;
+  const starred = !!lists?.isStarred(doc.id);
+  const toggleStar = () => lists?.setStar({ ...doc, title }, !starred).catch((e) => toast(errMsg(e)));
 
   const loadSnapshot = useMemo(() => () => takeDocState(doc.id), [doc.id]);
   const editable = can.edit(doc.role);
@@ -94,6 +99,7 @@ export function DocView({
         : { id: 'guest', name: guestName.get() || t('comments.guest'), color: guestColor },
     [me],
   );
+  const loadPeople = useMemo(() => (me ? (q: string) => api.mentionable(doc.id, q) : undefined), [me, doc.id]);
   const commentError = (e: unknown) =>
     toast(e instanceof HttpError && e.status === 429 ? t('comments.rateLimited') : errMsg(e));
   /** nickname to send with a guest comment, remembered for next time */
@@ -125,6 +131,20 @@ export function DocView({
     api.threads(doc.id).then(setThreads, () => {});
     if (can.manage(doc.role)) api.sharing(doc.id).then((s) => setAccess(accessOf(s)), () => {});
   }, [doc.id, doc.role, isBoard]);
+
+  // From a notification (?comment=<threadId>): open that thread once the threads are in.
+  const wantThread = new URLSearchParams(loc.search).get('comment');
+  useEffect(() => {
+    if (!wantThread || !threads.some((th) => th.id === wantThread)) return;
+    setActiveId(wantThread);
+    openComments();
+    requestAnimationFrame(() =>
+      document.querySelector(`.prose [data-comment-id="${CSS.escape(wantThread)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
+    );
+    const q = new URLSearchParams(loc.search);
+    q.delete('comment');
+    nav({ search: q.toString(), hash: loc.hash }, { replace: true });
+  }, [wantThread, threads]);
 
   // Title: debounce PATCH while typing.
   useEffect(() => {
@@ -277,6 +297,18 @@ export function DocView({
           <section className="view" ref={viewRef}>
             {editable && <Toolbar editor={editor} onUploadImage={(f) => api.upload(doc.id, f).then((r) => r.url)} />}
             <article className="page">
+              <div className={'doc-title-row' + (canStar ? ' has-star' : '')}>
+              {canStar && (
+                <button
+                  className={'ico doc-star' + (starred ? ' on' : '')}
+                  aria-label={starred ? t('star.remove') : t('star.add')}
+                  aria-pressed={starred}
+                  title={starred ? t('star.remove') : t('star.add')}
+                  onClick={toggleStar}
+                >
+                  <Icon name="star" size={20} />
+                </button>
+              )}
               {editable ? (
                 <input
                   className="doc-title-in"
@@ -296,6 +328,7 @@ export function DocView({
               ) : (
                 <h1 className="doc-title">{doc.title || t('common.untitled')}</h1>
               )}
+              </div>
               <div className="doc-meta">
                 <span className="tag">
                   <Icon name={ACCESS_ICON[access]} size={12} />
@@ -382,6 +415,7 @@ export function DocView({
             );
           }}
           onActivityTab={() => api.activity(doc.id).then(setActivity, () => setActivity([]))}
+          loadPeople={loadPeople}
         />
       )}
       {showPanel && !isBoard && <CommentConnector activeId={activeId} />}
