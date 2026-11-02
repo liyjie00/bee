@@ -109,6 +109,8 @@ export const zhCN: Record<MessageKey, string> = {
   'login.toRegister': '注册',
   'login.google': '使用 Google 账号继续',
   'login.orEmail': '或使用邮箱',
+  'login.privacy': '隐私政策',
+  'login.terms': '服务条款',
   'login.error.google_failed': 'Google 登录没有完成，请再试一次',
   'login.error.google_cancelled': '已取消 Google 登录',
   'login.error.google_unverified': '这个 Google 账号的邮箱还没有验证',

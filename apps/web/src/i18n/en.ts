@@ -107,6 +107,8 @@ export const en = {
   'login.toRegister': 'Sign up',
   'login.google': 'Continue with Google',
   'login.orEmail': 'or use email',
+  'login.privacy': 'Privacy Policy',
+  'login.terms': 'Terms of Service',
   'login.error.google_failed': 'Google sign-in did not complete. Please try again.',
   'login.error.google_cancelled': 'Google sign-in was cancelled',
   'login.error.google_unverified': "This Google account's email is not verified",

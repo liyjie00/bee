@@ -7,6 +7,7 @@ import { HistoryPage } from './pages/HistoryPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { WelcomePage } from './pages/WelcomePage';
+import { LegalPage } from './pages/LegalPage';
 import { SharePage } from './pages/SharePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -24,6 +25,8 @@ export function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/welcome" element={<WelcomePage />} />
+              <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+              <Route path="/terms" element={<LegalPage kind="terms" />} />
               <Route path="/s/:token" element={<SharePage />} />
               <Route path="/s/:token/d/:docId" element={<SharePage />} />
               <Route path="/p/:token" element={<SharePage />} />

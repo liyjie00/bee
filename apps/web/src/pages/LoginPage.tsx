@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/http';
 import { BeeLogo } from '../components/Logo';
 import { useSession } from '../state/session';
@@ -102,6 +102,9 @@ export function LoginPage() {
           <button type="button" onClick={() => (setMode(mode === 'login' ? 'register' : 'login'), setError(null))}>
             {mode === 'login' ? t('login.toRegister') : t('login.signIn')}
           </button>
+        </div>
+        <div className="auth-legal">
+          <Link to="/privacy">{t('login.privacy')}</Link> · <Link to="/terms">{t('login.terms')}</Link>
         </div>
       </form>
     </div>
