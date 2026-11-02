@@ -71,6 +71,13 @@
       "when": 1793655577009,
       "tag": "0009_google_sign_in",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793658969243,
+      "tag": "0010_bug_reports",
+      "breakpoints": true
     }
   ]
 }

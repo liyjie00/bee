@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   boolean,
+  serial,
   customType,
   doublePrecision,
   foreignKey,
@@ -528,4 +529,32 @@ export const documentStars = pgTable(
     createdAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.documentId] })],
+);
+
+export interface BugReportImage {
+  filename: string;
+  mime: string;
+  size: number;
+  /** path under UPLOAD_DIR */
+  storageKey: string;
+}
+
+/** "Report a problem" submissions; each is also emailed to the team when SMTP is configured. */
+export const bugReports = pgTable(
+  'bug_reports',
+  {
+    /** shown to the reporter as #BUG-0042 */
+    id: serial('id').primaryKey(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
+    body: text('body').notNull(),
+    /** page URL, browser, screen size, language; null when the reporter opted out */
+    meta: jsonb('meta').$type<Record<string, string>>(),
+    images: jsonb('images').$type<BugReportImage[]>().notNull().default([]),
+    emailedAt: ts('emailed_at'),
+    emailError: text('email_error'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('bug_reports_user_idx').on(t.userId, t.createdAt)],
 );

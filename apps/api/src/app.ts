@@ -22,6 +22,7 @@ import { oauthRoutes } from './routes/oauth.js';
 import { mcpRoutes } from './routes/mcp.js';
 import { aiRoutes } from './routes/ai.js';
 import { notificationRoutes } from './routes/notifications.js';
+import { bugReportRoutes } from './routes/bug-reports.js';
 import { setupDelivery } from './lib/delivery.js';
 import { bearerFrom, userForBearer } from './lib/tokens.js';
 import { clientIp } from './lib/ip.js';
@@ -197,6 +198,7 @@ export async function buildApp(opts: {
       await api.register(tokenRoutes);
       await api.register(aiRoutes);
       await api.register(notificationRoutes);
+      await api.register(bugReportRoutes);
     },
     { prefix: '/api' },
   );

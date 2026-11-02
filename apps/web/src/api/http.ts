@@ -150,6 +150,7 @@ export const api: BeeApi = {
     fd.append('file', file);
     return req('POST', `/documents/${id}/uploads`, fd);
   },
+  reportBug: (form) => req('POST', '/bug-reports', form),
   blockExists: async (id, blockId) =>
     (await req<BlockLinkResponse>('GET', `/documents/${id}/blocks/${enc(blockId)}`)).exists,
 

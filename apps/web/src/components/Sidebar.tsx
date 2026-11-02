@@ -11,6 +11,7 @@ import { useT } from '../i18n';
 import { prefetchProps } from '../lib/doc-cache';
 import { useLists } from '../state/lists';
 import { useCreate } from './NewMenu';
+import { BugReportDialog } from './BugReportDialog';
 
 const EXPANDED_KEY = 'bee-tree-open';
 const COLLAPSED_KEY = 'bee-side-collapsed';
@@ -38,6 +39,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
   const loc = useLocation();
   const toast = useToast();
   const menu = useMenu();
+  const [bugOpen, setBugOpen] = useState(false);
   const t = useT();
   const [expanded, setExpanded] = useState(loadOpen);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -409,6 +411,10 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       </div>
       <nav className="nav" style={{ paddingBottom: 6 }}>
         {navItem('/trash', 'trash', t('nav.trash'))}
+        <button onClick={() => setBugOpen(true)}>
+          <Icon name="bug" />
+          {t('bug.nav')}
+        </button>
       </nav>
       {session && (
         <div className="me">
@@ -436,6 +442,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       )}
       {menu.node}
       {rootCreate.dialog}
+      {bugOpen && <BugReportDialog onClose={() => setBugOpen(false)} />}
     </aside>
   );
 }

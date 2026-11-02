@@ -40,5 +40,6 @@ export const ICON_SPRITE = `
   <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
   <symbol id="i-restore" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6L4 9M4 4v5h5"/></symbol>
+  <symbol id="i-bug" viewBox="0 0 24 24"><path d="M9 4l1.5 2M15 4l-1.5 2M3 11h4M17 11h4M3 17h4M17 17h4M12 10v9"/><rect x="7" y="6" width="10" height="14" rx="5"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
 `;

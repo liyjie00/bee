@@ -79,6 +79,8 @@ export interface BeeApi {
   embedDocument(docId: string, embeddedId: string): Promise<void>;
   restoreFolder(id: string): Promise<void>;
   upload(docId: string, file: File): Promise<UploadResponse>;
+  /** multipart: body, meta (JSON), images */
+  reportBug(form: FormData): Promise<{ id: number }>;
   blockExists(docId: string, blockId: string): Promise<boolean>;
 
   versions(docId: string): Promise<VersionDTO[]>;
