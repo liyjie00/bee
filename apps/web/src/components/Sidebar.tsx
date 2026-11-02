@@ -10,6 +10,7 @@ import { Avatar, useMenu, type MenuItem } from './Menu';
 import { useT } from '../i18n';
 import { prefetchProps } from '../lib/doc-cache';
 import { useLists } from '../state/lists';
+import { useCreate } from './NewMenu';
 
 const EXPANDED_KEY = 'bee-tree-open';
 const COLLAPSED_KEY = 'bee-side-collapsed';
@@ -42,6 +43,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
   const [renaming, setRenaming] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const lists = useLists();
+  const rootCreate = useCreate(null, onClose);
   const [collapsed, setCollapsed] = useState(loadCollapsed);
   const toggleSection = (k: string) =>
     setCollapsed((s) => {
@@ -364,11 +366,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
           title={t('nav.newMenu')}
           onClick={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
-            menu.open({ clientX: r.left, clientY: r.bottom + 4, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() }, [
-              { label: t('nav.newDoc'), icon: 'doc', onSelect: () => newDoc(null, 'doc') },
-              { label: t('nav.newBoard'), icon: 'board', onSelect: () => newDoc(null, 'whiteboard') },
-              { label: t('nav.newFolder'), icon: 'folder', onSelect: () => newFolder(null) },
-            ]);
+            menu.open({ clientX: r.left, clientY: r.bottom + 4, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() }, rootCreate.items({ folder: () => newFolder(null) }));
           }}
         >
           <Icon name="plus" />
@@ -411,6 +409,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         </div>
       )}
       {menu.node}
+      {rootCreate.dialog}
     </aside>
   );
 }

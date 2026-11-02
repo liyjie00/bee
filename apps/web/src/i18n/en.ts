@@ -368,6 +368,20 @@ export const en = {
   'docmenu.rawFile': "Original file",
   'docmenu.downloadRaw': "Download original",
   'docmenu.importRaw': "Import into this board…",
+  'new.fromTemplate': "From template…",
+  'new.import': "Import",
+  'new.html': "Web page",
+  'new.excalidraw': "Whiteboard",
+  'tpl.title': "New from template",
+  'tpl.bee': "Bee templates",
+  'tpl.mine': "My templates",
+  'tpl.hint': "Choose “Save as template” in any doc’s ⋯ menu to add it to My templates. Everyone in the workspace can use them.",
+  'tpl.mineEmpty': "No templates yet. Save a doc as a template from its ⋯ menu.",
+  'tpl.savedBy': "{name} · {time}",
+  'tpl.preview': "Preview",
+  'tpl.use': "Use this template",
+  'tpl.delete': "Delete template",
+  'tpl.confirmDelete': "Delete the template “{name}”?",
 } as const;
 
 export type MessageKey = keyof typeof en;
