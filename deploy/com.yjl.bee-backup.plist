@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Daily Bee backup at 03:30. Install on the Mac mini:
+     cp deploy/com.yjl.bee-backup.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.yjl.bee-backup.plist -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.yjl.bee-backup</string>
+  <key>ProgramArguments</key>
+  <array><string>/bin/zsh</string><string>-c</string><string>exec zsh "$HOME/Documents/bee/deploy/backup.sh"</string></array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>3</integer><key>Minute</key><integer>30</integer></dict>
+  <key>StandardOutPath</key><string>/tmp/bee-backup.log</string>
+  <key>StandardErrorPath</key><string>/tmp/bee-backup.log</string>
+</dict>
+</plist>
