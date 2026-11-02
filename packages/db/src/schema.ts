@@ -466,9 +466,14 @@ export const notifications = pgTable(
     /** comment text, or the role for shares */
     detail: text('detail'),
     readAt: ts('read_at'),
+    /** set once the email digest went out (or was skipped) */
+    emailedAt: ts('emailed_at'),
     createdAt: createdAt(),
   },
-  (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
+  (t) => [
+    index('notifications_user_idx').on(t.userId, t.createdAt),
+    index('notifications_email_idx').on(t.createdAt).where(sql`${t.emailedAt} is null`),
+  ],
 );
 
 /** Documents saved as templates, offered to everyone in the workspace when creating a doc. */
@@ -485,4 +490,20 @@ export const templates = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('templates_ws_idx').on(t.workspaceId, t.createdAt)],
+);
+
+/** Web Push subscriptions: one per browser a user turned notifications on in. */
+export const pushSubscriptions = pgTable(
+  'push_subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('push_endpoint_key').on(t.endpoint), index('push_user_idx').on(t.userId)],
 );

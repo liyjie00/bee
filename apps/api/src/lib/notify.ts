@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNotNull, ne } from 'drizzle-orm';
-import { comments, notifications, permissions, users, workspaceMembers, type Db } from '@bee/db';
+import { comments, permissions, users, workspaceMembers, type Db } from '@bee/db';
 import {
   can,
   effectiveRole,
@@ -9,6 +9,7 @@ import {
   type Role,
 } from '@bee/shared';
 import type { DocAccess } from './access.js';
+import { insertNotifications } from './delivery.js';
 
 export interface Reader {
   id: string;
@@ -142,7 +143,7 @@ async function commentNotifications(
       actorName: c.actorName,
       detail: excerpt(c.body),
     }));
-  if (values.length) await db.insert(notifications).values(values);
+  await insertNotifications(db, values);
 }
 
 export async function notifyShare(
@@ -157,13 +158,15 @@ export async function notifyShare(
   },
 ): Promise<void> {
   if (n.userId === n.actorId) return;
-  await db.insert(notifications).values({
-    userId: n.userId,
-    workspaceId: n.workspaceId,
-    kind: 'share',
-    documentId: n.documentId ?? null,
-    folderId: n.folderId ?? null,
-    actorId: n.actorId,
-    detail: n.role,
-  });
+  await insertNotifications(db, [
+    {
+      userId: n.userId,
+      workspaceId: n.workspaceId,
+      kind: 'share',
+      documentId: n.documentId ?? null,
+      folderId: n.folderId ?? null,
+      actorId: n.actorId,
+      detail: n.role,
+    },
+  ]);
 }

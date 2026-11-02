@@ -29,6 +29,12 @@ export type DocFont = (typeof DOC_FONTS)[number];
 export interface UserPrefs {
   docFontSize?: DocFontSize;
   docFont?: DocFont;
+  /** UI language, also used for emails and browser notifications */
+  lang?: 'zh-CN' | 'en';
+  /** email digests of notifications (default on) */
+  emailNotifications?: boolean;
+  /** kinds that neither email nor push (they still show in the inbox) */
+  mutedNotifications?: NotificationKind[];
 }
 
 /** Minimal user info shown next to comments, versions, members. */
@@ -211,7 +217,8 @@ export interface ConnectedAppDTO {
   lastUsedAt: string | null;
 }
 
-export type NotificationKind = 'mention' | 'reply' | 'share' | 'access_request';
+export const NOTIFICATION_KINDS = ['mention', 'reply', 'share', 'access_request'] as const;
+export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 export interface AccessRequestDTO {
   id: string;

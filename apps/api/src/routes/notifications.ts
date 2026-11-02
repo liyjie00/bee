@@ -22,6 +22,14 @@ import {
 import { docAccess, requireMember } from '../lib/access.js';
 import { logActivity } from '../lib/activity.js';
 import { docReaders, notifyShare } from '../lib/notify.js';
+import {
+  deletePushSubscription,
+  deliveryEnabled,
+  insertNotifications,
+  langOf,
+  pushTest,
+  savePushSubscription,
+} from '../lib/delivery.js';
 import { yUpdateToMarkdown } from '../lib/content.js';
 import { badRequest, forbidden, HttpError, notFound } from '../lib/errors.js';
 import { loadUserRefs, refOr } from '../lib/dto.js';
@@ -167,6 +175,38 @@ export async function notificationRoutes(app: FastifyInstance) {
     return { unread: await unreadCount(db, user.id) };
   });
 
+  // ---------- email and browser delivery ----------
+
+  app.get('/notifications/delivery', async (req) => {
+    requireUser(req);
+    return deliveryEnabled();
+  });
+
+  const subBody = z.object({
+    endpoint: z.url().max(2000),
+    keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
+  });
+  app.post('/push-subscriptions', async (req) => {
+    const user = requireUser(req);
+    await savePushSubscription(db, user.id, parse(subBody, req.body));
+    return { ok: true };
+  });
+  app.post('/push-subscriptions/remove', async (req) => {
+    const user = requireUser(req);
+    const { endpoint } = parse(z.object({ endpoint: z.string().max(2000) }), req.body);
+    await deletePushSubscription(db, user.id, endpoint);
+    return { ok: true };
+  });
+  app.post(
+    '/push-subscriptions/test',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (req) => {
+      const user = requireUser(req);
+      await pushTest(db, user.id, langOf(user.prefs));
+      return { ok: true };
+    },
+  );
+
   // ---------- access requests ----------
 
   app.post(
@@ -227,7 +267,8 @@ export async function notificationRoutes(app: FastifyInstance) {
         const a = await docAccess(db, { userId: owner!.ownerId, documentId: id });
         const editors = await editorsOf(a);
         if (editors.length)
-          await db.insert(notifications).values(
+          await insertNotifications(
+            db,
             editors.map((userId) => ({
               userId,
               workspaceId: a.doc.workspaceId,

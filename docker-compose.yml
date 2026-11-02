@@ -41,6 +41,10 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:7070}
       GUEST_COMMENT_RATE_LIMIT: ${GUEST_COMMENT_RATE_LIMIT:-5}
       GUEST_COMMENT_HOURLY_LIMIT: ${GUEST_COMMENT_HOURLY_LIMIT:-60}
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
     volumes:
       - uploads:/data/uploads
     healthcheck:

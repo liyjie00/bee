@@ -21,6 +21,7 @@ import { oauthRoutes } from './routes/oauth.js';
 import { mcpRoutes } from './routes/mcp.js';
 import { aiRoutes } from './routes/ai.js';
 import { notificationRoutes } from './routes/notifications.js';
+import { setupDelivery } from './lib/delivery.js';
 import { bearerFrom, userForBearer } from './lib/tokens.js';
 import { clientIp } from './lib/ip.js';
 
@@ -175,6 +176,7 @@ export async function buildApp(opts: {
     reply.status(404).send({ error: { code: 'not_found', message: 'Not found' } }),
   );
 
+  setupDelivery(app, opts.db, opts.config);
   app.get('/api/health', async () => ({ ok: true }));
   await app.register(oauthRoutes);
   await app.register(mcpRoutes);

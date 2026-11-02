@@ -2,7 +2,13 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { users, workspaceMembers, workspaces, type Db } from '@bee/db';
-import { DOC_FONTS, DOC_FONT_SIZES, SESSION_COOKIE, type MeResponse } from '@bee/shared';
+import {
+  DOC_FONTS,
+  DOC_FONT_SIZES,
+  NOTIFICATION_KINDS,
+  SESSION_COOKIE,
+  type MeResponse,
+} from '@bee/shared';
 import type { Config } from '../env.js';
 import { clientIp } from '../lib/ip.js';
 import {
@@ -94,6 +100,9 @@ const updateMeBody = z.object({
     .object({
       docFontSize: z.enum(DOC_FONT_SIZES).optional(),
       docFont: z.enum(DOC_FONTS).optional(),
+      lang: z.enum(['zh-CN', 'en']).optional(),
+      emailNotifications: z.boolean().optional(),
+      mutedNotifications: z.array(z.enum(NOTIFICATION_KINDS)).max(10).optional(),
     })
     .strict()
     .optional(),

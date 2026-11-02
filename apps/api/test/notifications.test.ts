@@ -155,3 +155,47 @@ describe('access requests', () => {
     ).toBe('granted');
   });
 });
+
+describe('email digests', () => {
+  it('sends one email per person and document, skipping read ones and opted-out people', async () => {
+    const nodemailer = (await import('nodemailer')).default;
+    const { setMailer, sendEmailDigests } = await import('../src/lib/delivery.js');
+    const db = app.db;
+    const sent: { to: string; subject: string }[] = [];
+    const t = nodemailer.createTransport({ jsonTransport: true });
+    const send = t.sendMail.bind(t);
+    t.sendMail = (async (m: { to: string; subject: string }) => {
+      sent.push({ to: m.to, subject: m.subject });
+      return send(m);
+    }) as never;
+    setMailer(t);
+    try {
+      const ivy = await signup(app, 'ivy');
+      const jon = await signup(app, 'jon');
+      const kim = await signup(app, 'kim');
+      const ws = ivy.workspace.id;
+      const doc = (await ivy.c.post('/api/documents', { workspaceId: ws, title: 'Notes' })).json
+        .document;
+      for (const email of ['jon@example.com', 'kim@example.com'])
+        await ivy.c.post(`/api/documents/${doc.id}/grants`, { email, role: 'commenter' });
+      await kim.c.patch('/api/auth/me', { prefs: { emailNotifications: false } });
+      await ivy.c.post(`/api/documents/${doc.id}/threads`, { anchor: null, body: '@jon @kim one' });
+      await ivy.c.post(`/api/documents/${doc.id}/threads`, { anchor: null, body: '@jon two' });
+      // Pretend they are old enough to send.
+      await db.execute(
+        (await import('drizzle-orm'))
+          .sql`update notifications set created_at = now() - interval '15 minutes' where emailed_at is null`,
+      );
+      await sendEmailDigests(db);
+      const forJon = sent.filter((m) => m.to === 'jon@example.com');
+      expect(forJon).toHaveLength(1); // the share and two mentions, one document
+      expect(forJon[0]!.subject).toContain('Notes');
+      expect(sent.some((m) => m.to === 'kim@example.com')).toBe(false);
+      sent.length = 0;
+      await sendEmailDigests(db);
+      expect(sent).toHaveLength(0);
+    } finally {
+      setMailer(null);
+    }
+  });
+});
