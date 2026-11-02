@@ -227,9 +227,9 @@ export function DocView({
             </Link>
           )}
           {!shareToken && (
-            <button className="btn primary" onClick={() => setShare(true)}>
+            <button className="btn primary" aria-label={t('doc.share')} onClick={() => setShare(true)}>
               <Icon name={ACCESS_ICON[access]} />
-              {t('doc.share')}
+              <span className="hide-sm">{t('doc.share')}</span>
             </button>
           )}
         </TopBar>

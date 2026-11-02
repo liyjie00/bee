@@ -329,6 +329,8 @@ del{background:var(--del);color:var(--del-ink);border-radius:3px;padding:0 2px}
   /* only the page title fits next to the actions */
   .crumb > :not(b){display:none}
   .crumb b{min-width:0}
+  /* tighter header so the title keeps some room next to the doc actions */
+  .top{gap:4px;padding:0 10px}
   .hist{grid-template-columns:minmax(0,1fr)} .vlist{display:none}
   .folder{padding:20px 16px 80px}
   .props{display:none}
