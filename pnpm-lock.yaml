@@ -221,30 +221,12 @@ importers:
 
   apps/web:
     dependencies:
-      '@excalidraw/excalidraw':
-        specifier: 0.17.6
-        version: 0.17.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tiptap/extension-link':
-        specifier: ^3.32.2
-        version: 3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2)
-      '@tiptap/extension-placeholder':
-        specifier: ^3.32.2
-        version: 3.32.2(@tiptap/extensions@3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2))
-      '@tiptap/extension-task-item':
-        specifier: ^3.32.2
-        version: 3.32.2(@tiptap/extension-list@3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2))
-      '@tiptap/extension-task-list':
-        specifier: ^3.32.2
-        version: 3.32.2(@tiptap/extension-list@3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2))
-      '@tiptap/pm':
-        specifier: ^3.32.2
-        version: 3.32.2
-      '@tiptap/react':
-        specifier: ^3.32.2
-        version: 3.32.2(@floating-ui/dom@1.8.0)(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2)(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tiptap/starter-kit':
-        specifier: ^3.32.2
-        version: 3.32.2
+      '@bee/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
+      '@bee/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       diff:
         specifier: 8.0.2
         version: 8.0.2
@@ -1195,12 +1177,6 @@ packages:
     resolution: {integrity: sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@excalidraw/excalidraw@0.17.6':
-    resolution: {integrity: sha512-fyCl+zG/Z5yhHDh5Fq2ZGmphcrALmuOdtITm8gN4d8w4ntnaopTXcTfnAAaU3VleDC6LhTkoLOTG6P5kgREiIg==}
-    peerDependencies:
-      react: ^17.0.2 || ^18.2.0
-      react-dom: ^17.0.2 || ^18.2.0
-
   '@excalidraw/excalidraw@0.18.1':
     resolution: {integrity: sha512-6i5Gt7IDTOH//qa0Z315Ly5iVRhjWpu2whrlQFqkuwrkKUWgRsMk0P5qdE7bpyDpai7jeLeWYkyj1eVAfni1lw==}
     peerDependencies:
@@ -2014,11 +1990,6 @@ packages:
     peerDependencies:
       '@tiptap/core': 3.32.2
 
-  '@tiptap/extension-placeholder@3.32.2':
-    resolution: {integrity: sha512-T+QVayKhakLbFhne7nEdo8omHcEevo8ksEYdKSCeTLoaVInaAiG9WwkKSJymhQ81EbOMS1WsO0XJnb3mrx9PHw==}
-    peerDependencies:
-      '@tiptap/extensions': 3.32.2
-
   '@tiptap/extension-strike@3.32.2':
     resolution: {integrity: sha512-i3d4vCrZySS9g5nGa5W0LS6LPMKxcAnJO6uADTnGVlKK0ewklcWWZbZ9GB/Fpx/IjKAvXWeayjfsNpTae/yVZg==}
     peerDependencies:
@@ -2029,16 +2000,6 @@ packages:
     peerDependencies:
       '@tiptap/core': 3.32.2
       '@tiptap/pm': 3.32.2
-
-  '@tiptap/extension-task-item@3.32.2':
-    resolution: {integrity: sha512-W824N/FhG0JBL/gGzy57dw2duoj6gWmOGtiFg2tBuZxW+6thGWxzdyz6qVL98hJ9BaZpOdx2bwxH4GzMpFjDzQ==}
-    peerDependencies:
-      '@tiptap/extension-list': 3.32.2
-
-  '@tiptap/extension-task-list@3.32.2':
-    resolution: {integrity: sha512-nnJa/ih9EgiUcP5z8Zth4lnPHBZQyJqmNv3Wvpyr+QvG45kqtRQUIyt51iy9yQNdVM9YaHyO5KcVnmtXTIzxpg==}
-    peerDependencies:
-      '@tiptap/extension-list': 3.32.2
 
   '@tiptap/extension-text@3.32.2':
     resolution: {integrity: sha512-W6G7UbQ71TyvZvORDdj6u8By8B/Dymy8KoaKGaNHqB82SpM42ZK2TmeFBHI0Lo4wTkZJL3LuI+QthaDvh0USsA==}
@@ -4757,11 +4718,6 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@excalidraw/excalidraw@0.17.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-
   '@excalidraw/excalidraw@0.18.1(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@braintree/sanitize-url': 6.0.2
@@ -5475,10 +5431,6 @@ snapshots:
     dependencies:
       '@tiptap/core': 3.32.2(@tiptap/pm@3.32.2)
 
-  '@tiptap/extension-placeholder@3.32.2(@tiptap/extensions@3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2))':
-    dependencies:
-      '@tiptap/extensions': 3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2)
-
   '@tiptap/extension-strike@3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))':
     dependencies:
       '@tiptap/core': 3.32.2(@tiptap/pm@3.32.2)
@@ -5487,14 +5439,6 @@ snapshots:
     dependencies:
       '@tiptap/core': 3.32.2(@tiptap/pm@3.32.2)
       '@tiptap/pm': 3.32.2
-
-  '@tiptap/extension-task-item@3.32.2(@tiptap/extension-list@3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2))':
-    dependencies:
-      '@tiptap/extension-list': 3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2)
-
-  '@tiptap/extension-task-list@3.32.2(@tiptap/extension-list@3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2))':
-    dependencies:
-      '@tiptap/extension-list': 3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))(@tiptap/pm@3.32.2)
 
   '@tiptap/extension-text@3.32.2(@tiptap/core@3.32.2(@tiptap/pm@3.32.2))':
     dependencies:
