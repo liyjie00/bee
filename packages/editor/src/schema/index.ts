@@ -9,12 +9,12 @@ import { BlockId } from './block-id.js';
 import { Whiteboard } from './whiteboard.js';
 import { Column, Columns } from './columns.js';
 import { TaskListShortcuts } from './task-shortcuts.js';
-import { StyledTableCell, StyledTableHeader } from './table-style.js';
+import { StyledTableCell, StyledTableHeader, StyledTableRow } from './table-style.js';
 
 export { BlockId, BLOCK_TYPES, BLOCK_ID_ATTR, newBlockId } from './block-id.js';
 export { Whiteboard, parseWhiteboardView, formatWhiteboardView, type WhiteboardView, type WhiteboardAlign } from './whiteboard.js';
 export { Column, Columns } from './columns.js';
-export { CELL_COLORS, CELL_ALIGNS, type CellColor, type CellAlign } from './table-style.js';
+export { CELL_COLORS, CELL_ALIGNS, ROW_MIN_HEIGHT, type CellColor, type CellAlign } from './table-style.js';
 
 export const lowlight = createLowlight(common);
 
@@ -40,7 +40,9 @@ export function schemaExtensions({ collaborative = true }: SchemaOptions = {}): 
     TaskList,
     TaskItem.configure({ nested: true }),
     TaskListShortcuts,
-    TableKit.configure({ table: { resizable: true }, tableCell: false, tableHeader: false }),
+    // cellMinWidth also sets the table's min-width, so wide tables scroll instead of crushing columns.
+    TableKit.configure({ table: { resizable: true, cellMinWidth: 80 }, tableRow: false, tableCell: false, tableHeader: false }),
+    StyledTableRow,
     StyledTableCell,
     StyledTableHeader,
     Image.configure({ inline: false, allowBase64: false }),
