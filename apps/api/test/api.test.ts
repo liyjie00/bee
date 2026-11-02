@@ -204,6 +204,7 @@ describe('share links', () => {
       await owner.c.post(`/api/documents/${doc.id}/links`, { role: 'commenter', public: true })
     ).json.link;
     expect(link.url).toContain(`/s/${link.token}`);
+    expect(link.token).toHaveLength(8);
 
     const anon = client(app);
     const r = await anon.get(`/api/share/${link.token}`);

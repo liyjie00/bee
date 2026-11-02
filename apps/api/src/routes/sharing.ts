@@ -259,7 +259,8 @@ export async function sharingRoutes(app: FastifyInstance) {
           .returning()
       : await db
           .insert(shareLinks)
-          .values({ ...values, documentId: id, token: randomToken(18), createdById: user.id })
+          // short link: 8 URL-safe characters, 48 random bits
+          .values({ ...values, documentId: id, token: randomToken(6), createdById: user.id })
           .returning();
     await logActivity(db, {
       workspaceId: r.workspaceId,
