@@ -574,6 +574,50 @@ input,textarea,select{font:inherit;color:var(--fg)}
 .settings .rows b{display:block;font-weight:500;font-size:0.875rem}
 .settings .rows span{font-size:0.75rem;color:var(--fg-3)}
 @media (max-width:640px){.settings.page{padding:1.5rem 1rem 5rem}.copy-field{flex-direction:column;align-items:stretch}}
+/* sections: a nav beside one section at a time; on phones the nav is the /settings page itself */
+.settings.page{max-width:61.25rem}
+.settings h3{font-size:0.9375rem;margin:0 0 0.25rem}
+.settings-cols{display:flex;flex-wrap:wrap;gap:2.5rem;align-items:flex-start}
+.settings-nav{flex:0 0 11.75rem;display:flex;flex-direction:column;gap:2px}
+.settings-nav .grp{font-size:0.7188rem;color:var(--fg-3);padding:0.875rem 0.625rem 0.25rem;letter-spacing:.02em}
+.settings-nav-item:first-child .grp{padding-top:0}
+.settings-nav a{display:flex;align-items:center;gap:0.625rem;padding:0.4375rem 0.625rem;border-radius:0.4375rem;color:var(--fg-2);text-decoration:none}
+.settings-nav a>span:not(.av){flex:1}
+.settings-nav a:hover{background:var(--sunk)}
+.settings-nav a.on{background:var(--surface);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line);font-weight:500}
+.settings-pane{flex:999 1 32rem;min-width:0}
+.settings-pane>section:first-child{border-top:0;padding-top:0}
+.settings .swatches{display:flex;flex-wrap:wrap;gap:0.5rem}
+.settings .swatches button{width:1.375rem;height:1.375rem;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line-strong)}
+.settings .swatches button.on{box-shadow:0 0 0 2px var(--fg)}
+.settings .name-in{width:13rem}
+.settings .notif-pref>.av+div{flex:1;min-width:12rem;display:flex;flex-direction:column;gap:2px}
+.settings .btn.danger{color:var(--del-ink)}
+.settings .signout{margin-top:1rem}
+.settings-back{display:inline-flex;align-items:center;gap:0.25rem;color:var(--fg-2);text-decoration:none;margin:0 0 1rem -0.25rem;padding:0.5rem 0.25rem}
+.settings-back svg{transform:rotate(180deg)}
+@media (max-width:640px){
+  .settings-cols{display:block}
+  .settings-nav{gap:0}
+  .settings-nav a.settings-me{border-radius:0.75rem;margin:0;min-height:0;padding:0.875rem}
+  .settings-me{display:flex;align-items:center;gap:0.75rem;padding:0.875rem;background:var(--surface);border:1px solid var(--line);border-radius:0.75rem;color:var(--fg);text-decoration:none}
+  .settings-me .av{width:2.75rem;height:2.75rem;font-size:1.125rem}
+  .settings-me>span:not(.av){flex:1;min-width:0;display:flex;flex-direction:column}
+  .settings-me b{font-weight:500}
+  .settings-me small{color:var(--fg-3);font-size:0.8125rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .settings-me svg{color:var(--fg-3)}
+  .settings-nav-item:first-of-type .grp{padding-top:1.125rem}
+  .settings-nav .grp{padding:1.125rem 0.375rem 0.375rem}
+  .settings-nav a{min-height:3.125rem;padding:0 0.875rem;background:var(--surface);border:1px solid var(--line);border-radius:0;margin-top:-1px}
+  .settings-nav a.on{box-shadow:none;font-weight:400}
+  .settings-nav a svg:last-child{color:var(--fg-3)}
+  .settings-nav-item:first-child a,.settings-nav .grp+a{border-radius:0.75rem 0.75rem 0 0;margin-top:0}
+  .settings-nav-item:has(+.settings-nav-item .grp) a,.settings-nav-item:last-child a{border-radius:0 0 0.75rem 0.75rem}
+  .settings-nav .grp+a:is(.settings-nav-item:has(+.settings-nav-item .grp) a,.settings-nav-item:last-child a){border-radius:0.75rem}
+  .settings .name-in{width:auto;flex:1;min-width:0;font-size:16px}
+  .settings form.notif-pref>div:first-child{flex-basis:100%}
+  .settings .swatches button{width:2rem;height:2rem}
+}
 
 /* ---------- Ask AI ---------- */
 .ai-panel{width:var(--ai-w,23.75rem);position:relative}

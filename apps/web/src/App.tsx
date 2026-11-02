@@ -41,6 +41,7 @@ export function App() {
                 <Route path="/d/:docId" element={<DocPage />} />
                 <Route path="/d/:docId/history" element={<HistoryPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings/:section" element={<SettingsPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -27,6 +27,19 @@ export type DocFontSize = (typeof DOC_FONT_SIZES)[number];
 export const DOC_FONTS = ['sans', 'serif', 'mono'] as const;
 export type DocFont = (typeof DOC_FONTS)[number];
 
+/** Avatar / cursor colors a user can pick; new accounts get one of them. */
+export const USER_COLORS = [
+  '#E5484D',
+  '#F76B15',
+  '#FFC53D',
+  '#46A758',
+  '#12A594',
+  '#0090FF',
+  '#3E63DD',
+  '#8E4EC6',
+  '#D6409F',
+] as const;
+
 /** Per-user reading preferences; missing keys mean the default (medium / sans). */
 export interface UserPrefs {
   docFontSize?: DocFontSize;

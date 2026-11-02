@@ -2,29 +2,17 @@ import { createHash, randomBytes } from 'node:crypto';
 import { hash, verify } from '@node-rs/argon2';
 import { and, eq, gt } from 'drizzle-orm';
 import { sessions, users, type Db } from '@bee/db';
-import { SESSION_COOKIE } from '@bee/shared';
+import { SESSION_COOKIE, USER_COLORS } from '@bee/shared';
 
 export type UserRow = typeof users.$inferSelect;
 
 const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
 const SESSION_REFRESH_MS = 15 * 24 * 3600 * 1000;
 
-const PALETTE = [
-  '#E5484D',
-  '#F76B15',
-  '#FFC53D',
-  '#46A758',
-  '#12A594',
-  '#0090FF',
-  '#3E63DD',
-  '#8E4EC6',
-  '#D6409F',
-];
-
 export function pickColor(seed: string): string {
   let h = 0;
   for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return PALETTE[h % PALETTE.length]!;
+  return USER_COLORS[h % USER_COLORS.length]!;
 }
 
 export const hashPassword = (pw: string) =>
