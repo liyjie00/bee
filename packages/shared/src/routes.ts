@@ -241,7 +241,16 @@ export interface ShareResolveResponse {
 /** GET /api/documents/:id/activity */
 export interface ActivityItem {
   id: string;
-  kind: 'created' | 'edited' | 'commented' | 'resolved' | 'shared' | 'version' | 'restored' | 'moved' | 'renamed';
+  kind:
+    | 'created'
+    | 'edited'
+    | 'commented'
+    | 'resolved'
+    | 'shared'
+    | 'version'
+    | 'restored'
+    | 'moved'
+    | 'renamed';
   actor: UserRef | null;
   createdAt: string;
   detail: string | null;
