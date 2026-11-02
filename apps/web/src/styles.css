@@ -799,7 +799,7 @@ svg.i.star-on{fill:var(--honey);stroke:var(--honey)}
 .home-count{font-size:11.5px;background:var(--honey);color:#2a1c00;border-radius:10px;padding:0 7px;font-weight:700}
 .home-cards{margin-bottom:0}
 .home-cards .card{text-decoration:none;color:inherit}
-.home-cards .thumb{height:96px}
+.home-cards .thumb{height:60px;padding-top:12px}
 .home-cols{display:flex;flex-wrap:wrap;gap:32px}
 .home-todo{flex:3 1 380px}
 .home-star{flex:2 1 260px}
@@ -818,7 +818,7 @@ a.home-row:hover{background:var(--sunk)}
   .qc small{display:none}
   .home-cards{display:flex;overflow-x:auto;margin-right:-16px;padding-right:16px;grid-template-columns:none}
   .home-cards .card{flex:none;width:160px}
-  .home-cards .thumb{height:72px}
+  .home-cards .thumb{height:52px}
 }
 
 /* ---------- landing page (signed out, /) ---------- */
