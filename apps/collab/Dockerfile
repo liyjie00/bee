@@ -10,8 +10,9 @@ RUN pnpm install --frozen-lockfile --filter @bee/collab...
 COPY packages/editor packages/editor
 COPY apps/collab apps/collab
 RUN pnpm --filter @bee/editor build && pnpm --filter @bee/collab build
-# Self-contained production install: built workspace packages + prod dependencies only.
-RUN pnpm --filter @bee/collab --prod --config.auto-install-peers=false deploy --legacy /out
+# Self-contained production install: built workspace packages + prod dependencies only. The
+# whiteboard's Excalidraw patch is not in this set, hence allow-unused-patches.
+RUN pnpm --filter @bee/collab --prod --config.auto-install-peers=false --config.allow-unused-patches=true deploy --legacy /out
 
 FROM node:24-bookworm-slim
 ENV NODE_ENV=production
