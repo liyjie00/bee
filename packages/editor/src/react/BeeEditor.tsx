@@ -1,6 +1,7 @@
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { NodeSelection } from '@tiptap/pm/state';
+import { CellSelection } from '@tiptap/pm/tables';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from 'react';
 import { buildExtensions } from './extensions.js';
 import { presentUsers, useCollabConnection, type BeeUser, type CollabConnection, type CollabStatus } from './collab.js';
@@ -250,6 +251,8 @@ function SelectionBubble({
       shouldShow={({ editor: ed, state, from, to }) => {
         if (from === to || !(editable || showComment)) return false;
         if (state.selection instanceof NodeSelection) return false;
+        // Selected table cells get the table toolbar instead.
+        if (state.selection instanceof CellSelection) return false;
         if (state.selection.$from.parent.type.name === 'codeBlock') return false;
         return ed.view.hasFocus() || !editable;
       }}

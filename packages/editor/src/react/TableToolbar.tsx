@@ -134,6 +134,7 @@ export function TableToolbar({ editor, messages: t }: { editor: Editor; messages
         return button(label, () => run((c) => c.mergeOrSplit()), label, { disabled: !can.mergeOrSplit() });
       })()}
       <span className="bee-bubble-sep" />
+      {button(t.bold, () => run((c) => c.toggleBold()), <b>B</b>, { active: editor.isActive('bold') })}
       <div className="bee-table-group">
         {button(t.tableBackground, () => toggle('bg'), <span className="bee-table-icon-bg">A</span>, { active: menu === 'bg' })}
         {menu === 'bg' && swatches('background')}
