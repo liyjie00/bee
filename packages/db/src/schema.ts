@@ -40,13 +40,20 @@ export const users = pgTable(
     email: text('email').notNull(),
     name: text('name').notNull(),
     passwordHash: text('password_hash').notNull(),
+    /** Google account id ("sub") of a user who signs in with Google */
+    googleSub: text('google_sub'),
+    /** signed up with Google and has not chosen a name and password yet */
+    setupRequired: boolean('setup_required').notNull().default(false),
     avatarUrl: text('avatar_url'),
     color: text('color').notNull(),
     prefs: jsonb('prefs').$type<UserPrefs>().notNull().default({}),
     createdAt: createdAt(),
     updatedAt: ts('updated_at').notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('users_email_key').on(sql`lower(${t.email})`)],
+  (t) => [
+    uniqueIndex('users_email_key').on(sql`lower(${t.email})`),
+    uniqueIndex('users_google_sub_key').on(t.googleSub),
+  ],
 );
 
 export const sessions = pgTable(

@@ -279,8 +279,9 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
           onClick={onClose}
           onContextMenu={(e) => menu.open(e, docMenu(d))}
         >
-          <Icon name={docIcon(d.type)} />
+          <Icon name={docIcon(d.type)} className={d.type === 'whiteboard' ? 't-board' : undefined} />
           <span className="nm">{d.title || t('common.untitled')}</span>
+          {d.type === 'whiteboard' && <span className="kind-tag">{t('kind.whiteboard')}</span>}
         </NavLink>
       )}
       <button className="more" aria-label={t('common.moreFor', { name: d.title || t('common.untitled') })} onClick={(e) => menu.open(e, docMenu(d))} style={{ width: 'auto' }}>
@@ -289,11 +290,12 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     </div>
   );
 
-  const navItem = (to: string, icon: 'home' | 'folder' | 'clock' | 'star' | 'trash' | 'globe' | 'bell', label: string, count?: number) => (
+  const navItem = (to: string, icon: 'home' | 'folder' | 'clock' | 'star' | 'trash' | 'globe' | 'bell' | 'board', label: string, count?: number, total?: number) => (
     <NavLink to={to} end className={({ isActive }) => (isActive ? 'on' : '')} onClick={onClose}>
-      <Icon name={icon} />
+      <Icon name={icon} className={icon === 'board' ? 't-board' : undefined} />
       {label}
       {!!count && <span className="count">{count > 99 ? '99+' : count}</span>}
+      {!!total && <span className="total">{total}</span>}
     </NavLink>
   );
   /** A short list of docs (Starred, Recent) under a collapsible heading. */
@@ -324,7 +326,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
                   onClick={onClose}
                   onContextMenu={(e) => menu.open(e, [starItem(d)])}
                 >
-                  {key === 'starred' ? <Icon name="star" className="star-on" /> : <Icon name={docIcon(d.type)} />}
+                  {key === 'starred' ? <Icon name="star" className="star-on" /> : <Icon name={docIcon(d.type)} className={d.type === 'whiteboard' ? 't-board' : undefined} />}
                   <span className="nm">{d.title || t('common.untitled')}</span>
                 </NavLink>
                 <button className="more" aria-label={t('common.moreFor', { name: d.title || t('common.untitled') })} onClick={(e) => menu.open(e, [starItem(d)])} style={{ width: 'auto' }}>
@@ -350,11 +352,34 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         {t('nav.search')}
         <kbd className="hide-phone">⌘K</kbd>
       </button>
+      <div className="side-create">
+        <button title={t('tree.newDoc')} onClick={() => rootCreate.create('doc')}>
+          <Icon name="doc" className="t-doc" />
+          <span>{t('nav.createDoc')}</span>
+        </button>
+        <button title={t('tree.newBoard')} onClick={() => rootCreate.create('whiteboard')}>
+          <Icon name="board" className="t-board" />
+          <span>{t('nav.createBoard')}</span>
+        </button>
+        <button
+          className="more"
+          aria-haspopup="menu"
+          title={t('nav.moreCreate')}
+          aria-label={t('nav.moreCreate')}
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            menu.open({ clientX: r.left, clientY: r.bottom + 4, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() }, rootCreate.items({ folder: () => newFolder(null), basics: false }));
+          }}
+        >
+          <Icon name="more" />
+        </button>
+      </div>
       <nav className="nav">
         {navItem('/', 'home', t('nav.home'))}
         {navItem('/files', 'folder', t('nav.files'))}
         {navItem('/notifications', 'bell', t('nav.notifications'), lists?.unread)}
         {navItem('/shared', 'globe', t('nav.shared'))}
+        {navItem('/boards', 'board', t('nav.boards'), undefined, tree.documents.filter((d) => d.type === 'whiteboard' && !d.deletedAt).length)}
       </nav>
       <div className="side-scroll">
       {quickList('starred', t('nav.starred'), lists?.starred ?? [], t('nav.starredEmpty'))}

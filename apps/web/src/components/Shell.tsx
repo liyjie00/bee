@@ -47,6 +47,8 @@ export function Shell() {
   if (!session && loc.pathname === '/') return <LandingPage />;
   if (!session || !workspace)
     return <Navigate to={`/login?next=${encodeURIComponent(loc.pathname + loc.search + loc.hash)}`} replace />;
+  if (session.user.setupRequired)
+    return <Navigate to={`/welcome?next=${encodeURIComponent(loc.pathname + loc.search + loc.hash)}`} replace />;
   return (
     <TreeProvider workspaceId={workspace.id}>
       <ListsProvider workspaceId={workspace.id}>

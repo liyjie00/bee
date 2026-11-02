@@ -69,10 +69,11 @@ export function useCreate(folderId: string | null, after?: () => void) {
       toast(errMsg(e));
     }
   }
-  const items = (opts: { folder?: () => void } = {}): MenuEntry[] => [
-    { label: t('new.doc'), icon: 'doc', onSelect: () => create('doc') },
+  /** `basics: false` leaves out blank doc and whiteboard, for menus next to their own buttons. */
+  const items = (opts: { folder?: () => void; basics?: boolean } = {}): MenuEntry[] => [
+    ...(opts.basics === false ? [] : [{ label: t('new.doc'), icon: 'doc' as const, onSelect: () => create('doc') }]),
     { label: t('new.fromTemplate'), icon: 'note', onSelect: () => setTemplates(true) },
-    { label: t('new.board'), icon: 'board', onSelect: () => create('whiteboard') },
+    ...(opts.basics === false ? [] : [{ label: t('new.board'), icon: 'board' as const, onSelect: () => create('whiteboard') }]),
     ...(opts.folder ? [{ label: t('new.folder'), icon: 'folder' as const, onSelect: opts.folder }] : []),
     '-',
     { caption: t('new.import') },
