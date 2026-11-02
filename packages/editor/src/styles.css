@@ -1554,3 +1554,138 @@ a .bee-doc-link,
 .bee-link-pasted button:hover {
   background: var(--be-sunk);
 }
+
+/* ---------- text color and highlight ---------- */
+.bee-prose [data-text-color='gray'] { color: #7b8375; }
+.bee-prose [data-text-color='red'] { color: #d93d42; }
+.bee-prose [data-text-color='orange'] { color: #e5600e; }
+.bee-prose [data-text-color='yellow'] { color: #b88a00; }
+.bee-prose [data-text-color='green'] { color: #2b9a66; }
+.bee-prose [data-text-color='blue'] { color: #3b7dd8; }
+.bee-prose [data-text-color='purple'] { color: #8e4ec6; }
+.bee-prose mark { color: inherit; border-radius: 3px; padding: 0 1px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.bee-prose mark[data-color='gray'] { background: color-mix(in srgb, #8a8f86 26%, transparent); }
+.bee-prose mark[data-color='red'] { background: color-mix(in srgb, #e5484d 24%, transparent); }
+.bee-prose mark[data-color='orange'] { background: color-mix(in srgb, #f76b15 24%, transparent); }
+.bee-prose mark[data-color='yellow'] { background: color-mix(in srgb, #f5c400 36%, transparent); }
+.bee-prose mark[data-color='green'] { background: color-mix(in srgb, #30a46c 24%, transparent); }
+.bee-prose mark[data-color='blue'] { background: color-mix(in srgb, #3b7dd8 24%, transparent); }
+.bee-prose mark[data-color='purple'] { background: color-mix(in srgb, #8e4ec6 24%, transparent); }
+:root[data-theme='dark'] .bee-prose [data-text-color='gray'] { color: #a2a99b; }
+:root[data-theme='dark'] .bee-prose [data-text-color='red'] { color: #f2777b; }
+:root[data-theme='dark'] .bee-prose [data-text-color='orange'] { color: #f5934f; }
+:root[data-theme='dark'] .bee-prose [data-text-color='yellow'] { color: #e8c14a; }
+:root[data-theme='dark'] .bee-prose [data-text-color='green'] { color: #5cc290; }
+:root[data-theme='dark'] .bee-prose [data-text-color='blue'] { color: #6aa5f5; }
+:root[data-theme='dark'] .bee-prose [data-text-color='purple'] { color: #b48ae6; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .bee-prose [data-text-color='gray'] { color: #a2a99b; }
+  :root:not([data-theme='light']) .bee-prose [data-text-color='red'] { color: #f2777b; }
+  :root:not([data-theme='light']) .bee-prose [data-text-color='orange'] { color: #f5934f; }
+  :root:not([data-theme='light']) .bee-prose [data-text-color='yellow'] { color: #e8c14a; }
+  :root:not([data-theme='light']) .bee-prose [data-text-color='green'] { color: #5cc290; }
+  :root:not([data-theme='light']) .bee-prose [data-text-color='blue'] { color: #6aa5f5; }
+  :root:not([data-theme='light']) .bee-prose [data-text-color='purple'] { color: #b48ae6; }
+}
+.bee-color-menu {
+  position: relative;
+  display: inline-flex;
+}
+.bee-color-a {
+  font-weight: 700;
+  font-family: Georgia, serif;
+  padding: 0 3px;
+  border-radius: 3px;
+  border-bottom: 3px solid currentColor;
+  line-height: 1.1;
+}
+.bee-color-a[data-swatch] { border-bottom-color: transparent; box-shadow: inset 0 -3px 0 var(--bee-a-line, currentColor); }
+.bee-color-a[data-swatch='gray'] { --bee-a-line: #7b8375; }
+.bee-color-a[data-swatch='red'] { --bee-a-line: #d93d42; }
+.bee-color-a[data-swatch='orange'] { --bee-a-line: #e5600e; }
+.bee-color-a[data-swatch='yellow'] { --bee-a-line: #b88a00; }
+.bee-color-a[data-swatch='green'] { --bee-a-line: #2b9a66; }
+.bee-color-a[data-swatch='blue'] { --bee-a-line: #3b7dd8; }
+.bee-color-a[data-swatch='purple'] { --bee-a-line: #8e4ec6; }
+.bee-color-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: var(--be-surface);
+  color: var(--be-fg);
+  border: 1px solid var(--be-line);
+  border-radius: 10px;
+  box-shadow: var(--be-shadow);
+  white-space: nowrap;
+}
+.bee-color-cap {
+  font-size: 11px;
+  color: var(--be-fg-3);
+  letter-spacing: 0.04em;
+  padding: 0 2px;
+}
+.bee-color-row {
+  display: flex;
+  gap: 4px;
+}
+.bee-color-pop .bee-swatch,
+.bee-bubble .bee-color-pop .bee-swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--be-line);
+  border-radius: 6px;
+  font: 600 13px Georgia, serif;
+  color: var(--be-fg);
+  background-color: var(--be-surface);
+  cursor: pointer;
+}
+.bee-color-pop .bee-swatch:hover { border-color: var(--be-line-strong); }
+.bee-color-pop .bee-swatch.is-on { box-shadow: 0 0 0 2px var(--be-honey); }
+.bee-color-pop .bee-swatch.is-none { background: linear-gradient(135deg, transparent 45%, #d93d42 45%, #d93d42 55%, transparent 55%), var(--be-surface); }
+.bee-color-pop .bee-swatch-fg.is-none::after { content: 'A'; }
+.bee-color-pop .bee-swatch-fg.is-none { background: var(--be-surface); }
+.bee-color-pop .bee-swatch-fg[data-swatch='gray'] { color: #7b8375; }
+.bee-color-pop .bee-swatch-fg[data-swatch='red'] { color: #d93d42; }
+.bee-color-pop .bee-swatch-fg[data-swatch='orange'] { color: #e5600e; }
+.bee-color-pop .bee-swatch-fg[data-swatch='yellow'] { color: #b88a00; }
+.bee-color-pop .bee-swatch-fg[data-swatch='green'] { color: #2b9a66; }
+.bee-color-pop .bee-swatch-fg[data-swatch='blue'] { color: #3b7dd8; }
+.bee-color-pop .bee-swatch-fg[data-swatch='purple'] { color: #8e4ec6; }
+.bee-color-pop .bee-swatch-bg[data-swatch='gray'] { background: color-mix(in srgb, #8a8f86 30%, var(--be-surface)); }
+.bee-color-pop .bee-swatch-bg[data-swatch='red'] { background: color-mix(in srgb, #e5484d 30%, var(--be-surface)); }
+.bee-color-pop .bee-swatch-bg[data-swatch='orange'] { background: color-mix(in srgb, #f76b15 30%, var(--be-surface)); }
+.bee-color-pop .bee-swatch-bg[data-swatch='yellow'] { background: color-mix(in srgb, #f5c400 40%, var(--be-surface)); }
+.bee-color-pop .bee-swatch-bg[data-swatch='green'] { background: color-mix(in srgb, #30a46c 30%, var(--be-surface)); }
+.bee-color-pop .bee-swatch-bg[data-swatch='blue'] { background: color-mix(in srgb, #3b7dd8 30%, var(--be-surface)); }
+.bee-color-pop .bee-swatch-bg[data-swatch='purple'] { background: color-mix(in srgb, #8e4ec6 30%, var(--be-surface)); }
+/* The app toolbar's color menu sits outside .bee-editor: give it the same tokens. */
+.bee-color-menu {
+  --be-fg: var(--fg, #1d211b);
+  --be-fg-3: var(--fg-3, #7b8375);
+  --be-surface: var(--surface, #ffffff);
+  --be-line: var(--line, #e1e4dc);
+  --be-line-strong: var(--line-strong, #cdd2c6);
+  --be-honey: var(--honey, #e8a317);
+  --be-shadow: var(--shadow, 0 1px 2px rgba(29, 33, 27, 0.06), 0 8px 24px rgba(29, 33, 27, 0.08));
+}
+.toolbar .bee-color-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--fg-2);
+}
+.toolbar .bee-color-btn:hover,
+.toolbar .bee-color-btn.is-active {
+  background: var(--sunk);
+}

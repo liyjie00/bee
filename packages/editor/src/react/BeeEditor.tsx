@@ -14,6 +14,7 @@ import { BeeEditorContext, type BeeEditorContextValue } from './context.js';
 import { SheetDocContext } from './sheet/SheetView.js';
 import type { SlashHost } from './SlashMenu.js';
 import { TableToolbar } from './TableToolbar.js';
+import { ColorMenu } from './ColorMenu.js';
 import { LinkPopover, openLinkEditor, type LinkHost, type LinkPopoverState, type LinkTarget } from './links.js';
 import type { Theme } from './theme.js';
 
@@ -326,6 +327,7 @@ function SelectionBubble({
           {btn(editor.isActive('italic'), t.italic, () => editor.chain().focus().toggleItalic().run(), <i>I</i>)}
           {btn(editor.isActive('strike'), t.strike, () => editor.chain().focus().toggleStrike().run(), <s>S</s>)}
           {btn(editor.isActive('code'), t.code, () => editor.chain().focus().toggleCode().run(), <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block' }}><path d="M5 4.5 1.5 8 5 11.5M11 4.5l3.5 3.5-3.5 3.5M9.2 3 6.8 13" /></svg>)}
+          <ColorMenu editor={editor} messages={t} />
           {btn(editor.isActive('link'), t.link, setLink, <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block' }}><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></svg>)}
         </>
       )}
