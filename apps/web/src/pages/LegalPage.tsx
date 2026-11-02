@@ -55,13 +55,14 @@ const PRIVACY: Record<'en' | 'zh', Doc> = {
       {
         h: 'Your choices',
         p: [
-          'You can change your profile and password in Settings and delete your documents at any time. To get a copy of your data or have your account deleted, contact the operator of this site.',
+          'You can change your profile and password in Settings and delete your documents at any time. To get a copy of your data or have your account deleted, email contactus@bee.zippyzoo.dev.',
         ],
       },
       {
         h: 'Changes',
         p: ['If this policy changes, the new version is posted on this page with a new date.'],
       },
+      { h: 'Contact', p: ['Questions about privacy: contactus@bee.zippyzoo.dev'] },
     ],
   },
   zh: {
@@ -97,12 +98,13 @@ const PRIVACY: Record<'en' | 'zh', Doc> = {
       },
       {
         h: '你的权利',
-        p: ['你可以随时在设置中修改资料和密码、删除自己的文档。如需导出数据或注销账号，请联系本站运营者。'],
+        p: ['你可以随时在设置中修改资料和密码、删除自己的文档。如需导出数据或注销账号，请发邮件到 contactus@bee.zippyzoo.dev。'],
       },
       {
         h: '政策变更',
         p: ['本政策如有变化，新版本会发布在此页面并更新日期。'],
       },
+      { h: '联系我们', p: ['隐私相关问题请发邮件到 contactus@bee.zippyzoo.dev'] },
     ],
   },
 };
@@ -141,6 +143,7 @@ const TERMS: Record<'en' | 'zh', Doc> = {
           'You can stop using Bee at any time. Accounts that break these terms may be suspended. These terms may change; continuing to use Bee after a change means you accept it.',
         ],
       },
+      { h: 'Contact', p: ['contactus@bee.zippyzoo.dev'] },
     ],
   },
   zh: {
@@ -170,6 +173,7 @@ const TERMS: Record<'en' | 'zh', Doc> = {
         h: '终止',
         p: ['你可以随时停止使用 Bee。违反本条款的账号可能被停用。本条款可能更新，更新后继续使用即表示接受。'],
       },
+      { h: '联系我们', p: ['contactus@bee.zippyzoo.dev'] },
     ],
   },
 };
