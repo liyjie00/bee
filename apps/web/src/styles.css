@@ -51,6 +51,9 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .nav .count{margin-left:auto;font-size:11px;background:var(--honey);color:#2a1c00;border-radius:10px;padding:0 6px;font-weight:700}
 .sec{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 4px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-3);font-weight:700}
 .sec button{color:var(--fg-3);padding:2px;border-radius:4px}
+.sec .sec-new{display:flex;align-items:center;gap:3px;padding:2px 7px 2px 4px;border:1px solid var(--line);font-size:11px;letter-spacing:.04em;font-weight:700;text-transform:none}
+.sec .sec-new:hover{color:var(--fg);background:var(--surface)}
+.sec .sec-new svg{width:12px;height:12px}
 .tree{padding:0 8px;overflow:auto;flex:1}
 .tree .lv1{padding-left:22px}.tree .lv2{padding-left:40px}
 .tree button.on,.tree a.on{background:var(--surface);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}

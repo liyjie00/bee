@@ -260,14 +260,22 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       </nav>
       <div className="sec">
         {t('nav.folders')}
-        <span style={{ display: 'flex', gap: 2 }}>
-          <button aria-label={t('nav.newDoc')} title={t('nav.newDoc')} onClick={() => newDoc(null, 'doc')}>
-            <Icon name="doc" />
-          </button>
-          <button aria-label={t('nav.newFolder')} title={t('nav.newFolder')} onClick={() => newFolder(null)}>
-            <Icon name="plus" />
-          </button>
-        </span>
+        <button
+          className="sec-new"
+          aria-haspopup="menu"
+          title={t('nav.newMenu')}
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            menu.open({ clientX: r.left, clientY: r.bottom + 4, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() }, [
+              { label: t('nav.newDoc'), icon: 'doc', onSelect: () => newDoc(null, 'doc') },
+              { label: t('nav.newBoard'), icon: 'board', onSelect: () => newDoc(null, 'whiteboard') },
+              { label: t('nav.newFolder'), icon: 'folder', onSelect: () => newFolder(null) },
+            ]);
+          }}
+        >
+          <Icon name="plus" />
+          {t('new.button')}
+        </button>
       </div>
       <div className={'tree' + (dropTarget === 'root' ? ' drop' : '')} {...dropProps(null)}>
         {childFolders(null).map((f) => renderFolder(f, 0))}
