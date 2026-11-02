@@ -439,7 +439,7 @@ export const zhCN: Record<MessageKey, string> = {
   'settings.notif.denied': "没有获得通知权限",
   'settings.notif.email': "邮件通知",
   'settings.notif.soon': "Coming soon",
-  'settings.notif.emailHint': "以后会把没看到的消息合并发到 {email}，每篇文档一封。",
+  'settings.notif.emailHint': "没看到的消息会合并发到 {email}，每篇文档一封。",
   'settings.notif.kinds': "这些事会提醒我",
   'settings.notif.mention': "有人在评论里 @我",
   'settings.notif.reply': "有人回复我参与的评论",

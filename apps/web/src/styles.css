@@ -776,6 +776,9 @@ svg.i.star-on{fill:var(--honey);stroke:var(--honey)}
 .switch{width:38px;height:22px;border-radius:11px;background:var(--line);position:relative;flex:none}
 .switch::after{content:'';position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .switch:disabled{cursor:not-allowed}
+.switch[aria-checked="true"]{background:var(--honey)}
+.switch[aria-checked="true"]::after{left:18px}
+.switch::after{transition:left .15s}
 .notif-kinds{display:flex;flex-direction:column;gap:6px;padding-top:12px}
 .notif-kinds .lbl{font-size:12px;color:var(--fg-3);font-weight:700;letter-spacing:.04em}
 .notif-kinds label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--fg-2)}
