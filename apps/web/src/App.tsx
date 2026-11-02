@@ -30,6 +30,7 @@ export function App() {
                 <Route index element={<FolderPage mode="root" />} />
                 <Route path="/recent" element={<FolderPage mode="recent" />} />
                 <Route path="/shared" element={<FolderPage mode="shared" />} />
+                <Route path="/boards" element={<FolderPage mode="boards" />} />
                 <Route path="/trash" element={<FolderPage mode="trash" />} />
                 <Route path="/f/:folderId" element={<FolderPage mode="folder" />} />
                 <Route path="/d/:docId" element={<DocPage />} />

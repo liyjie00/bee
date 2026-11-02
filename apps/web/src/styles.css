@@ -52,6 +52,8 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .side-create .more{padding:6px 7px;color:var(--fg-3)}
 svg.i.t-doc{color:var(--honey-ink)}
 svg.i.t-board{color:var(--p1)}
+.nav .total{margin-left:auto;font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.tree .kind-tag{margin-left:auto;flex:none;font-size:10.5px;line-height:16px;padding:0 5px;border-radius:4px;color:var(--p1);background:color-mix(in srgb,var(--p1) 14%,transparent)}
 .nav{padding:0 8px;display:flex;flex-direction:column;gap:1px}
 .nav button,.tree button,.nav a,.tree a{text-decoration:none;display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:6px 8px;border-radius:6px;color:var(--fg-2)}
 .nav button:hover,.tree button:hover,.nav a:hover,.tree a:hover{background:var(--line)}
