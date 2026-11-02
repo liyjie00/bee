@@ -88,7 +88,7 @@ export function useWhatsNew() {
 }
 
 /** Slash-menu blocks to badge "New" until the user has inserted one. */
-const SLASH_NEW = ['sheet', 'linkWhiteboard', 'math'];
+const SLASH_NEW = ['sheet', 'linkWhiteboard', 'mathBlock', 'mathInline'];
 const SLASH_KEY = 'bee-slash-used';
 
 export function newSlashItems(): string[] {
