@@ -163,7 +163,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  '@excalidraw/excalidraw@0.18.1': 4b53a08b1c7ab7fb8f5acdd7ec74545495b36c3d80b20babc88c1bbc19dc7690
+  '@excalidraw/excalidraw@0.18.1': 16c197d8766a9969cba47702135773dcd5142924f83165ffa7f0ac985fd9e59f
 
 importers:
 
@@ -284,7 +284,7 @@ importers:
         version: link:../../packages/shared
       '@excalidraw/excalidraw':
         specifier: ^0.18.1
-        version: 0.18.1(patch_hash=4b53a08b1c7ab7fb8f5acdd7ec74545495b36c3d80b20babc88c1bbc19dc7690)(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 0.18.1(patch_hash=16c197d8766a9969cba47702135773dcd5142924f83165ffa7f0ac985fd9e59f)(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tiptap/core':
         specifier: 3.32.2
         version: 3.32.2(@tiptap/pm@3.32.2)
@@ -425,7 +425,7 @@ importers:
     devDependencies:
       '@excalidraw/excalidraw':
         specifier: 0.18.1
-        version: 0.18.1(patch_hash=4b53a08b1c7ab7fb8f5acdd7ec74545495b36c3d80b20babc88c1bbc19dc7690)(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 0.18.1(patch_hash=16c197d8766a9969cba47702135773dcd5142924f83165ffa7f0ac985fd9e59f)(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@types/react':
         specifier: 18.3.12
         version: 18.3.12
@@ -5142,7 +5142,7 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@excalidraw/excalidraw@0.18.1(patch_hash=4b53a08b1c7ab7fb8f5acdd7ec74545495b36c3d80b20babc88c1bbc19dc7690)(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@excalidraw/excalidraw@0.18.1(patch_hash=16c197d8766a9969cba47702135773dcd5142924f83165ffa7f0ac985fd9e59f)(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@braintree/sanitize-url': 6.0.2
       '@excalidraw/laser-pointer': 1.3.1
