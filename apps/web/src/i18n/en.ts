@@ -525,6 +525,7 @@ export const en = {
   "land.footer": "© 2026 Bee · Open source (AGPL-3.0)",
   "land.demoLin": "Lin",
   "land.demoChen": "Chen",
+  "land.contact": "Contact us:",
 } as const;
 
 export type MessageKey = keyof typeof en;

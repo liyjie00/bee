@@ -527,4 +527,5 @@ export const zhCN: Record<MessageKey, string> = {
   "land.footer": "© 2026 Bee · 开源软件（AGPL-3.0）",
   "land.demoLin": "林夏",
   "land.demoChen": "陈默",
+  "land.contact": "联系我们：",
 };
