@@ -3,11 +3,31 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { BeeWhiteboard, type WhiteboardHandle } from './Whiteboard.js';
 import { useBeeEditorContext } from './context.js';
 import { useMessages } from './i18n.js';
-import { formatWhiteboardView, parseWhiteboardView, WHITEBOARD_DEFAULT_HEIGHT, type WhiteboardAlign } from '../schema/whiteboard.js';
+import { formatWhiteboardView, parseWhiteboardView, WHITEBOARD_DEFAULT_HEIGHT, type WhiteboardAlign, type WhiteboardView as WhiteboardViewRange } from '../schema/whiteboard.js';
 
 const MIN_WIDTH = 20;
 const MIN_HEIGHT = 160;
 const MAX_HEIGHT = 1600;
+
+/** Per-viewer memory of the last range shown in an embed, so a reload comes back to it. */
+const localViewKey = (documentId: string) => `bee:wb-view:${documentId}`;
+function readLocalView(documentId: string | null): WhiteboardViewRange | null {
+  if (!documentId) return null;
+  try {
+    return parseWhiteboardView(localStorage.getItem(localViewKey(documentId)));
+  } catch {
+    return null;
+  }
+}
+function writeLocalView(documentId: string | null, v: WhiteboardViewRange | null) {
+  if (!documentId) return;
+  try {
+    if (v && v.w > 0 && v.h > 0) localStorage.setItem(localViewKey(documentId), formatWhiteboardView(v));
+    else localStorage.removeItem(localViewKey(documentId));
+  } catch {
+    // Storage unavailable (private mode): the embed just falls back to its saved range.
+  }
+}
 
 const ALIGN_ICONS: Record<WhiteboardAlign, string> = { left: '⇤', center: '↔', right: '⇥' };
 
@@ -28,6 +48,8 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
   // Size while dragging the resize handle; written to the node on release.
   const [draft, setDraft] = useState<{ width: number; height: number } | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  // Read once: later pans and zooms only go to storage, so they never re-place the board.
+  const [localView, setLocalView] = useState(() => readLocalView(documentId));
   const width = draft?.width ?? Math.min(100, Math.max(MIN_WIDTH, Number(node.attrs.width) || 100));
   const height = draft?.height ?? (Number(node.attrs.height) || WHITEBOARD_DEFAULT_HEIGHT);
 
@@ -42,6 +64,31 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
     el.addEventListener('wheel', onWheel, { capture: true });
     return () => el.removeEventListener('wheel', onWheel, { capture: true });
   }, []);
+
+  // Remember where this viewer left the board (drag to pan, pinch / ctrl+wheel to zoom).
+  useEffect(() => {
+    const el = body.current;
+    if (!el || fullscreen) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const remember = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => writeLocalView(documentId, board.current?.getView() ?? null), 400);
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) remember();
+    };
+    el.addEventListener('pointerup', remember);
+    el.addEventListener('wheel', onWheel);
+    return () => {
+      clearTimeout(timer);
+      el.removeEventListener('pointerup', remember);
+      el.removeEventListener('wheel', onWheel);
+    };
+  }, [documentId, fullscreen]);
+  const forgetLocalView = () => {
+    writeLocalView(documentId, null);
+    setLocalView(null);
+  };
 
   const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = wrapper.current;
@@ -90,7 +137,10 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
 
   const saveView = () => {
     const v = board.current?.getView();
-    if (v && v.w > 0 && v.h > 0) updateAttributes({ view: formatWhiteboardView(v) });
+    if (v && v.w > 0 && v.h > 0) {
+      forgetLocalView();
+      updateAttributes({ view: formatWhiteboardView(v) });
+    }
   };
 
   return (
@@ -123,7 +173,10 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
                 ⛶
               </button>
               {view && (
-                <button type="button" className="bee-embed-icon" title={t.whiteboardResetView} aria-label={t.whiteboardResetView} onClick={() => updateAttributes({ view: null })}>
+                <button type="button" className="bee-embed-icon" title={t.whiteboardResetView} aria-label={t.whiteboardResetView} onClick={() => {
+                    forgetLocalView();
+                    updateAttributes({ view: null });
+                  }}>
                   ⤢
                 </button>
               )}
@@ -136,9 +189,8 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
               title={t.whiteboardFitAll}
               aria-label={t.whiteboardFitAll}
               onClick={() => {
-                // Editors also drop the saved range, so the fit sticks after a reload.
-                if (editable && view) updateAttributes({ view: null });
                 board.current?.fitAll();
+                writeLocalView(documentId, board.current?.getView() ?? null);
               }}
             >
               <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
@@ -189,7 +241,7 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
             embedded
             // Without a saved range the embed always shows the whole drawing.
             fitContent
-            view={fullscreen ? null : view}
+            view={fullscreen ? null : (localView ?? view)}
             onHandle={onHandle}
           />
         ) : (
