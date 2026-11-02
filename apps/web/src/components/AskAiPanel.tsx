@@ -300,7 +300,7 @@ function AccountView({ settings, onSignIn, onChange }: { settings: AiSettingsDTO
   const toast = useToast();
   const [keyProvider, setKeyProvider] = useState<AiProvider>('openai');
   const [apiKey, setApiKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
+  const [showKey, setShowKey] = useState(!settings.provider);
   const [saving, setSaving] = useState(false);
   const [models, setModels] = useState<{ id: string; name: string }[] | null>(null);
   const provider = settings.provider;
@@ -360,24 +360,6 @@ function AccountView({ settings, onSignIn, onChange }: { settings: AiSettingsDTO
       )}
 
       <section>
-        <h3>{t('ai.signInTitle')}</h3>
-        <p className="ai-lead">{t('ai.signInLead')}</p>
-        {settings.connected.includes('openrouter') ? (
-          <div className="ai-conn">
-            <Icon name="check" size={14} />
-            <span>{t('ai.signedIn')}</span>
-            <button className="btn" disabled={saving} onClick={() => void run(aiApi.removeKey('openrouter'), 'ai.disconnected')}>
-              {t('ai.disconnect')}
-            </button>
-          </div>
-        ) : (
-          <button className="btn primary ai-signin" onClick={onSignIn}>
-            {t('ai.signIn')}
-          </button>
-        )}
-      </section>
-
-      <section>
         <h3>{t('ai.keysTitle')}</h3>
         <p className="ai-lead">{t('ai.keysLead')}</p>
         {KEY_PROVIDERS.filter((p) => settings.connected.includes(p)).map((p) => (
@@ -427,6 +409,24 @@ function AccountView({ settings, onSignIn, onChange }: { settings: AiSettingsDTO
         )}
         <p className="ai-fine">{t('ai.keysNote')}</p>
       </section>
+      <section>
+        <h3>{t('ai.signInTitle')}</h3>
+        <p className="ai-lead">{t('ai.signInLead')}</p>
+        {settings.connected.includes('openrouter') ? (
+          <div className="ai-conn">
+            <Icon name="check" size={14} />
+            <span>{t('ai.signedIn')}</span>
+            <button className="btn" disabled={saving} onClick={() => void run(aiApi.removeKey('openrouter'), 'ai.disconnected')}>
+              {t('ai.disconnect')}
+            </button>
+          </div>
+        ) : (
+          <button className="btn primary ai-signin" onClick={onSignIn}>
+            {t('ai.signIn')}
+          </button>
+        )}
+      </section>
+
     </div>
   );
 }
