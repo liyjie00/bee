@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../api/http';
 import { applyDocPrefs } from '../lib/docPrefs';
-import { preconnectCollab, resetCollabSockets } from '@bee/editor';
+import { preconnectCollab, resetCollabSockets, setOfflineScope } from '@bee/editor';
 import { collabUrl } from '../lib/collab';
 import type { DocumentDTO, FolderDTO, Session, TreeDTO, WorkspaceDTO } from '../api/types';
 
@@ -28,6 +28,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (session) applyDocPrefs(session.user.prefs);
   }, [session]);
   const userId = session?.user.id;
+  // During render, not in an effect: the first document's editor connects (in a child effect)
+  // before this provider's effects run.
+  setOfflineScope(loading ? null : (userId ?? null));
   useEffect(() => {
     if (loading) return;
     // The collab socket authenticates with its handshake's cookie: a new user needs a new socket.

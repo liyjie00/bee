@@ -53,6 +53,7 @@
     "lowlight": "^3.3.0",
     "marked": "^18.1.2",
     "nanoid": "^5.1.6",
+    "y-indexeddb": "9.0.12",
     "yjs": "^13.6.33"
   },
   "peerDependencies": {

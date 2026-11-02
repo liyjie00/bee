@@ -3,7 +3,7 @@ export { BeeWhiteboard, type BeeWhiteboardProps, type WhiteboardHandle, WHITEBOA
 export { BeeVersionPreview, type BeeVersionPreviewProps, restoreVersion } from './react/VersionPreview.js';
 export { buildExtensions, type BuildOptions } from './react/extensions.js';
 export { IdleCollaborationCaret, CursorActivity, CURSOR_IDLE_MS } from './react/caret-idle.js';
-export { useCollabConnection, presentUsers, preconnectCollab, resetCollabSockets, type BeeUser, type CollabStatus, type CollabConnection, type LoadSnapshot } from './react/collab.js';
+export { useCollabConnection, presentUsers, preconnectCollab, resetCollabSockets, setOfflineScope, clearOfflineDocs, type BeeUser, type CollabStatus, type CollabConnection, type LoadSnapshot } from './react/collab.js';
 export { createAnchor, resolveAnchor, CommentHighlights, type CommentAnchor, type CommentHighlight } from './react/comments.js';
 export { blockLink, blockIdFromHash, findBlockPos, scrollToBlock } from './react/blocks.js';
 export { insertMarkdown, editorToMarkdown, looksLikeMarkdown } from './react/markdown-paste.js';

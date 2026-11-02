@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as Y from 'yjs';
 import { HocuspocusProvider, HocuspocusProviderWebsocket, WebSocketStatus } from '@hocuspocus/provider';
+import { IndexeddbPersistence } from 'y-indexeddb';
 
 export type CollabStatus = 'connecting' | 'connected' | 'synced' | 'disconnected' | 'denied';
 
@@ -54,6 +55,34 @@ export function resetCollabSockets(): void {
   sockets.clear();
 }
 
+const OFFLINE_PREFIX = 'bee-doc:';
+let offlineScope: string | null = null;
+
+/**
+ * Keeps a copy of every opened document in this browser (IndexedDB), so edits survive a reload or a
+ * closed tab while offline and are sent once the connection is back. Scoped per signed-in user;
+ * null (e.g. anonymous share-link visitors) keeps nothing.
+ */
+export function setOfflineScope(scope: string | null): void {
+  offlineScope = scope;
+}
+
+/** Deletes every document copy kept in this browser (on sign-out). */
+export async function clearOfflineDocs(): Promise<void> {
+  const list = (await indexedDB.databases?.()) ?? [];
+  await Promise.all(
+    list
+      .filter((d) => d.name?.startsWith(OFFLINE_PREFIX))
+      .map(
+        (d) =>
+          new Promise<void>((resolve) => {
+            const r = indexedDB.deleteDatabase(d.name!);
+            r.onsuccess = r.onerror = r.onblocked = () => resolve();
+          }),
+      ),
+  );
+}
+
 /**
  * Opens one Yjs document on the collab server for the lifetime of the component.
  * Auth rides on the session cookie; public links pass the share token as the provider token.
@@ -87,6 +116,16 @@ export function useCollabConnection(
     // A provider on an already-open socket gets no status event, so report it here.
     if (socket.status === WebSocketStatus.Connected) onStatus?.('connected', ydoc);
     let live = true;
+    // The local copy loads first when the network is slow or gone; unsent edits in it are synced
+    // to the server like any other change once the provider connects.
+    const local =
+      offlineScope && typeof indexedDB !== 'undefined' ? new IndexeddbPersistence(`${OFFLINE_PREFIX}${offlineScope}:${documentId}`, ydoc) : null;
+    local?.whenSynced.then(
+      () => {
+        if (live && ydoc.store.clients.size) onSnapshot?.(ydoc);
+      },
+      () => {},
+    );
     loadSnapshot?.().then(
       (state) => {
         if (!live || !state) return;
@@ -100,6 +139,7 @@ export function useCollabConnection(
     setConn({ ydoc, provider });
     return () => {
       live = false;
+      void local?.destroy();
       provider.destroy();
       ydoc.destroy();
       if (retired.has(socket) && socket.configuration.providerMap.size === 0) {

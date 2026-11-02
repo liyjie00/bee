@@ -114,7 +114,7 @@ export const en = {
   'doc.viaLink': 'Opened via share link',
   'doc.canComment': 'Can comment',
   'doc.readOnly': 'Read only',
-  'doc.offline': 'Disconnected from the sync server. Reconnecting — offline edits merge automatically once back.',
+  'doc.offline': 'You are offline. Edits are saved on this device (even if you reload or close the tab) and sync when you are back online.',
   'doc.blockGone': 'That paragraph no longer exists',
   'doc.blockLinkCopied': 'Paragraph link copied — opening it scrolls to and highlights this paragraph',
   'status.connecting': 'Connecting',

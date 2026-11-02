@@ -9,3 +9,8 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
+
+// Offline copies of the app and of opened docs, and browser notifications.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}

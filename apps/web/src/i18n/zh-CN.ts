@@ -116,7 +116,7 @@ export const zhCN: Record<MessageKey, string> = {
   'doc.viaLink': '通过分享链接访问',
   'doc.canComment': '可评论',
   'doc.readOnly': '只读',
-  'doc.offline': '与协同服务的连接已断开，正在重连。离线期间的修改会在重连后自动合并。',
+  'doc.offline': '已离线。修改会先保存在这台设备上（刷新或关掉页面也不会丢），联网后自动同步。',
   'doc.blockGone': '该段落已不存在',
   'doc.blockLinkCopied': '段落链接已复制，打开会滚动到这一段并高亮',
   'status.connecting': '连接中',
