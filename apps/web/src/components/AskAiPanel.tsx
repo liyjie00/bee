@@ -224,7 +224,7 @@ export function AskAiPanel({ documentId, onClose }: { documentId: string; onClos
         )}
         <span style={{ marginLeft: 'auto' }} />
         {connected && view === 'chat' && msgs.length > 0 && (
-          <button className="ico" style={{ marginBottom: 8 }} title={t('ai.newChat')} aria-label={t('ai.newChat')} disabled={busy} onClick={() => setMsgs([])}>
+          <button className="ico" style={{ marginBottom: '0.5rem' }} title={t('ai.newChat')} aria-label={t('ai.newChat')} disabled={busy} onClick={() => setMsgs([])}>
             <Icon name="plus" />
           </button>
         )}

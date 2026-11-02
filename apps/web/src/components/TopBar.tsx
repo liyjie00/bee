@@ -50,7 +50,7 @@ export function TopBar({ crumbs, children, phoneMenu = [] }: { crumbs: Crumb[]; 
       {children}
       <button
         className="ico mono hide-phone"
-        style={{ fontSize: 12, fontFamily: 'var(--f-body)' }}
+        style={{ fontSize: '0.75rem', fontFamily: 'var(--f-body)' }}
         aria-label={t('lang.label')}
         title={t('lang.label')}
         onClick={switchLang}

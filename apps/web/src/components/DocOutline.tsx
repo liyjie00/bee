@@ -103,8 +103,8 @@ export function DocOutline({ editor, viewRef }: { editor: Editor; viewRef: RefOb
     if (y !== null) view.scrollTo({ top: y - toolbarHeight() - GAP, behavior: 'smooth' });
     // Same flash as .bee-landed, but without touching the class: ProseMirror redraws a node whose
     // attributes change, which would drop the class at once.
-    const wash = { background: 'var(--be-honey-wash)', boxShadow: '-12px 0 0 var(--be-honey-wash),12px 0 0 var(--be-honey-wash)' };
-    const clear = { background: 'transparent', boxShadow: '-12px 0 0 transparent,12px 0 0 transparent' };
+    const wash = { background: 'var(--be-honey-wash)', boxShadow: '-0.75rem 0 0 var(--be-honey-wash),0.75rem 0 0 var(--be-honey-wash)' };
+    const clear = { background: 'transparent', boxShadow: '-0.75rem 0 0 transparent,0.75rem 0 0 transparent' };
     dom.animate([wash, { ...wash, offset: 0.4 }, clear], { duration: 2400, easing: 'ease-out' });
   };
   const minLevel = Math.min(...headings.map((h) => h.level));

@@ -37,7 +37,7 @@ export function WhiteboardPicker({ excludeId, onPick, onClose }: { excludeId: st
           }}
         />
         <div className="res">
-          {boards.length === 0 && <p style={{ color: 'var(--fg-3)', padding: '8px 10px', margin: 0 }}>{t('wbpick.none')}</p>}
+          {boards.length === 0 && <p style={{ color: 'var(--fg-3)', padding: '0.5rem 0.625rem', margin: 0 }}>{t('wbpick.none')}</p>}
           {boards.map((d, i) => (
             <button key={d.id} className={i === hl ? 'hl' : ''} onMouseEnter={() => setHl(i)} onClick={() => pick(d)}>
               <Icon name="board" />

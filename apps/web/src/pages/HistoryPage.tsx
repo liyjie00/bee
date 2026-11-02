@@ -30,7 +30,7 @@ function Rendered({ blocks }: { blocks: DiffBlock[] }) {
         if (b.kind === 'hr') return <hr key={i} />;
         if (b.kind === 'code') return <pre key={i}><code>{inner}</code></pre>;
         if (b.kind === 'quote') return <blockquote key={i}>{inner}</blockquote>;
-        if (b.kind === 'li') return <ul key={i} style={{ margin: '0 0 6px' }}><li>{inner}</li></ul>;
+        if (b.kind === 'li') return <ul key={i} style={{ margin: '0 0 0.375rem' }}><li>{inner}</li></ul>;
         if (b.kind === 'task')
           return (
             <ul key={i} className="checks" style={{ margin: '0 0 2px' }}>
@@ -222,11 +222,11 @@ export function HistoryPage() {
               </article>
             </div>
             <aside className={'vlist' + (listOpen ? ' open' : '')} aria-label={t('history.list')}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 6px' }}>
-                <b style={{ fontSize: 14 }}>{t('history.title')}</b>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.25rem 0.375rem' }}>
+                <b style={{ fontSize: '0.875rem' }}>{t('history.title')}</b>
                 <span className="spacer" />
                 {doc && can.edit(doc.role) && (
-                  <button className="btn" style={{ fontSize: 12, padding: '3px 8px' }} onClick={() => setNaming((n) => (n === null ? '' : null))}>
+                  <button className="btn" style={{ fontSize: '0.75rem', padding: '0.1875rem 0.5rem' }} onClick={() => setNaming((n) => (n === null ? '' : null))}>
                     <Icon name="plus" />
                     {t('history.nameCurrent')}
                   </button>
@@ -258,11 +258,11 @@ export function HistoryPage() {
                   </button>
                 </form>
               )}
-              <button className="toggle" style={{ padding: '8px 6px 0', fontSize: 12 }} onClick={() => setHighlight((h) => !h)} aria-pressed={highlight}>
+              <button className="toggle" style={{ padding: '0.5rem 0.375rem 0', fontSize: '0.75rem' }} onClick={() => setHighlight((h) => !h)} aria-pressed={highlight}>
                 <span className={'sw' + (highlight ? ' on' : '')} />
                 {t('history.highlight')}
               </button>
-              {versions?.length === 0 && <p style={{ color: 'var(--fg-3)', fontSize: 13, padding: '8px 6px' }}>{t('history.empty')}</p>}
+              {versions?.length === 0 && <p style={{ color: 'var(--fg-3)', fontSize: '0.8125rem', padding: '0.5rem 0.375rem' }}>{t('history.empty')}</p>}
               {versions?.map((v, i) => {
                 const day = dayLabel(t, v.createdAt, lang);
                 const showDay = day !== lastDay;

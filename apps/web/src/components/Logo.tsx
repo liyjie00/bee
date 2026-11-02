@@ -50,7 +50,7 @@ function WordPaths() {
 /** The hexagon mark alone (square). */
 export function BeeMark({ size = 24 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="-2 -2 55 55" role="img" aria-label="bee">
+    <svg style={{ width: `${size / 16}rem`, height: `${size / 16}rem` }} viewBox="-2 -2 55 55" role="img" aria-label="bee">
       <MarkPaths />
     </svg>
   );
@@ -59,7 +59,7 @@ export function BeeMark({ size = 24 }: { size?: number }) {
 /** Mark + wordmark lockup; `height` sets the size, width follows the viewBox ratio. */
 export function BeeLogo({ height = 22 }: { height?: number }) {
   return (
-    <svg height={height} width={(height * 213.33) / 58.6} viewBox="0 47 213.33 58.6" role="img" aria-label="bee">
+    <svg style={{ height: `${height / 16}rem`, width: `${(height * 213.33) / 58.6 / 16}rem` }} viewBox="0 47 213.33 58.6" role="img" aria-label="bee">
       <g transform="translate(0 47) scale(1.1453)">
         <MarkPaths />
       </g>

@@ -60,14 +60,14 @@ export function SearchDialog({ workspaceId, onClose }: { workspaceId: string; on
           }}
         />
         <div className="res">
-          {hits.length === 0 && <p style={{ color: 'var(--fg-3)', padding: '8px 10px', margin: 0 }}>{t('search.none')}</p>}
+          {hits.length === 0 && <p style={{ color: 'var(--fg-3)', padding: '0.5rem 0.625rem', margin: 0 }}>{t('search.none')}</p>}
           {hits.map((h, i) => (
             <button key={h.document.id} className={i === hl ? 'hl' : ''} onMouseEnter={() => setHl(i)} onClick={() => go(h)}>
               <Icon name={docIcon(h.document.type)} />
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: 'block' }}>{h.document.title || t('common.untitled')}</span>
                 {h.snippet && (
-                  <span style={{ display: 'block', color: 'var(--fg-3)', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'block', color: 'var(--fg-3)', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {h.snippet}
                   </span>
                 )}

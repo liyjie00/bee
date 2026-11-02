@@ -196,14 +196,14 @@ export function ShareDialog({ doc, onClose, onChange }: { doc: DocumentDTO; onCl
             <label className="toggle" style={{ alignItems: 'flex-start', cursor: doc.role === 'owner' ? 'pointer' : undefined }}>
               <input
                 type="checkbox"
-                style={{ marginTop: 3 }}
+                style={{ marginTop: '0.1875rem' }}
                 checked={!!link?.guestComments}
                 disabled={busy || doc.role !== 'owner'}
                 onChange={(e) => setGuestComments(e.target.checked)}
               />
               <span>
                 <b style={{ fontWeight: 500, display: 'block', color: 'var(--fg)' }}>{t('share.guestComments')}</b>
-                <small style={{ color: 'var(--fg-3)', fontSize: 12 }}>{t('share.guestCommentsHint')}</small>
+                <small style={{ color: 'var(--fg-3)', fontSize: '0.75rem' }}>{t('share.guestCommentsHint')}</small>
               </span>
             </label>
           )}
@@ -225,7 +225,7 @@ export function ShareDialog({ doc, onClose, onChange }: { doc: DocumentDTO; onCl
           </div>
         </div>
         <div className="mf">
-          <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>{t('share.footer')}</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--fg-3)' }}>{t('share.footer')}</span>
           <button className="btn" onClick={onClose}>
             {t('common.done')}
           </button>

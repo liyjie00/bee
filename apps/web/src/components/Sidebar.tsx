@@ -221,11 +221,11 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       <div key={f.id}>
         <div className="row" {...dropProps(f.id)}>
           {renaming === f.id ? (
-            <div style={{ paddingLeft: 8 + depth * 18 }}>{renameInput({ kind: 'folder', id: f.id }, f.name)}</div>
+            <div style={{ paddingLeft: `${(8 + depth * 18) / 16}rem` }}>{renameInput({ kind: 'folder', id: f.id }, f.name)}</div>
           ) : (
             <button
               className={(active ? 'on ' : '') + (dropTarget === f.id ? 'drop' : '')}
-              style={{ paddingLeft: 8 + depth * 18 }}
+              style={{ paddingLeft: `${(8 + depth * 18) / 16}rem` }}
               draggable
               onDragStart={(e) => onDragStart(e, { kind: 'folder', id: f.id })}
               onClick={() => {
@@ -269,13 +269,13 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
   const renderDoc = (d: DocumentDTO, depth: number) => (
     <div className="row" key={d.id}>
       {renaming === d.id ? (
-        <div style={{ paddingLeft: 8 + depth * 18 + 20 }}>{renameInput({ kind: 'doc', id: d.id }, d.title)}</div>
+        <div style={{ paddingLeft: `${(8 + depth * 18 + 20) / 16}rem` }}>{renameInput({ kind: 'doc', id: d.id }, d.title)}</div>
       ) : (
         <NavLink
           to={`/d/${d.id}`}
           {...prefetchProps(d.id)}
           className={({ isActive }) => (isActive || loc.pathname.startsWith(`/d/${d.id}/`) ? 'on' : '')}
-          style={{ paddingLeft: 8 + depth * 18 + 20 }}
+          style={{ paddingLeft: `${(8 + depth * 18 + 20) / 16}rem` }}
           draggable
           onDragStart={(e) => onDragStart(e, { kind: 'doc', id: d.id })}
           onClick={onClose}
@@ -324,7 +324,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
                   to={`/d/${d.id}`}
                   {...prefetchProps(d.id)}
                   className={({ isActive }) => (isActive ? 'on' : '')}
-                  style={{ paddingLeft: 8 }}
+                  style={{ paddingLeft: '0.5rem' }}
                   onClick={onClose}
                   onContextMenu={(e) => menu.open(e, [starItem(d)])}
                 >
@@ -405,11 +405,11 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         {childFolders(null).map((f) => renderFolder(f, 0))}
         {childDocs(null).map((d) => renderDoc(d, 0))}
         {tree.folders.length === 0 && tree.documents.length === 0 && (
-          <p style={{ color: 'var(--fg-3)', fontSize: 12.5, padding: '6px 8px' }}>{t('nav.emptyTree')}</p>
+          <p style={{ color: 'var(--fg-3)', fontSize: '0.7813rem', padding: '0.375rem 0.5rem' }}>{t('nav.emptyTree')}</p>
         )}
       </div>
       </div>
-      <nav className="nav" style={{ paddingBottom: 6 }}>
+      <nav className="nav" style={{ paddingBottom: '0.375rem' }}>
         {navItem('/trash', 'trash', t('nav.trash'))}
         <button onClick={() => setBugOpen(true)}>
           <Icon name="bug" />
@@ -420,7 +420,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         <div className="me">
           <Avatar name={session.user.name} color={session.user.color} />
           <div className="meta" style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ color: 'var(--fg)', fontSize: 13 }}>{session.user.name}</div>
+            <div style={{ color: 'var(--fg)', fontSize: '0.8125rem' }}>{session.user.name}</div>
             <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={session.user.email}>{session.user.email}</div>
           </div>
           <button className="ico" title={t('nav.settings')} aria-label={t('nav.settings')} onClick={() => nav('/settings')}>

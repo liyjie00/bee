@@ -148,7 +148,7 @@ export function CommentsPanel({
             <DraftCard author={author} draft={draft} ready={ready} onNeedName={needName} onCreate={onCreate} onCancel={onCancelDraft} loadPeople={loadPeople} />
           )}
           {shown.length === 0 && !draft && (
-            <p style={{ color: 'var(--fg-3)', fontSize: 13, margin: '8px 2px' }}>
+            <p style={{ color: 'var(--fg-3)', fontSize: '0.8125rem', margin: '0.5rem 2px' }}>
               {canComment ? t('comments.hint') : t('comments.none')}
             </p>
           )}
@@ -161,7 +161,7 @@ export function CommentsPanel({
               onClick={() => onActivate(th.id)}
             >
               {th.resolved && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-3)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--fg-3)' }}>
                   <Icon name="check" size={13} />
                   {t('comments.resolvedBy', { name: th.resolvedBy?.name ?? '' })}
                 </div>
@@ -285,7 +285,7 @@ function DraftCard({
             if (e.key === 'Escape') onCancel();
           }}
         />
-        <button className="btn primary" style={{ padding: '3px 10px', fontSize: 12 }} disabled={!body.trim() || busy} onClick={send}>
+        <button className="btn primary" style={{ padding: '0.1875rem 0.625rem', fontSize: '0.75rem' }} disabled={!body.trim() || busy} onClick={send}>
           {t('comments.send')}
         </button>
       </div>

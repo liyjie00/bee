@@ -2,7 +2,7 @@ import type { DocFont, DocFontSize, UserPrefs } from '@bee/shared';
 
 const KEY = 'bee-doc-prefs';
 
-const SIZES: Record<DocFontSize, string> = { small: '12.5px', medium: '13.5px', large: '15px' };
+const SIZES: Record<DocFontSize, string> = { small: '0.7813rem', medium: '0.8438rem', large: '0.9375rem' };
 const FONTS: Record<DocFont, string> = {
   sans: 'var(--f-body)',
   serif: 'var(--f-serif)',

@@ -50,7 +50,7 @@ export function WelcomePage() {
     <div className="auth">
       <form className="auth-card" onSubmit={submit}>
         <h1 className="welcome-title">{t('welcome.title')}</h1>
-        <p style={{ margin: 0, color: 'var(--fg-3)', fontSize: 13.5 }}>{t('welcome.lead')}</p>
+        <p style={{ margin: 0, color: 'var(--fg-3)', fontSize: '0.8438rem' }}>{t('welcome.lead')}</p>
         <div className="welcome-who">
           {user.avatarUrl ? (
             <img src={user.avatarUrl} alt="" referrerPolicy="no-referrer" />

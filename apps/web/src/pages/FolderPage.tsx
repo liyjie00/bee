@@ -21,7 +21,7 @@ export function Thumb({ d }: { d: DocumentDTO }) {
   const t = useT();
   if (d.type === 'whiteboard')
     return (
-      <div className="thumb" style={{ backgroundImage: 'radial-gradient(var(--line-strong) 1px,transparent 1.2px)', backgroundSize: '12px 12px' }}>
+      <div className="thumb" style={{ backgroundImage: 'radial-gradient(var(--line-strong) 1px,transparent 1.2px)', backgroundSize: '0.75rem 0.75rem' }}>
         <span className="kind">{t('kind.whiteboard')}</span>
         <svg viewBox="0 0 200 80" width="100%" height="88" aria-hidden="true">
           <rect className="sh" x="4" y="24" width="56" height="30" rx="5" />
@@ -193,7 +193,7 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
             </div>
             )}
             <div className="spacer" />
-            <span style={{ fontSize: 12.5, color: 'var(--fg-3)' }}>{t('folder.sorted')}</span>
+            <span style={{ fontSize: '0.7812rem', color: 'var(--fg-3)' }}>{t('folder.sorted')}</span>
             <div className="seg" role="group" aria-label={t('folder.view')}>
               <button className={view === 'grid' ? 'on' : ''} aria-label={t('folder.grid')} onClick={() => setV('grid')}>
                 <Icon name="grid" />
@@ -215,12 +215,12 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
           ) : view === 'grid' ? (
             <>
               {shown.some((i) => i.kind === 'folder') && (
-                <div className="cards" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', marginBottom: 14 }}>
+                <div className="cards" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(12.5rem,1fr))', marginBottom: '0.875rem' }}>
                   {shown
                     .filter((i): i is Extract<Item, { kind: 'folder' }> => i.kind === 'folder')
                     .map((it) => (
                       <button key={it.f.id} className="card" onClick={() => open(it)} onContextMenu={(e) => rowMenu(e, it)}>
-                        <div className="cb" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <div className="cb" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
                           <Icon name="folder" />
                           <b style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.f.name}</b>
                           {mode === 'trash' && <span>{t('folder.rightClickRestore')}</span>}

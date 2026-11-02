@@ -174,7 +174,7 @@ function NotificationsSection() {
           </button>
         )}
         {on && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button className="btn" disabled={busy} onClick={() => api.testPush().catch((e) => toast(errMsg(e)))}>
               {t('settings.notif.test')}
             </button>
@@ -267,7 +267,7 @@ export function SettingsPage() {
             <p className="lead">{t('settings.claudeLead')}</p>
             <label className="lbl">{t('settings.mcpUrl')}</label>
             <CopyField value={mcpUrl} />
-            <p className="lead" style={{ marginTop: 14 }}>
+            <p className="lead" style={{ marginTop: '0.875rem' }}>
               {t('settings.claudeCode')}
             </p>
             <CopyField

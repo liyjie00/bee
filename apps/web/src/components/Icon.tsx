@@ -8,7 +8,7 @@ export type IconName =
   | 'note' | 'menu' | 'copy' | 'restore' | 'gear' | 'spark' | 'sun' | 'moon' | 'upload' | 'bug';
 
 export function Icon({ name, size, className, style }: { name: IconName; size?: number; className?: string; style?: CSSProperties }) {
-  const s = size ? { width: size, height: size, ...style } : style;
+  const s = size ? { width: `${size / 16}rem`, height: `${size / 16}rem`, ...style } : style;
   return (
     <svg className={'i' + (className ? ' ' + className : '')} style={s} aria-hidden="true">
       <use href={`#i-${name}`} />
