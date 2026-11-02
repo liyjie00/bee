@@ -173,6 +173,7 @@ export interface VersionContentResponse {
   /** plain text, for quick diffing */
   text: string;
 }
+/** GET /api/documents/:id/versions/current → VersionContentResponse of the live state (version.id = 'current') */
 /** PATCH /api/documents/:id/versions/:vid { label } → { version } */
 /** POST /api/documents/:id/versions/:vid/restore → { version } (the new head version) */
 

@@ -392,6 +392,9 @@ describe('collab internal API and versions', () => {
     expect(content.text).toContain('Collaborative bees');
     expect(content.content.type).toBe('doc');
 
+    const cur = (await owner.c.get(`/api/documents/${doc.id}/versions/current`)).json;
+    expect(cur.text).toContain('Collaborative bees');
+
     // Restore needs the collab server; here it is unreachable, so 503.
     expect(
       (await owner.c.post(`/api/documents/${doc.id}/versions/${list[1].id}/restore`)).status,

@@ -135,6 +135,27 @@ export async function versionRoutes(app: FastifyInstance) {
     return reply.status(201).send({ version: (await versionDTOs(db, [v!]))[0] });
   });
 
+  /** Latest persisted live state (lags the collab server by a few seconds at most). */
+  app.get('/documents/:id/versions/current', async (req) => {
+    const { id } = parse(idParams, req.params);
+    const a = await docAccess(db, {
+      userId: req.user?.id ?? null,
+      documentId: id,
+      shareToken: req.shareToken,
+    });
+    const refs = await loadUserRefs(db, [a.doc.lastEditedById]);
+    const version: VersionDTO = {
+      id: 'current',
+      documentId: id,
+      label: null,
+      kind: 'auto',
+      authors: a.doc.lastEditedById ? [refOr(refs, a.doc.lastEditedById)] : [],
+      createdAt: (a.doc.contentUpdatedAt ?? a.doc.updatedAt).toISOString(),
+    };
+    if (a.doc.type !== 'doc' || !a.doc.ydocState) return { version, content: null, text: '' };
+    return { version, ...contentJSON(a.doc.ydocState) };
+  });
+
   app.get('/documents/:id/versions/:vid', async (req) => {
     const { id, vid } = parse(versionParams, req.params);
     const a = await docAccess(db, {

@@ -55,7 +55,10 @@ export async function buildApp(opts: {
   );
 
   // CSRF: browsers always send Origin on cross-site mutating requests.
-  const allowedOrigins = new Set([new URL(opts.config.publicUrl).origin, ...opts.config.allowedOrigins]);
+  const allowedOrigins = new Set([
+    new URL(opts.config.publicUrl).origin,
+    ...opts.config.allowedOrigins,
+  ]);
   app.addHook('onRequest', async (req) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.url.startsWith('/api/internal/'))
       return;
