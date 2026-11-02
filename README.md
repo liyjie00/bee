@@ -17,7 +17,7 @@ private / member / public-link sharing.
 
 ## Ports
 
-Public: **8420** (Caddy) → `/api/*` api:8421, `/collab*` collab:8422, `/*` web:8423.
+Public: **7070** (Caddy) → `/api/*` api:8421, `/collab*` collab:1234, `/*` web:8423.
 Dev Postgres: `localhost:54329`.
 
 ## Quick start (self-host)

@@ -1,6 +1,6 @@
-# Bee self-host stack. Only the proxy is exposed publicly (port 8420).
+# Bee self-host stack. Only the proxy is exposed publicly (port 7070).
 #   /api/*    -> api    (Fastify, :8421)
-#   /collab*  -> collab (Hocuspocus WebSocket, :8422)
+#   /collab*  -> collab (Hocuspocus WebSocket, :1234)
 #   /*        -> web    (:8423)
 # Local dev: `docker compose up -d postgres` and run apps with `pnpm dev`.
 name: bee
@@ -34,7 +34,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-bee}:${POSTGRES_PASSWORD:-bee}@postgres:5432/${POSTGRES_DB:-bee}
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
       COLLAB_SECRET: ${COLLAB_SECRET:?set COLLAB_SECRET}
-      BEE_PUBLIC_URL: ${BEE_PUBLIC_URL:-http://localhost:8420}
+      BEE_PUBLIC_URL: ${BEE_PUBLIC_URL:-http://localhost:7070}
       UPLOAD_DIR: /data/uploads
     volumes:
       - uploads:/data/uploads
@@ -43,12 +43,10 @@ services:
     build: { context: ., dockerfile: apps/collab/Dockerfile }
     restart: unless-stopped
     depends_on:
-      postgres: { condition: service_healthy }
       api: { condition: service_started }
     environment:
       NODE_ENV: production
-      PORT: 8422
-      DATABASE_URL: postgres://${POSTGRES_USER:-bee}:${POSTGRES_PASSWORD:-bee}@postgres:5432/${POSTGRES_DB:-bee}
+      PORT: 1234
       API_INTERNAL_URL: http://api:8421
       COLLAB_SECRET: ${COLLAB_SECRET:?set COLLAB_SECRET}
       REDIS_URL: ${REDIS_URL:-}
@@ -60,14 +58,14 @@ services:
       NODE_ENV: production
       PORT: 8423
       API_INTERNAL_URL: http://api:8421
-      BEE_PUBLIC_URL: ${BEE_PUBLIC_URL:-http://localhost:8420}
+      BEE_PUBLIC_URL: ${BEE_PUBLIC_URL:-http://localhost:7070}
 
   proxy:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on: [api, collab, web]
     ports:
-      - '${BEE_PORT:-8420}:8420'
+      - '${BEE_PORT:-7070}:7070'
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
 

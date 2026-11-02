@@ -3,7 +3,7 @@
 	admin off
 }
 
-:8420 {
+:7070 {
 	encode zstd gzip
 	request_body {
 		max_size 50MB
@@ -13,7 +13,7 @@
 		reverse_proxy api:8421
 	}
 	handle /collab* {
-		reverse_proxy collab:8422
+		reverse_proxy collab:1234
 	}
 	handle {
 		reverse_proxy web:8423
