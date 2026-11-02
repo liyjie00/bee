@@ -117,6 +117,8 @@ function block(node: JSONNode): string {
       return tableToMarkdown(node);
     case 'whiteboard':
       return `<!-- bee:whiteboard ${String(node.attrs?.documentId ?? '')}${whiteboardOptions(node.attrs ?? {})} -->`;
+    case 'sheet':
+      return sheetToMarkdown(node);
     case 'columns':
       return [
         '<!-- bee:columns -->',
@@ -149,7 +151,31 @@ function blocks(nodes: JSONNode[] = [], sep = '\n\n'): string {
 }
 
 /** Serializes Tiptap/ProseMirror JSON to GitHub-flavoured Markdown. */
-export function jsonToMarkdown(doc: JSONNode): string {
-  const md = blocks(doc.content);
-  return md ? `${md}\n` : '';
+export interface MarkdownOptions {
+  /** Name and display values of a spreadsheet block, which live outside the rich text. */
+  sheet?: (sheetId: string) => { name: string; rows: string[][] } | null;
+}
+
+let sheetSource: MarkdownOptions['sheet'];
+
+function sheetToMarkdown(node: JSONNode): string {
+  const id = String(node.attrs?.sheetId ?? '');
+  const data = id ? sheetSource?.(id) : null;
+  const marker = `<!-- bee:sheet ${id}${data?.name ? ` name="${data.name.replace(/["\n]|--/g, ' ')}"` : ''} -->`;
+  if (!data?.rows.length) return marker;
+  const cell = (t: string) => escapeText(t).replace(/\n/g, ' ');
+  const width = Math.max(...data.rows.map((r) => r.length));
+  const line = (r: string[]) => `| ${[...r, ...Array(width - r.length).fill('')].map(cell).join(' | ')} |`;
+  const [head, ...body] = data.rows;
+  return [marker, line(head!), `|${' --- |'.repeat(width)}`, ...body.map(line)].join('\n');
+}
+
+export function jsonToMarkdown(doc: JSONNode, options: MarkdownOptions = {}): string {
+  sheetSource = options.sheet;
+  try {
+    const md = blocks(doc.content);
+    return md ? `${md}\n` : '';
+  } finally {
+    sheetSource = undefined;
+  }
 }

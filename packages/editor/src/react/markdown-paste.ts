@@ -3,6 +3,8 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { markdownToJSON } from '../markdown/from-markdown.js';
 import { jsonToMarkdown } from '../markdown/to-markdown.js';
 import type { JSONNode } from '../markdown/types.js';
+import { readSheet, sheetTextGrid } from '../schema/sheet-data.js';
+import { sheetDoc } from './sheet/commands.js';
 
 const MARKDOWN_HINT = /^(#{1,6}\s|[-*+]\s|\d+\.\s|>\s|```|\|.*\|\s*$|- \[[ xX]\]\s)|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)/m;
 
@@ -17,7 +19,13 @@ export function insertMarkdown(editor: Editor, markdown: string): boolean {
 }
 
 export function editorToMarkdown(editor: Editor): string {
-  return jsonToMarkdown(editor.getJSON() as JSONNode);
+  const ydoc = sheetDoc(editor);
+  return jsonToMarkdown(editor.getJSON() as JSONNode, {
+    sheet: (id) => {
+      const sheet = ydoc ? readSheet(ydoc, id) : null;
+      return sheet ? { name: sheet.name, rows: sheetTextGrid(sheet) } : null;
+    },
+  });
 }
 
 /** Plain-text pastes that look like Markdown are converted instead of pasted literally. */

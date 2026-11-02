@@ -5,6 +5,7 @@ import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from '@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import type { Messages } from './i18n.js';
 import { MessagesContext } from './i18n.js';
+import { insertNewSheet, sheetDoc } from './sheet/commands.js';
 
 /** Read lazily so the menu always reflects the host's current props. */
 export interface SlashHost {
@@ -44,6 +45,9 @@ function buildItems(host: SlashHost, editor: Editor): SlashItem[] {
     { id: 'code', title: t.codeBlock, hint: t.codeBlockHint, icon: '</>', keywords: 'code codeblock pre 代码', run: (e, r) => chain(e, r).setCodeBlock().run() },
     { id: 'mermaid', title: t.mermaid, hint: t.mermaidHint, icon: '⤳', keywords: 'mermaid diagram flowchart chart 流程图 图', run: (e, r) => chain(e, r).setCodeBlock({ language: 'mermaid' }).run() },
     { id: 'table', title: t.table, hint: t.tableHint, icon: '▦', keywords: 'table grid 表格', run: (e, r) => chain(e, r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+    sheetDoc(editor)
+      ? { id: 'sheet', title: t.sheet, hint: t.sheetHint, icon: 'fx', keywords: 'sheet spreadsheet excel formula univer grid table 电子表格 表格 公式', run: (e, r) => { chain(e, r).run(); insertNewSheet(e, t.sheetBaseName); } }
+      : null,
     host.canPickImage()
       ? { id: 'image', title: t.image, hint: t.imageHint, icon: '▣', keywords: 'image picture photo img 图片', run: (e, r) => { chain(e, r).run(); host.pickImage(); } }
       : null,
