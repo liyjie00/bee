@@ -528,6 +528,7 @@ export const en = {
   "land.demoLin": "Lin",
   "land.demoChen": "Chen",
   "land.contact": "Contact us:",
+  "land.source": "Source code on GitHub (self-hostable)",
   "bug.nav": "Report a problem",
   "bug.title": "Report a problem",
   "bug.subtitle": "Tell us what went wrong and we'll look into it.",

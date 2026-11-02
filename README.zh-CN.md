@@ -18,7 +18,7 @@ Bee 是用 [Claude Code](https://claude.com/claude-code) 开发的：大部分�
 `docker-compose.yml` 启动，对外只暴露代理端口。
 
 ```bash
-git clone <本仓库地址> bee && cd bee
+git clone https://github.com/liyjie00/bee.git && cd bee
 cp .env.example .env
 # 把 SESSION_SECRET 和 COLLAB_SECRET 设为足够长的随机字符串，例如：
 #   openssl rand -hex 32

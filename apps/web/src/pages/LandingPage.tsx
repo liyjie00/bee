@@ -5,6 +5,7 @@ import { useI18n, type MessageKey } from '../i18n';
 const LOGIN = '/login';
 const REGISTER = '/login?mode=register';
 const CONTACT = 'contactus@bee.zippyzoo.dev';
+const SOURCE = 'https://github.com/liyjie00/bee';
 
 /** Stroke icons for the feature cards (24×24). */
 const FEATURES: { title: MessageKey; body: MessageKey; d: string }[] = [
@@ -236,6 +237,9 @@ export function LandingPage() {
           <BeeLogo height={20} />
           <span>{t('land.footer')}</span>
           <div className="spacer" />
+          <a href={SOURCE} target="_blank" rel="noreferrer">
+            {t('land.source')}
+          </a>
           <a href={`mailto:${CONTACT}`}>
             {t('land.contact')} {CONTACT}
           </a>

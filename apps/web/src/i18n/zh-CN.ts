@@ -530,6 +530,7 @@ export const zhCN: Record<MessageKey, string> = {
   "land.demoLin": "林夏",
   "land.demoChen": "陈默",
   "land.contact": "联系我们：",
+  "land.source": "GitHub 源代码（可自托管）",
   "bug.nav": "报告问题",
   "bug.title": "报告问题",
   "bug.subtitle": "告诉我们哪里不对劲，我们会尽快查看。",

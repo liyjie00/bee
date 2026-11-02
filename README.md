@@ -20,7 +20,7 @@ Linux). The whole stack (PostgreSQL, API, collaboration server, web client and a
 Caddy proxy) runs from `docker-compose.yml`, and only the proxy port is exposed.
 
 ```bash
-git clone <this repository> bee && cd bee
+git clone https://github.com/liyjie00/bee.git && cd bee
 cp .env.example .env
 # Set SESSION_SECRET and COLLAB_SECRET to long random strings, e.g.:
 #   openssl rand -hex 32
