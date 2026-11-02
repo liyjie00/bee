@@ -46,7 +46,7 @@ export type Element = Record<string, unknown> & {
 
 const FONT_SIZE = 20;
 const LINE_HEIGHT = 1.25;
-const FONT_FAMILY = 5; // Excalifont, Excalidraw's default hand-drawn font
+const FONT_FAMILY = 6; // Nunito: clean rather than hand-drawn, like the whiteboard's defaults
 const LAYER_GAP = 90;
 const SIBLING_GAP = 50;
 
@@ -89,7 +89,7 @@ function base(type: string, x: number, y: number, width: number, height: number)
     fillStyle: 'solid',
     strokeWidth: 2,
     strokeStyle: 'solid',
-    roughness: 1,
+    roughness: 0,
     opacity: 100,
     groupIds: [],
     frameId: null,
@@ -406,7 +406,7 @@ export function diagramElements(
     const endShape = shapes.get(e.to)!;
     Object.assign(arrow, {
       strokeStyle: e.dashed ? 'dashed' : 'solid',
-      roundness: { type: 2 },
+      roundness: null,
       points: pts.map((_, k) => [xs[k], ys[k]]),
       lastCommittedPoint: null,
       startBinding: { elementId: startShape.id, focus: 0, gap: 6 },

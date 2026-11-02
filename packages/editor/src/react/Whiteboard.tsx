@@ -51,6 +51,13 @@ function fitAll(api: ExcalidrawAPI) {
   }
 }
 
+/** New shapes default to a clean, draw.io-like look instead of Excalidraw's hand-drawn one. */
+const CLEAN_STYLE = {
+  currentItemRoughness: 0,
+  currentItemFontFamily: 6, // Nunito
+  currentItemArrowType: 'sharp',
+};
+
 interface BoardProps {
   ydoc: Y.Doc;
   provider: HocuspocusProvider;
@@ -211,7 +218,11 @@ function Board({ ydoc, provider, user, editable, embedded, fitContent, view, onH
         applyRemote();
         requestAnimationFrame(place);
       }}
-      initialData={{ elements: [...elementsMap.values()].map((el) => structuredClone(el)), files: Object.fromEntries(filesMap.entries()) }}
+      initialData={{
+        elements: [...elementsMap.values()].map((el) => structuredClone(el)),
+        files: Object.fromEntries(filesMap.entries()),
+        appState: CLEAN_STYLE,
+      }}
       onChange={onChange}
       onPointerUpdate={({ pointer }: { pointer: { x: number; y: number } }) =>
         provider.awareness?.setLocalStateField('pointer', pointer)

@@ -236,6 +236,7 @@ export function WhiteboardConnectors({ api, mod }: Props) {
         strokeWidth: state.currentItemStrokeWidth,
         strokeStyle: state.currentItemStrokeStyle,
         roughness: state.currentItemRoughness,
+        roundness: state.currentItemArrowType === 'round' ? { type: 2 } : null,
         opacity: state.currentItemOpacity,
         startArrowhead: state.currentItemStartArrowhead,
         endArrowhead: state.currentItemEndArrowhead,
