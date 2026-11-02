@@ -26,6 +26,11 @@ export function setMailer(t: Transporter | null) {
   mailer = t;
 }
 
+/** The configured SMTP transport, or null when email is off. */
+export function getMailer(): Transporter | null {
+  return mailer;
+}
+
 export function deliveryEnabled() {
   return { email: !!mailer, push, vapidPublicKey: push ? config!.vapidPublicKey : null };
 }

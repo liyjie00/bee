@@ -1,10 +1,12 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useShell } from './Shell';
 import { Icon } from './Icon';
 import { useTheme } from '../lib/theme';
 import { useI18n } from '../i18n';
 import { useMenu, type MenuEntry } from './Menu';
+import { BugReportDialog } from './BugReportDialog';
+import { useSession } from '../state/session';
 
 export interface Crumb {
   label: string;
@@ -17,6 +19,8 @@ export function TopBar({ crumbs, children, phoneMenu = [] }: { crumbs: Crumb[]; 
   const [theme, toggleTheme] = useTheme();
   const { t, lang, setLang } = useI18n();
   const menu = useMenu();
+  const [bugOpen, setBugOpen] = useState(false);
+  const { session } = useSession();
   const switchLang = () => setLang(lang === 'en' ? 'zh-CN' : 'en');
   return (
     <header className="top">
@@ -69,12 +73,14 @@ export function TopBar({ crumbs, children, phoneMenu = [] }: { crumbs: Crumb[]; 
             ...(phoneMenu.length ? (['-'] as const) : []),
             { label: t('lang.label') + ' · ' + t('lang.switch'), icon: 'globe', onSelect: switchLang },
             { label: theme === 'dark' ? t('theme.toLight') : t('theme.toDark'), icon: theme === 'dark' ? 'sun' : 'moon', onSelect: toggleTheme },
+            ...(session ? [{ label: t('bug.nav'), icon: 'bug' as const, onSelect: () => setBugOpen(true) }] : []),
           ])
         }
       >
         <Icon name="more" />
       </button>
       {menu.node}
+      {bugOpen && <BugReportDialog onClose={() => setBugOpen(false)} />}
     </header>
   );
 }

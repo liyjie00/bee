@@ -25,6 +25,8 @@ export interface Config {
   smtpUrl: string | null;
   /** From header of notification emails */
   mailFrom: string;
+  /** where "Report a problem" submissions are emailed */
+  bugReportTo: string;
   /** Web Push (VAPID) keys; browser notifications are off without them */
   vapidPublicKey: string | null;
   vapidPrivateKey: string | null;
@@ -61,6 +63,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     aiRateLimit: Number(env.AI_RATE_LIMIT ?? 20),
     smtpUrl: env.SMTP_URL || null,
     mailFrom: env.MAIL_FROM || 'Bee <notifications@localhost>',
+    bugReportTo: env.BUG_REPORT_TO || 'contactus@bee.zippyzoo.dev',
     vapidPublicKey: env.VAPID_PUBLIC_KEY || null,
     vapidPrivateKey: env.VAPID_PRIVATE_KEY || null,
     googleClientId: env.GOOGLE_CLIENT_ID || null,
