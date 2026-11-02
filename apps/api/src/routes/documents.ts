@@ -88,6 +88,13 @@ function titleFromMarkdown(md: string): string | undefined {
   return m?.[1]?.trim().slice(0, 500);
 }
 
+/** Drops a leading `# Title` heading that just repeats the doc title, so imports don't show it twice. */
+export function stripTitleHeading(md: string, title: string): string {
+  const m = /^\s*#\s+(.+?)\s*#*\s*(?:\r?\n|$)/.exec(md);
+  if (!m || !title || m[1]!.trim() !== title.trim()) return md;
+  return md.slice(m[0].length).replace(/^\s*\n/, '');
+}
+
 export async function insertDocument(
   db: Db,
   v: {
@@ -154,9 +161,10 @@ export async function documentRoutes(app: FastifyInstance) {
     }
     if (body.markdown !== undefined && type !== 'doc')
       throw badRequest('Markdown import is only for docs');
-    const state = body.markdown !== undefined ? markdownToYUpdate(body.markdown) : null;
     const title =
       body.title ?? (body.markdown ? titleFromMarkdown(body.markdown) : undefined) ?? '';
+    const state =
+      body.markdown !== undefined ? markdownToYUpdate(stripTitleHeading(body.markdown, title)) : null;
     const doc = await insertDocument(db, {
       workspaceId,
       folderId,

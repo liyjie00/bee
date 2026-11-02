@@ -172,6 +172,8 @@ describe('documents, folders and permissions', () => {
     expect(doc.title).toBe('Hello world');
     const exp = await c.get(`/api/documents/${doc.id}/export.md`);
     expect(exp.res.body).toContain('**bold**');
+    // The heading became the title; it is not repeated in the body (export adds it back once).
+    expect(exp.res.body.match(/# Hello world/g)).toHaveLength(1);
     const s = (await c.get(`/api/workspaces/${workspace.id}/search?q=bees`)).json.results;
     expect(s).toHaveLength(1);
     expect(s[0].snippet).toContain('bees');
