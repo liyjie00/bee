@@ -4,6 +4,7 @@ import { useSession, TreeProvider } from '../state/session';
 import { Sidebar } from './Sidebar';
 import { SearchDialog } from './SearchDialog';
 import { useT } from '../i18n';
+import { PHONE_QUERY, useKeyboardInset, useMediaQuery } from '../lib/media';
 
 /** openSidebar is null outside the signed-in shell (share pages have no sidebar). */
 const Ctx = createContext<{ openSidebar: (() => void) | null }>({ openSidebar: null });
@@ -16,6 +17,11 @@ export function Shell() {
   const [sideOpen, setSideOpen] = useState(false);
   const [search, setSearch] = useState(false);
   const t = useT();
+  // Phones: full-screen panels (comments, Ask AI) end above the on-screen keyboard.
+  const keyboard = useKeyboardInset(useMediaQuery(PHONE_QUERY));
+  useEffect(() => {
+    document.documentElement.style.setProperty('--kb', `${keyboard}px`);
+  }, [keyboard]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -35,7 +41,7 @@ export function Shell() {
       <Ctx.Provider value={{ openSidebar: () => setSideOpen(true) }}>
         <div className="app">
           <Sidebar open={sideOpen} onClose={() => setSideOpen(false)} onSearch={() => setSearch(true)} />
-          {sideOpen && <div style={{ position: 'fixed', inset: 0, zIndex: 34 }} onClick={() => setSideOpen(false)} />}
+          {sideOpen && <div className="drawer-scrim" onClick={() => setSideOpen(false)} />}
           <Outlet />
         </div>
         {search && <SearchDialog workspaceId={workspace.id} onClose={() => setSearch(false)} />}

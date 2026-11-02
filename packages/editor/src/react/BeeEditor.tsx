@@ -260,6 +260,7 @@ function SelectionBubble({
   onComment?: (anchor: CommentAnchor) => void;
 }) {
   const showComment = canComment && !!onComment;
+  const [coarse] = useState(() => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
   const setLink = () => {
     const prev = editor.getAttributes('link').href as string | undefined;
     const href = window.prompt(t.linkPrompt, prev ?? 'https://');
@@ -284,6 +285,8 @@ function SelectionBubble({
     <BubbleMenu
       editor={editor}
       className="bee-bubble"
+      // Touch screens put their own copy/paste menu above the selection: show ours below it.
+      options={coarse ? { placement: 'bottom', offset: 28 } : undefined}
       shouldShow={({ editor: ed, state, from, to }) => {
         if (from === to || !(editable || showComment)) return false;
         if (state.selection instanceof NodeSelection) return false;

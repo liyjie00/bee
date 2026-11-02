@@ -274,7 +274,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       <button className="search" onClick={onSearch}>
         <Icon name="search" />
         {t('nav.search')}
-        <kbd>⌘K</kbd>
+        <kbd className="hide-phone">⌘K</kbd>
       </button>
       <nav className="nav">
         {navItem('/', 'home', t('nav.home'))}
