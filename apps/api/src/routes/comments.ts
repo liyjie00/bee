@@ -16,6 +16,7 @@ import { docAccess, guestsMayComment, validShareLink, type DocAccess } from '../
 import { logActivity } from '../lib/activity.js';
 import { badRequest, forbidden, HttpError, notFound, unauthorized } from '../lib/errors.js';
 import { loadUserRefs, refOr } from '../lib/dto.js';
+import { clientIp } from '../lib/ip.js';
 import { idParams, parse } from '../lib/validate.js';
 import { requireUser } from './auth.js';
 
@@ -125,7 +126,8 @@ export async function commentRoutes(app: FastifyInstance) {
         hook: 'preHandler' as const,
         max: (req: FastifyRequest) => (req.user ? 120 : config.guestCommentRateLimit),
         timeWindow: '1 minute',
-        keyGenerator: (req: FastifyRequest) => (req.user ? `u:${req.user.id}` : `ip:${req.ip}`),
+        keyGenerator: (req: FastifyRequest) =>
+          req.user ? `u:${req.user.id}` : `ip:${clientIp(req)}`,
       },
     },
   };

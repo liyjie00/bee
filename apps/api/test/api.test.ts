@@ -61,7 +61,10 @@ describe('auth', () => {
     await c.patch('/api/auth/me', { prefs: { docFontSize: 'small' } });
     const r = await c.patch('/api/auth/me', { prefs: { docFont: 'serif' } });
     expect(r.json.user.prefs).toEqual({ docFontSize: 'small', docFont: 'serif' });
-    expect((await c.get('/api/auth/me')).json.user.prefs).toEqual({ docFontSize: 'small', docFont: 'serif' });
+    expect((await c.get('/api/auth/me')).json.user.prefs).toEqual({
+      docFontSize: 'small',
+      docFont: 'serif',
+    });
     expect((await c.patch('/api/auth/me', { prefs: { docFont: 'comic' } })).status).toBe(400);
   });
 });
@@ -312,6 +315,13 @@ describe('guest comments', () => {
       limited = x.status === 429;
     }
     expect(limited).toBe(true);
+    // ...keyed by the visitor's IP from Cloudflare, not the proxy's.
+    const other = await anon.post(
+      `/api/documents/${doc.id}/threads`,
+      { anchor: null, body: 'From elsewhere', guestName: 'Cy' },
+      { ...g1, 'cf-connecting-ip': '203.0.113.7' },
+    );
+    expect(other.status).toBe(201);
 
     // Turning guest comments off stops anonymous comments.
     await owner.c.patch(`/api/links/${link.id}`, { guestComments: false });

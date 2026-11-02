@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { users, workspaceMembers, workspaces, type Db } from '@bee/db';
 import { DOC_FONTS, DOC_FONT_SIZES, SESSION_COOKIE, type MeResponse } from '@bee/shared';
 import type { Config } from '../env.js';
+import { clientIp } from '../lib/ip.js';
 import {
   createSession,
   deleteSession,
@@ -90,7 +91,10 @@ const updateMeBody = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
   prefs: z
-    .object({ docFontSize: z.enum(DOC_FONT_SIZES).optional(), docFont: z.enum(DOC_FONTS).optional() })
+    .object({
+      docFontSize: z.enum(DOC_FONT_SIZES).optional(),
+      docFont: z.enum(DOC_FONTS).optional(),
+    })
     .strict()
     .optional(),
 });
@@ -129,7 +133,7 @@ export async function authRoutes(app: FastifyInstance) {
     await createWorkspace(db, `${body.name}'s workspace`, user!.id);
     const s = await createSession(db, user!.id, {
       userAgent: req.headers['user-agent'],
-      ip: req.ip,
+      ip: clientIp(req),
     });
     setSessionCookie(reply, config, s.token, s.expiresAt);
     return reply.status(201).send(await me(user!));
@@ -148,7 +152,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
     const s = await createSession(db, user.id, {
       userAgent: req.headers['user-agent'],
-      ip: req.ip,
+      ip: clientIp(req),
     });
     setSessionCookie(reply, config, s.token, s.expiresAt);
     return me(user);

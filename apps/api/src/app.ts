@@ -20,6 +20,7 @@ import { tokenRoutes } from './routes/tokens.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { mcpRoutes } from './routes/mcp.js';
 import { bearerFrom, userForBearer } from './lib/tokens.js';
+import { clientIp } from './lib/ip.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -53,7 +54,7 @@ export async function buildApp(opts: {
 
   await app.register(cookie, { secret: opts.config.sessionSecret });
   await app.register(multipart, { limits: { fileSize: opts.config.maxUploadBytes, files: 1 } });
-  await app.register(rateLimit, { global: false });
+  await app.register(rateLimit, { global: false, keyGenerator: clientIp });
 
   app.addContentTypeParser(
     ['application/octet-stream', 'text/markdown', 'text/plain'],
