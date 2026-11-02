@@ -1,6 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import type { EditorView } from '@tiptap/pm/view';
+import { columnResizing } from '@tiptap/pm/tables';
 import { ROW_MIN_HEIGHT } from '../schema/table-style.js';
 
 /** How close (px) the pointer must be to a row's bottom border to grab it. */
@@ -50,13 +51,23 @@ function setHeight(view: EditorView, row: HTMLTableRowElement, height: number | 
   view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, height }));
 }
 
+/** Column handle width and minimum width, in px (matches the table's cellMinWidth). */
+const COL_HANDLE = 5;
+const COL_MIN_WIDTH = 80;
+
 /**
- * Drag a table row's bottom border to give it a minimum height; rows otherwise fit their text.
+ * Column and row resizing for editable editors.
+ *
+ * Columns: Tiptap only adds prosemirror-tables' columnResizing when the editor is editable at
+ * creation, but BeeEditor starts read-only until the document syncs, so it is added here instead
+ * (the schema keeps `resizable: false`). The plugin itself ignores events while not editable.
+ *
+ * Rows: drag a table row's bottom border to give it a minimum height; rows otherwise fit their text.
  * Dragging back up to (or above) the text's own height, or double-clicking the border, returns
  * the row to fitting its text. The height lives on the tableRow node, so it syncs like any edit.
  */
-export const RowResize = Extension.create({
-  name: 'rowResize',
+export const TableResize = Extension.create({
+  name: 'tableResize',
 
   addProseMirrorPlugins() {
     let line: HTMLDivElement | null = null;
@@ -103,6 +114,7 @@ export const RowResize = Extension.create({
     };
 
     return [
+      columnResizing({ handleWidth: COL_HANDLE, cellMinWidth: COL_MIN_WIDTH, defaultCellMinWidth: COL_MIN_WIDTH, View: null }),
       new Plugin({
         key,
         props: {

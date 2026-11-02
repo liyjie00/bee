@@ -15,7 +15,7 @@ import { MarkdownPaste } from './markdown-paste.js';
 import type { BeeUser } from './collab.js';
 import { IdleCollaborationCaret } from './caret-idle.js';
 import { TableSheet } from './table-sheet.js';
-import { RowResize } from './row-resize.js';
+import { TableResize } from './table-resize.js';
 
 export interface BuildOptions {
   ydoc?: Y.Doc;
@@ -96,7 +96,7 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
     );
   }
   if (opts.editable) {
-    extensions.push(MarkdownPaste, RowResize);
+    extensions.push(MarkdownPaste, TableResize);
     if (opts.slash) extensions.push(SlashCommand.configure({ host: opts.slash }));
     if (opts.uploadImage) extensions.push(ImageUpload.configure({ upload: opts.uploadImage, onError: opts.onUploadError ?? null }));
   }
