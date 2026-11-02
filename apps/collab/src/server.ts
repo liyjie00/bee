@@ -3,6 +3,9 @@ import * as Y from 'yjs';
 import { yDocToMarkdown } from '@bee/editor/markdown';
 import { ApiClient, ApiError, type Role } from './api-client.js';
 import type { CollabConfig } from './config.js';
+import { replaceDocContent } from './restore.js';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
 
 export interface ConnectionContext {
   userId: string | null;
@@ -16,6 +19,36 @@ interface VersionState {
 }
 
 const DOCUMENT_NAME = /^[A-Za-z0-9_-]{1,64}$/;
+const RESTORE_PATH = /^\/internal\/documents\/([A-Za-z0-9_-]{1,64})\/restore$/;
+const MAX_INTERNAL_BODY = 64 * 1024 * 1024;
+
+function readBody(req: IncomingMessage): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    req.on('data', (c: Buffer) => {
+      size += c.length;
+      if (size > MAX_INTERNAL_BODY) {
+        reject(new Error('body too large'));
+        req.destroy();
+      } else chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
+function secretMatches(header: string | string[] | undefined, secret: string): boolean {
+  if (typeof header !== 'string') return false;
+  const a = Buffer.from(header);
+  const b = Buffer.from(secret);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function send(res: ServerResponse, status: number, body = '') {
+  res.writeHead(status, { 'content-type': 'text/plain' });
+  res.end(body);
+}
 const WRITE_ROLES: ReadonlySet<Role> = new Set(['owner', 'editor']);
 
 /** Rich-text documents keep their content in this fragment (Tiptap Collaboration default). */
@@ -63,12 +96,33 @@ export function createCollabServer(config: CollabConfig, api = new ApiClient(con
   const bee: Extension<ConnectionContext> = {
     extensionName: 'bee',
 
-    async onRequest({ request, response }) {
-      const path = (request.url ?? '').split('?')[0];
+    async onRequest({ request, response, instance }) {
+      const path = (request.url ?? '').split('?')[0] ?? '';
       if (path === '/health' || path === '/collab/health') {
-        response.writeHead(200, { 'content-type': 'text/plain' });
-        response.end('ok');
+        send(response, 200, 'ok');
         // Rejecting with nothing stops the default Hocuspocus response.
+        return Promise.reject();
+      }
+      // Internal endpoints are only reachable inside the deployment network (the proxy only
+      // forwards /collab*), and additionally require the shared secret.
+      if (path.startsWith('/internal/')) {
+        const match = RESTORE_PATH.exec(path);
+        if (!secretMatches(request.headers['x-collab-secret'], config.collabSecret)) send(response, 401, 'unauthorized');
+        else if (!match || request.method !== 'POST') send(response, 404, 'not found');
+        else {
+          try {
+            const snapshot = new Y.Doc();
+            Y.applyUpdate(snapshot, new Uint8Array(await readBody(request)));
+            const connection = await instance.openDirectConnection(match[1]!, { userId: null, role: 'owner' });
+            await connection.transact((doc) => replaceDocContent(doc, snapshot));
+            // Persists immediately and unloads if nobody else has the document open.
+            await connection.disconnect();
+            send(response, 204);
+          } catch (err) {
+            console.error('[collab] restore failed:', err);
+            send(response, 500, 'restore failed');
+          }
+        }
         return Promise.reject();
       }
     },
