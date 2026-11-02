@@ -59,6 +59,7 @@ const diagramBody = z.object({
     .max(1000)
     .optional(),
   direction: z.enum(['down', 'right']).optional(),
+  arrows: z.enum(['elbow', 'straight']).optional(),
   /** append: draw below what is there; replace: clear the board first */
   mode: z.enum(['append', 'replace']).optional(),
 });
@@ -164,7 +165,9 @@ export async function documentRoutes(app: FastifyInstance) {
     const title =
       body.title ?? (body.markdown ? titleFromMarkdown(body.markdown) : undefined) ?? '';
     const state =
-      body.markdown !== undefined ? markdownToYUpdate(stripTitleHeading(body.markdown, title)) : null;
+      body.markdown !== undefined
+        ? markdownToYUpdate(stripTitleHeading(body.markdown, title))
+        : null;
     const doc = await insertDocument(db, {
       workspaceId,
       folderId,
