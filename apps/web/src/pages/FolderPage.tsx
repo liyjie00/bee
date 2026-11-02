@@ -105,7 +105,7 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
       : t('folder.summary', { docs: items.filter((i) => i.kind === 'doc').length, folders: items.filter((i) => i.kind === 'folder').length });
 
   const open = (it: Item) => {
-    if (mode === 'trash') return;
+    if (mode === 'trash') return void restore(it);
     nav(it.kind === 'folder' ? `/f/${it.f.id}` : `/d/${it.d.id}`);
   };
   async function restore(it: Item) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BeeEditor, BeeWhiteboard, blockLink, type BeeUser, type CollabStatus, type Editor } from '@bee/editor';
 import { can, parseBlockFragment } from '@bee/shared';
 import { api } from '../api/http';
@@ -157,6 +157,11 @@ export function DocView({
               <Icon name="chat" />
             </button>
           )}
+          {shareToken && !me && (
+            <Link className="btn" to={`/login?next=${encodeURIComponent(loc.pathname + loc.hash)}`}>
+              {t('common.signIn')}
+            </Link>
+          )}
           {!shareToken && (
             <button className="btn primary" onClick={() => setShare(true)}>
               <Icon name={ACCESS_ICON[access]} />
@@ -185,7 +190,9 @@ export function DocView({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      editorRef.current?.commands.focus('start');
+                      const ed = editorRef.current;
+                      // focus after the key event settles, otherwise the input keeps focus
+                      if (ed) setTimeout(() => ed.chain().focus('start').run(), 0);
                     }
                   }}
                 />

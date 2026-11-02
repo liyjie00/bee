@@ -22,8 +22,9 @@ export function Shell() {
         setSearch(true);
       }
     };
-    document.addEventListener('keydown', key);
-    return () => document.removeEventListener('keydown', key);
+    // capture phase so embedded editors (Excalidraw) cannot swallow the shortcut
+    document.addEventListener('keydown', key, true);
+    return () => document.removeEventListener('keydown', key, true);
   }, []);
   if (loading) return <div className="empty">{t('app.loading')}</div>;
   if (!session || !workspace)

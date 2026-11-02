@@ -8,7 +8,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const show = useCallback((m: string) => {
     setMsg(m);
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setMsg(null), 2000);
+    timer.current = window.setTimeout(() => setMsg(null), 3200);
   }, []);
   return (
     <Ctx.Provider value={show}>

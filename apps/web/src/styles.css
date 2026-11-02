@@ -74,7 +74,7 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .btn:hover{border-color:var(--line-strong);color:var(--fg)}
 .btn.primary{background:var(--honey);border-color:var(--honey);color:#2a1c00;font-weight:500}
 .btn.primary:hover{filter:brightness(1.05);color:#2a1c00}
-.ico{padding:6px;border-radius:7px;color:var(--fg-2);display:inline-grid;place-items:center}
+.ico{white-space:nowrap;padding:6px;border-radius:7px;color:var(--fg-2);display:inline-grid;place-items:center}
 .ico:hover,.ico.on{background:var(--sunk);color:var(--fg)}
 .menu-btn{display:none}
 
@@ -365,7 +365,6 @@ input,textarea,select{font:inherit;color:var(--fg)}
 .prose ul[data-type="taskList"] input[type=checkbox]:checked{background:var(--honey);border-color:var(--honey)}
 .prose ul[data-type="taskList"] input[type=checkbox]:checked::after{content:"";width:8px;height:4px;border:2px solid #2a1c00;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
 .prose ul[data-type="taskList"] li[data-checked="true"] > div{color:var(--fg-3);text-decoration:line-through}
-.prose p.is-editor-empty:first-child::before,.prose .is-empty::before{content:attr(data-placeholder);color:var(--fg-3);float:left;height:0;pointer-events:none}
 .prose .comment-mark{background:var(--honey-wash);border-bottom:2px solid var(--honey);cursor:pointer}
 .prose .comment-mark.active{background:var(--honey-line)}
 .prose .landed{animation:landed 2.4s ease-out}
