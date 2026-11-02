@@ -39,12 +39,17 @@ services:
       COLLAB_INTERNAL_URL: http://collab:1234
     volumes:
       - uploads:/data/uploads
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:8421/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   collab:
     build: { context: ., dockerfile: apps/collab/Dockerfile }
     restart: unless-stopped
     depends_on:
-      api: { condition: service_started }
+      api: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 1234
