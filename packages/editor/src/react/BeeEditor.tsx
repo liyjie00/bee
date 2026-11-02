@@ -149,6 +149,7 @@ function EditorInner(props: InnerProps) {
         onUploadError: (err) => latest.current.onUploadError?.(err),
         onCommentClick: (id) => latest.current.onCommentClick?.(id),
         cursorIdleMs: props.cursorIdleMs,
+        shareToken: props.shareToken,
       }),
     // The editor is rebuilt per connection / editability (see the key in BeeEditor).
     [],
@@ -295,7 +296,10 @@ function SelectionBubble({
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => {
             const anchor = createAnchor(editor);
-            if (anchor) onComment!(anchor);
+            if (!anchor) return;
+            // Collapse the selection so the bubble hides while the comment is written in the panel.
+            editor.commands.setTextSelection(editor.state.selection.to);
+            onComment!(anchor);
           }}
         >
           💬 {t.comment}

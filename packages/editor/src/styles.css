@@ -284,7 +284,9 @@
   user-select: none;
   -webkit-user-select: none;
 }
-.bee-code pre {
+/* .bee-code-body > pre outranks host rules such as `.prose pre`, which added a margin and shifted the code
+   a line below its gutter numbers */
+.bee-code .bee-code-body > pre {
   flex: 1;
   min-width: 0;
   margin: 0;
@@ -293,6 +295,8 @@
   white-space: pre;
   font: inherit;
   background: none;
+  border: 0;
+  border-radius: 0;
 }
 .bee-code pre code {
   background: none;

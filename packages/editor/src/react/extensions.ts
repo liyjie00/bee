@@ -28,6 +28,14 @@ export interface BuildOptions {
   onCommentClick?: (id: string) => void;
   /** Hide remote carets idle for this long; defaults to CURSOR_IDLE_MS. */
   cursorIdleMs?: number;
+  /** Public link token: appended to uploaded image URLs, since <img> requests cannot send the header. */
+  shareToken?: string;
+}
+
+/** Adds `?share=` to Bee upload URLs so anonymous viewers of a public link can load them. */
+export function withShareToken(src: string, shareToken: string | undefined): string {
+  if (!shareToken || !src.startsWith('/api/uploads/') || /[?&]share=/.test(src)) return src;
+  return `${src}${src.includes('?') ? '&' : '?'}share=${encodeURIComponent(shareToken)}`;
 }
 
 /** Schema extensions plus React node views and editing UI. */
@@ -44,6 +52,14 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
               !!(event.target as HTMLElement | null)?.closest?.('.bee-embed-body, .bee-embed-tools, .bee-embed-resize'),
             ignoreMutation: () => true,
           }),
+      });
+    }
+    if (ext.name === 'image' && opts.shareToken) {
+      const token = opts.shareToken;
+      return ext.extend({
+        renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
+          return ['img', { ...HTMLAttributes, src: withShareToken(String(HTMLAttributes.src ?? ''), token) }];
+        },
       });
     }
     // Read-only clients must not write block ids: the server would reject the change anyway.

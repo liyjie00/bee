@@ -126,14 +126,45 @@ const SlashMenuList = forwardRef<MenuHandle, MenuProps>(function SlashMenuList({
   );
 });
 
-function place(el: HTMLElement, rect: DOMRect | null | undefined) {
-  if (!rect) return;
-  const menuHeight = el.offsetHeight || 320;
-  const below = rect.bottom + 6 + menuHeight < window.innerHeight;
-  el.style.position = 'fixed';
-  el.style.zIndex = '50';
-  el.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 296))}px`;
-  el.style.top = below ? `${rect.bottom + 6}px` : `${Math.max(8, rect.top - menuHeight - 6)}px`;
+/** Puts the menu below the caret, or above it when it does not fit, shrinking it to the room available. */
+export function placeMenu(
+  rect: { top: number; bottom: number; left: number },
+  menuHeight: number,
+  viewport: { width: number; height: number },
+  menuWidth = 288,
+): { left: number; top: number; maxHeight: number } {
+  const gap = 6;
+  const margin = 8;
+  const roomBelow = viewport.height - rect.bottom - gap - margin;
+  const roomAbove = rect.top - gap - margin;
+  const below = menuHeight <= roomBelow || roomBelow >= roomAbove;
+  const maxHeight = Math.max(120, Math.floor(below ? roomBelow : roomAbove));
+  const height = Math.min(menuHeight, maxHeight);
+  return {
+    left: Math.max(margin, Math.min(rect.left, viewport.width - menuWidth - margin)),
+    top: below ? rect.bottom + gap : Math.max(margin, rect.top - gap - height),
+    maxHeight,
+  };
+}
+
+function place(el: HTMLElement, clientRect: (() => DOMRect | null) | null | undefined) {
+  const apply = () => {
+    // Read the caret rect each time: typing may have scrolled the page since the last placement.
+    const rect = clientRect?.();
+    if (!rect) return;
+    const menu = el.firstElementChild as HTMLElement | null;
+    // Measure at full height; the previous placement may have clamped it.
+    if (menu) menu.style.maxHeight = '';
+    const p = placeMenu(rect, menu?.offsetHeight || 340, { width: window.innerWidth, height: window.innerHeight });
+    el.style.position = 'fixed';
+    el.style.zIndex = '50';
+    el.style.left = `${p.left}px`;
+    el.style.top = `${p.top}px`;
+    if (menu) menu.style.maxHeight = `${p.maxHeight}px`;
+  };
+  apply();
+  // React renders the list after onStart/onUpdate return, so measure again once it is in the DOM.
+  requestAnimationFrame(apply);
 }
 
 export const slashPluginKey = new PluginKey('beeSlash');
@@ -176,11 +207,11 @@ export const SlashCommand = Extension.create<{ host: SlashHost | null }>({
                 { props: wrap(props), editor: props.editor },
               );
               document.body.appendChild(renderer.element);
-              place(renderer.element as HTMLElement, props.clientRect?.());
+              place(renderer.element as HTMLElement, props.clientRect);
             },
             onUpdate: (props) => {
               renderer?.updateProps(wrap(props));
-              if (renderer) place(renderer.element as HTMLElement, props.clientRect?.());
+              if (renderer) place(renderer.element as HTMLElement, props.clientRect);
             },
             onKeyDown: (props) => {
               if (props.event.key === 'Escape') {
