@@ -448,6 +448,15 @@
   cursor: pointer;
   z-index: 3;
 }
+/* Invisible bridge over the gap to the text, so moving the pointer to the button keeps it shown. */
+.bee-block-link::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: 0;
+  right: -12px;
+}
 .bee-block-link:hover,
 .bee-block-link.is-copied {
   color: var(--be-honey-ink);

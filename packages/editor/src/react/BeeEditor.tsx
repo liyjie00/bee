@@ -301,7 +301,11 @@ function BlockLinkButton({
     const wrapper = root.closest('.bee-editor') as HTMLElement | null;
     if (!wrapper) return;
     const onMove = (e: globalThis.MouseEvent) => {
-      if ((e.target as HTMLElement).closest('.bee-block-link')) return;
+      if ((e.target as HTMLElement).closest('.bee-block-link')) {
+        // Reaching the button crosses the gap left of the text, which may have started a hide timer.
+        clearTimeout(hideTimer.current);
+        return;
+      }
       const content = root.getBoundingClientRect();
       const x = Math.min(Math.max(e.clientX, content.left + 8), content.right - 8);
       const hit = blockAtCoords(editor.view, x, e.clientY);
@@ -341,6 +345,7 @@ function BlockLinkButton({
       style={{ top: target.top }}
       title={copied ? t.copied : t.copyBlockLink}
       aria-label={t.copyBlockLink}
+      onMouseEnter={() => clearTimeout(hideTimer.current)}
       onMouseDown={(e) => e.preventDefault()}
       onClick={copy}
     >
