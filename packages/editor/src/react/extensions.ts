@@ -15,7 +15,7 @@ import { MarkdownPaste } from './markdown-paste.js';
 import type { BeeUser } from './collab.js';
 import { IdleCollaborationCaret } from './caret-idle.js';
 import { TableSheet } from './table-sheet.js';
-import { TableResize } from './table-resize.js';
+import { TableResize, TableScrollCenter } from './table-resize.js';
 
 export interface BuildOptions {
   ydoc?: Y.Doc;
@@ -86,6 +86,7 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
     ...base,
     CommentHighlights.configure({ onClick: opts.onCommentClick ?? null }),
     TableSheet.configure({ headers: opts.editable }),
+    TableScrollCenter,
   ];
   if (opts.placeholder) {
     extensions.push(
