@@ -53,10 +53,20 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
 
 export function useMenu() {
   const [menu, setMenu] = useState<{ x: number; y: number; items: (MenuItem | '-')[] } | null>(null);
-  const open = (e: { clientX: number; clientY: number; preventDefault(): void; stopPropagation(): void }, items: (MenuItem | '-')[]) => {
+  const open = (
+    e: { clientX: number; clientY: number; currentTarget?: EventTarget | null; preventDefault(): void; stopPropagation(): void },
+    items: (MenuItem | '-')[],
+  ) => {
     e.preventDefault();
     e.stopPropagation();
-    setMenu({ x: e.clientX, y: e.clientY, items });
+    let { clientX: x, clientY: y } = e;
+    // Keyboard activation reports (0, 0): open under the button instead of the top-left corner.
+    if (!x && !y && e.currentTarget instanceof Element) {
+      const r = e.currentTarget.getBoundingClientRect();
+      x = r.left;
+      y = r.bottom + 4;
+    }
+    setMenu({ x, y, items });
   };
   const node: ReactNode = menu ? <ContextMenu {...menu} onClose={() => setMenu(null)} /> : null;
   return { open, node };

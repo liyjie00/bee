@@ -42,6 +42,7 @@ export const en = {
   'tree.newBoard': 'New whiteboard',
   'tree.newSubfolder': 'New subfolder',
   'tree.rename': 'Rename',
+  'tree.moveInto': 'Move to “{name}”',
   'tree.moveToTop': 'Move to top level',
   'tree.delete': 'Delete',
   'tree.open': 'Open',

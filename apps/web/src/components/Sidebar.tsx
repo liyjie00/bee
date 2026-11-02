@@ -114,11 +114,14 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     onDragOver: (e: DragEvent) => {
       if (!e.dataTransfer.types.includes('application/x-bee')) return;
       e.preventDefault();
+      // A folder row sits inside the root drop zone; without this the root would claim the drop too.
+      e.stopPropagation();
       setDropTarget(folderId ?? 'root');
     },
     onDragLeave: () => setDropTarget(null),
     onDrop: (e: DragEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       setDropTarget(null);
       try {
         void move(JSON.parse(e.dataTransfer.getData('application/x-bee')) as DragItem, folderId);
@@ -128,18 +131,36 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     },
   });
 
+  /** "Move to" entries, so items can be moved without drag and drop (touch screens). */
+  const moveItems = (item: DragItem, parentId: string | null): MenuItem[] => {
+    const blocked = new Set<string>();
+    if (item.kind === 'folder') {
+      const walk = (id: string) => {
+        blocked.add(id);
+        childFolders(id).forEach((c) => walk(c.id));
+      };
+      walk(item.id);
+    }
+    const targets = tree.folders
+      .filter((f) => !blocked.has(f.id) && f.id !== parentId)
+      .sort(sortFn)
+      .map((f): MenuItem => ({ label: t('tree.moveInto', { name: f.name }), icon: 'folder', onSelect: () => move(item, f.id) }));
+    if (parentId) targets.unshift({ label: t('tree.moveToTop'), icon: 'arrow', onSelect: () => move(item, null) });
+    return targets;
+  };
+
   const folderMenu = (f: FolderDTO): (MenuItem | '-')[] => [
     { label: t('tree.newDoc'), icon: 'doc', onSelect: () => newDoc(f.id, 'doc') },
     { label: t('tree.newBoard'), icon: 'board', onSelect: () => newDoc(f.id, 'whiteboard') },
     { label: t('tree.newSubfolder'), icon: 'folder', onSelect: () => newFolder(f.id) },
     '-',
     { label: t('tree.rename'), icon: 'pen', onSelect: () => setRenaming(f.id) },
-    { label: t('tree.moveToTop'), icon: 'arrow', onSelect: () => move({ kind: 'folder', id: f.id }, null) },
+    ...moveItems({ kind: 'folder', id: f.id }, f.parentId),
     { label: t('tree.delete'), icon: 'trash', danger: true, onSelect: () => remove({ kind: 'folder', id: f.id }) },
   ];
   const docMenu = (d: DocumentDTO): (MenuItem | '-')[] => [
     { label: t('tree.rename'), icon: 'pen', onSelect: () => setRenaming(d.id) },
-    { label: t('tree.moveToTop'), icon: 'arrow', onSelect: () => move({ kind: 'doc', id: d.id }, null) },
+    ...moveItems({ kind: 'doc', id: d.id }, d.folderId),
     { label: t('tree.delete'), icon: 'trash', danger: true, onSelect: () => remove({ kind: 'doc', id: d.id }) },
   ];
 

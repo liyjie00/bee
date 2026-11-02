@@ -92,7 +92,7 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
       {ib(t('toolbar.codeBlock'), 'code', active('codeBlock'), () => run((c) => c.toggleCodeBlock()))}
       {ib(t('toolbar.table'), 'sheet', active('table'), () => run((c) => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true })))}
       <span className="sep" />
-      <span className="hide-sm" style={{ fontSize: 12, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>
+      <span className="hint hide-sm" title={t('toolbar.hint')}>
         {t('toolbar.hint')}
       </span>
     </div>

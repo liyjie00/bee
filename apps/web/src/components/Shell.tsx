@@ -5,7 +5,8 @@ import { Sidebar } from './Sidebar';
 import { SearchDialog } from './SearchDialog';
 import { useT } from '../i18n';
 
-const Ctx = createContext<{ openSidebar(): void }>({ openSidebar() {} });
+/** openSidebar is null outside the signed-in shell (share pages have no sidebar). */
+const Ctx = createContext<{ openSidebar: (() => void) | null }>({ openSidebar: null });
 export const useShell = () => useContext(Ctx);
 
 /** Signed-in workspace chrome: folder tree on the left, page content on the right. */

@@ -16,9 +16,11 @@ export function TopBar({ crumbs, children }: { crumbs: Crumb[]; children?: React
   const { t, lang, setLang } = useI18n();
   return (
     <header className="top">
-      <button className="ico menu-btn" aria-label={t('nav.openSidebar')} onClick={openSidebar}>
-        <Icon name="menu" />
-      </button>
+      {openSidebar && (
+        <button className="ico menu-btn" aria-label={t('nav.openSidebar')} onClick={openSidebar}>
+          <Icon name="menu" />
+        </button>
+      )}
       <nav className="crumb" aria-label={t('nav.location')}>
         {crumbs.map((c, i) => (
           <Fragment key={i}>
