@@ -389,6 +389,29 @@
 .bee-embed-title {
   color: var(--be-fg-2);
   font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bee-embed-whiteboard {
+  container-type: inline-size;
+}
+.bee-embed-action-icon {
+  display: none;
+}
+@container (max-width: 520px) {
+  .bee-embed-hint {
+    display: none;
+  }
+}
+@container (max-width: 380px) {
+  .bee-embed-action-label {
+    display: none;
+  }
+  .bee-embed-action-icon {
+    display: inline;
+  }
 }
 .bee-embed-hint {
   min-width: 0;
@@ -398,6 +421,7 @@
 }
 .bee-embed-tools {
   margin-left: auto;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 2px;

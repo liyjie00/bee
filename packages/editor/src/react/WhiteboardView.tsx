@@ -117,8 +117,11 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
             </>
           )}
           {documentId && ctx?.onOpenWhiteboard && (
-            <button type="button" className="bee-embed-action" onClick={() => ctx.onOpenWhiteboard!(documentId)}>
-              {t.openWhiteboard}
+            <button type="button" className="bee-embed-action" title={t.openWhiteboard} onClick={() => ctx.onOpenWhiteboard!(documentId)}>
+              <span className="bee-embed-action-icon" aria-hidden>
+                ↗
+              </span>
+              <span className="bee-embed-action-label">{t.openWhiteboard}</span>
             </button>
           )}
         </span>

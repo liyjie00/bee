@@ -94,8 +94,11 @@ function Board({ ydoc, provider, user, editable, embedded, fitContent, view, onH
     let timer: ReturnType<typeof setTimeout> | undefined;
     const ro = new ResizeObserver(() => {
       clearTimeout(timer);
-      // Once Excalidraw has picked up the new canvas size.
-      timer = setTimeout(place, 150);
+      timer = setTimeout(() => {
+        // Make Excalidraw pick up the new canvas size first.
+        apiRef.current?.refresh();
+        requestAnimationFrame(place);
+      }, 150);
     });
     ro.observe(el);
     return () => {
