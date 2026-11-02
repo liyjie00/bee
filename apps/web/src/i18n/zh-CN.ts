@@ -590,7 +590,7 @@ export const zhCN: Record<MessageKey, string> = {
   "wn.dismiss": "不再显示这张",
   "wn.new": "新",
   "wn.math": "LaTeX 数学公式",
-  "wn.mathBody": "输入 $…$ 写行内公式，$$…$$ 写独立公式，或者在 / 菜单里选「公式」。",
+  "wn.mathBody": "输入 $…$ 写行内公式，输入 $$ 回车插入公式块，也可以在 / 菜单里选「公式块」。",
   "wn.mcp": "让 AI Agent 读写你的文档",
   "wn.mcpBody": "把 Bee 作为 MCP 服务器加到 Claude、Cursor 等 AI Agent 里，让它搜索、阅读、编辑文档和回复评论。",
   "wn.mcpCta": "去设置里连接",

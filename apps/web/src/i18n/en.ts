@@ -588,7 +588,7 @@ export const en = {
   "wn.dismiss": "Hide this card",
   "wn.new": "New",
   "wn.math": "LaTeX math",
-  "wn.mathBody": "Type $…$ for inline math or $$…$$ for an equation block, or pick Math from the / menu.",
+  "wn.mathBody": "Type $…$ for inline math, or $$ and Enter for a formula block. Both are in the / menu too.",
   "wn.mcp": "Let AI agents read and edit your docs",
   "wn.mcpBody": "Add Bee as an MCP server in Claude, Cursor or another agent, and it can search, read and edit your docs and reply to comments.",
   "wn.mcpCta": "Connect in Settings",
