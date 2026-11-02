@@ -222,15 +222,17 @@
 }
 
 /* tables */
-/* Hosts may set --bee-table-bleed: how far a wide table may grow past the text column on the
-   right. Tables still default to the column's width; only their min-width spills over. */
+/* Hosts may set --bee-table-bleed: how far a wide table may grow past the text column on each
+   side. Tables default to the column's width; a wider one stays centered on the column (auto
+   margins fall to 0 once it outgrows the wrapper, so it then scrolls from its left edge). */
 .bee-prose .tableWrapper {
   overflow-x: auto;
-  margin: 18px calc(-1 * var(--bee-table-bleed, 0px)) 18px 0;
+  margin: 18px calc(-1 * var(--bee-table-bleed, 0px));
 }
 .bee-prose table {
   border-collapse: collapse;
-  width: calc(100% - var(--bee-table-bleed, 0px));
+  width: calc(100% - 2 * var(--bee-table-bleed, 0px));
+  margin: 0 auto;
   table-layout: fixed;
   font-size: 0.93em;
 }
@@ -936,7 +938,7 @@
   font-size: 13px;
 }
 .bee-prose.bee-sheet-headers .tableWrapper {
-  margin-left: -34px;
+  margin-left: calc(-34px - var(--bee-table-bleed, 0px));
   padding: 22px 0 2px 34px;
 }
 .bee-prose .bee-sheet-head {
