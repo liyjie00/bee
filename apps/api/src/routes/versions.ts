@@ -220,7 +220,8 @@ export async function versionRoutes(app: FastifyInstance) {
         documentId: id,
         snapshot: cur.s,
         kind: 'restore',
-        label: `Before restoring ${v.createdAt.toISOString()}`,
+        // Unlabelled: clients show the localized name for the 'restore' kind.
+        label: null,
         authorIds: [user.id],
         createdById: user.id,
       });

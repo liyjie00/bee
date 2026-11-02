@@ -447,7 +447,8 @@ input,textarea,select{font:inherit;color:var(--fg)}
 .prose hr{border:0;border-top:1px solid var(--line);margin:24px 0}
 .prose img{max-width:100%;border-radius:8px}
 .prose a{color:var(--p1)}
-.prose table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
+/* not the editor's tables: their width and centering come from the editor stylesheet */
+.prose table:not(.bee-prose table){border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
 .prose td,.prose th{border:1px solid var(--line);padding:5px 10px;vertical-align:top}
 .prose th{background:var(--sunk);font-weight:500}
 .prose ul[data-type="taskList"]{list-style:none;padding-left:0}
@@ -483,6 +484,7 @@ input,textarea,select{font:inherit;color:var(--fg)}
 /* history extras */
 .diff-block{margin:0 0 14px;white-space:pre-wrap}
 .diff-block.title{font-family:var(--f-display)}
+.name-ver{display:flex;gap:6px;padding:8px 6px 0}.name-ver .field-in{flex:1;min-width:0;padding:5px 8px;font-size:13px}.name-ver .btn{font-size:12px;padding:3px 8px}
 .ver .who-line{display:flex;gap:6px;align-items:center}
 .cards .card{cursor:pointer;color:inherit}
 .list tr{cursor:pointer}

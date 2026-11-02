@@ -1,7 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import type { EditorView } from '@tiptap/pm/view';
-import { columnResizing } from '@tiptap/pm/tables';
+import { TableMap, columnResizing } from '@tiptap/pm/tables';
 import { ROW_MIN_HEIGHT } from '../schema/table-style.js';
 
 /** How close (px) the pointer must be to a row's bottom border to grab it. */
@@ -49,6 +49,43 @@ function setHeight(view: EditorView, row: HTMLTableRowElement, height: number | 
   const node = view.state.doc.nodeAt(pos);
   if (!node || node.attrs.height === height) return;
   view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, height }));
+}
+
+/**
+ * Give every column of the table under `target` an explicit width (its current rendered one).
+ * Run before a column drag starts: with all widths fixed the table's width is their sum, so
+ * widening one column widens the table instead of squeezing its neighbours.
+ */
+function freezeColumns(view: EditorView, target: HTMLElement) {
+  const firstRow = target.closest('table')?.querySelector('tr');
+  if (!firstRow || !view.dom.contains(firstRow)) return;
+  const pos = rowPos(view, firstRow as HTMLTableRowElement);
+  if (pos == null) return;
+  const $row = view.state.doc.resolve(pos);
+  const tablePos = $row.before($row.depth);
+  const table = $row.parent;
+  if (table.type.spec.tableRole !== 'table') return;
+  const map = TableMap.get(table);
+  // Rendered width of each column, from the first row's cells (spanning cells split evenly).
+  const widths: number[] = [];
+  for (const cell of Array.from(firstRow.children) as HTMLElement[]) {
+    const span = Number(cell.getAttribute('colspan') ?? 1) || 1;
+    for (let i = 0; i < span; i++) widths.push(Math.round(cell.getBoundingClientRect().width / span));
+  }
+  if (widths.length !== map.width) return;
+  const tr = view.state.tr;
+  const seen = new Set<number>();
+  for (const offset of map.map) {
+    if (seen.has(offset)) continue;
+    seen.add(offset);
+    const cell = table.nodeAt(offset)!;
+    const { left, right } = map.findCell(offset);
+    const current = cell.attrs.colwidth as number[] | null;
+    if (current && current.length === right - left && current.every((w) => w > 0)) continue;
+    const colwidth = widths.slice(left, right).map((w, i) => current?.[i] || w);
+    tr.setNodeMarkup(tablePos + 1 + offset, undefined, { ...cell.attrs, colwidth });
+  }
+  if (tr.docChanged) view.dispatch(tr);
 }
 
 /** Column handle width and minimum width, in px (matches the table's cellMinWidth). */
@@ -114,7 +151,6 @@ export const TableResize = Extension.create({
     };
 
     return [
-      columnResizing({ handleWidth: COL_HANDLE, cellMinWidth: COL_MIN_WIDTH, defaultCellMinWidth: COL_MIN_WIDTH, View: null }),
       new Plugin({
         key,
         props: {
@@ -132,7 +168,12 @@ export const TableResize = Extension.create({
               return false;
             },
             mousedown(view, event) {
-              if (event.button !== 0 || !view.editable || view.dom.classList.contains('resize-cursor')) return false;
+              if (event.button !== 0 || !view.editable) return false;
+              if (view.dom.classList.contains('resize-cursor')) {
+                // A column drag: fix every width first, then let columnResizing (next plugin) run.
+                freezeColumns(view, event.target as HTMLElement);
+                return false;
+              }
               const row = hover ?? rowAtEdge(view, event);
               if (!row) return false;
               event.preventDefault();
@@ -158,6 +199,42 @@ export const TableResize = Extension.create({
             hideLine();
           },
         }),
+      }),
+      columnResizing({ handleWidth: COL_HANDLE, cellMinWidth: COL_MIN_WIDTH, defaultCellMinWidth: COL_MIN_WIDTH, View: null }),
+    ];
+  },
+});
+
+/**
+ * Keeps a table that is wider than its scroll area centered: whenever a table's width changes,
+ * its wrapper scrolls so the overflow is split evenly between the left and right.
+ */
+export const TableScrollCenter = Extension.create({
+  name: 'tableScrollCenter',
+
+  addProseMirrorPlugins() {
+    const widths = new WeakMap<HTMLElement, number>();
+    const center = (root: HTMLElement) => {
+      for (const wrapper of Array.from(root.querySelectorAll<HTMLElement>('.tableWrapper'))) {
+        const width = wrapper.scrollWidth;
+        if (widths.get(wrapper) === width) continue;
+        widths.set(wrapper, width);
+        wrapper.scrollLeft = (width - wrapper.clientWidth) / 2;
+      }
+    };
+    return [
+      new Plugin({
+        key: new PluginKey('tableScrollCenter'),
+        view: (view) => {
+          let frame = requestAnimationFrame(() => center(view.dom));
+          return {
+            update: () => {
+              cancelAnimationFrame(frame);
+              frame = requestAnimationFrame(() => center(view.dom));
+            },
+            destroy: () => cancelAnimationFrame(frame),
+          };
+        },
       }),
     ];
   },

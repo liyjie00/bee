@@ -585,5 +585,8 @@ describe('collab internal API and versions', () => {
     expect(
       (await owner.c.post(`/api/documents/${doc.id}/versions/${list[1].id}/restore`)).status,
     ).toBe(503);
+    const after = (await owner.c.get(`/api/documents/${doc.id}/versions`)).json.versions;
+    // The safety copy taken before restoring is unlabelled; clients localize the 'restore' kind.
+    expect(after[0]).toMatchObject({ kind: 'restore', label: null });
   });
 });

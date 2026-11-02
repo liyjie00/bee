@@ -33,7 +33,8 @@ describe('diagramElements', () => {
     expect(a!.boundElements).toContainEqual({ type: 'arrow', id: ab.id });
     expect(els.find((e) => e.containerId === ab.id)?.text).toBe('go');
     // Arrow ends lie between the shapes.
-    const end = (ab.points as number[][])[1]!;
+    const pts = ab.points as number[][];
+    const end = pts[pts.length - 1]!;
     expect(ab.y).toBeGreaterThanOrEqual(a!.y + a!.height);
     expect(ab.y + end[1]!).toBeLessThanOrEqual(b!.y);
   });
@@ -64,6 +65,52 @@ describe('diagramElements', () => {
     expect(del.every((e) => e.isDeleted && e.version === 2)).toBe(true);
   });
 
+  it('routes elbow arrows at right angles, turning only between layers', () => {
+    const els = diagramElements({
+      nodes: [
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' },
+        { id: 'c', label: 'C' },
+        { id: 'd', label: 'D' },
+      ],
+      edges: [
+        { from: 'a', to: 'b' },
+        { from: 'a', to: 'c' },
+        { from: 'b', to: 'd' },
+        { from: 'a', to: 'd' },
+      ],
+      arrows: 'elbow',
+    });
+    const shapes = els.filter((e) => e.type === 'rectangle');
+    for (const arrow of els.filter((e) => e.type === 'arrow')) {
+      expect(arrow.elbowed).toBe(true);
+      expect(arrow.startBinding).toMatchObject({ fixedPoint: [0.5, 1] });
+      expect(arrow.endBinding).toMatchObject({ fixedPoint: [0.5, 0] });
+      const pts = (arrow.points as number[][]).map(
+        ([x, y]) => [arrow.x + x!, arrow.y + y!] as const,
+      );
+      for (let i = 1; i < pts.length; i++) {
+        const [p, q] = [pts[i - 1]!, pts[i]!];
+        expect(p[0] === q[0] || p[1] === q[1]).toBe(true);
+        // No segment runs through a shape (apart from touching its own ends' gap).
+        for (const s of shapes) {
+          const inside = (x: number, y: number) =>
+            x > s.x && x < s.x + s.width && y > s.y && y < s.y + s.height;
+          for (let t = 0.1; t < 1; t += 0.1)
+            expect(inside(p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t)).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('draws straight arrows by default', () => {
+    const els = diagramElements(d);
+    for (const a of els.filter((e) => e.type === 'arrow')) {
+      expect(a.elbowed).toBe(false);
+      expect((a.points as unknown[]).length).toBe(2);
+    }
+  });
+
   it('rejects edges to unknown nodes', () => {
     expect(() =>
       diagramElements({ nodes: [{ id: 'a', label: 'A' }], edges: [{ from: 'a', to: 'x' }] }),
@@ -82,6 +129,7 @@ describe('diagramElements', () => {
         { from: 'q', to: 'home', label: 'yes' },
         { from: 'login', to: 'home' },
       ],
+      arrows: 'straight',
     });
     const login = els.find(
       (e) =>

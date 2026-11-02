@@ -413,6 +413,12 @@ export const TOOLS: Tool[] = [
         .optional()
         .describe('Create the board inside this document, appended at its end'),
       direction: z.enum(['down', 'right']).optional().describe('Layout direction (default down)'),
+      arrows: z
+        .enum(['elbow', 'straight'])
+        .optional()
+        .describe(
+          'Connector style: straight = direct lines (default); elbow = right-angle lines routed between the shapes, like draw.io',
+        ),
       nodes: z
         .array(
           z.object({
@@ -473,7 +479,7 @@ export const TOOLS: Tool[] = [
       const r = await ctx.call<{ shapes: number; arrows: number; removed: number }>(
         'POST',
         `/api/documents/${boardId}/diagram`,
-        { nodes: a.nodes, edges: a.edges, direction: a.direction, mode: a.mode },
+        { nodes: a.nodes, edges: a.edges, direction: a.direction, arrows: a.arrows, mode: a.mode },
       );
       if (!a.documentId && a.embedInDocumentId) {
         // Creating the board needed edit access on the parent, so the embed is allowed too.

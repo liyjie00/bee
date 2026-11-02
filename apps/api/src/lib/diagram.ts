@@ -29,6 +29,8 @@ export interface Diagram {
   nodes: DiagramNode[];
   edges?: DiagramEdge[];
   direction?: 'down' | 'right';
+  /** 'straight' (default): direct lines; 'elbow': right-angle connectors like draw.io. */
+  arrows?: 'elbow' | 'straight';
 }
 
 /** Excalidraw element, kept loose: the whiteboard stores whatever Excalidraw produces. */
@@ -183,6 +185,10 @@ interface Layout {
   boxes: Map<string, Box>;
   /** bend points (box centres of placeholders) of edges spanning several layers, by edge index */
   waypoints: Map<number, [number, number][]>;
+  /** main-axis extent of each layer (y range going down, x range going right) */
+  bands: { start: number; end: number }[];
+  layerOf: Map<string, number>;
+  pinned: Set<string>;
 }
 
 /**
@@ -283,6 +289,7 @@ function layout(d: Diagram, origin: { x: number; y: number }): Layout {
   );
   const widest = Math.max(...spans, 0);
   let pos = 0;
+  const bands: { start: number; end: number }[] = [];
   layers.forEach((l, i) => {
     if (!l) return;
     let c = (widest - spans[i]!) / 2;
@@ -298,6 +305,10 @@ function layout(d: Diagram, origin: { x: number; y: number }): Layout {
       }
       c += cross(b) + SIBLING_GAP;
     }
+    bands[i] = {
+      start: (down ? origin.y : origin.x) + pos,
+      end: (down ? origin.y : origin.x) + pos + thickness,
+    };
     pos += thickness + gap;
   });
   // Explicit positions win (relative to the diagram origin); their edges are then drawn straight.
@@ -316,7 +327,7 @@ function layout(d: Diagram, origin: { x: number; y: number }): Layout {
       chain.map((b) => [b.x + b.width / 2, b.y + b.height / 2]),
     );
   }
-  return { boxes, waypoints };
+  return { boxes, waypoints, bands, layerOf: layer, pinned };
 }
 
 /** Where the segment from the box centre towards (tx, ty) leaves the box. */
@@ -335,6 +346,68 @@ function boundaryPoint(b: Box, tx: number, ty: number, gap: number): [number, nu
   const len = Math.hypot(dx, dy);
   const extra = gap / len;
   return [cx + dx * (t + extra), cy + dy * (t + extra)];
+}
+
+/** Drops repeated points and the middle of three collinear ones (elbow arrows want clean corners). */
+function simplify(pts: [number, number][]): [number, number][] {
+  const out: [number, number][] = [];
+  for (const p of pts) {
+    const last = out[out.length - 1];
+    if (last && Math.abs(last[0] - p[0]) < 0.5 && Math.abs(last[1] - p[1]) < 0.5) continue;
+    const prev = out[out.length - 2];
+    if (
+      prev &&
+      last &&
+      ((prev[0] === last[0] && last[0] === p[0]) || (prev[1] === last[1] && last[1] === p[1]))
+    )
+      out.pop();
+    out.push(p);
+  }
+  return out;
+}
+
+/**
+ * Right-angle route for an edge going forward through the layers: leaves the source's far side,
+ * runs down each placeholder column, and turns only in the gaps between layers, where no shape is.
+ */
+function elbowRoute(
+  from: Box,
+  to: Box,
+  via: [number, number][],
+  bands: { start: number; end: number }[],
+  fromLayer: number,
+  down: boolean,
+  gap: number,
+): [number, number][] {
+  // Work in (cross, main) coordinates, then map back.
+  const c = (b: Box) => (down ? b.x + b.width / 2 : b.y + b.height / 2);
+  const mainEnd = (b: Box) => (down ? b.y + b.height : b.x + b.width);
+  const mainStart = (b: Box) => (down ? b.y : b.x);
+  const columns = [c(from), ...via.map((p) => (down ? p[0] : p[1])), c(to)];
+  const pts: [number, number][] = [[columns[0]!, mainEnd(from) + gap]];
+  for (let k = 0; k < columns.length - 1; k++) {
+    const turn = (bands[fromLayer + k]!.end + bands[fromLayer + k + 1]!.start) / 2;
+    pts.push([columns[k]!, turn], [columns[k + 1]!, turn]);
+  }
+  pts.push([columns[columns.length - 1]!, mainStart(to) - gap]);
+  return simplify(down ? pts : pts.map(([x, y]) => [y, x]));
+}
+
+/** Point halfway along a polyline. */
+function midpoint(pts: [number, number][]): [number, number] {
+  const lens = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i]![0], p[1] - pts[i]![1]));
+  let half = lens.reduce((a, b) => a + b, 0) / 2;
+  for (let i = 0; i < lens.length; i++) {
+    if (half <= lens[i]!) {
+      const t = lens[i] ? half / lens[i]! : 0;
+      return [
+        pts[i]![0] + (pts[i + 1]![0] - pts[i]![0]) * t,
+        pts[i]![1] + (pts[i + 1]![1] - pts[i]![1]) * t,
+      ];
+    }
+    half -= lens[i]!;
+  }
+  return pts[0]!;
 }
 
 const colorOf = (c: string | undefined) => (c ? (COLORS[c.toLowerCase()] ?? c) : 'transparent');
@@ -368,7 +441,7 @@ export function diagramElements(
   }
   const bounds = boardBounds(existing);
   // An empty board starts a little inset, clear of the embed toolbar and the canvas edge.
-  const { boxes, waypoints } = layout(d, {
+  const { boxes, waypoints, bands, layerOf, pinned } = layout(d, {
     x: bounds?.minX ?? 40,
     y: bounds ? bounds.maxY + 120 : 100,
   });
@@ -384,15 +457,32 @@ export function diagramElements(
     shapes.set(b.node.id, shape);
     out.push(shape, label);
   }
+  const down = (d.direction ?? 'down') === 'down';
   (d.edges ?? []).forEach((e, i) => {
     const from = boxes.get(e.from)!;
     const to = boxes.get(e.to)!;
     const via = waypoints.get(i) ?? [];
-    const first = via[0] ?? [to.x + to.width / 2, to.y + to.height / 2];
-    const last = via[via.length - 1] ?? [from.x + from.width / 2, from.y + from.height / 2];
-    const start = boundaryPoint(from, first[0], first[1], 6);
-    const end = boundaryPoint(to, last[0], last[1], 6);
-    const pts = [start, ...via, end];
+    const lf = layerOf.get(e.from)!;
+    // Elbows for edges going forward between auto-placed shapes; back edges and pinned shapes
+    // keep a straight line, which Excalidraw leaves alone.
+    const elbow =
+      d.arrows === 'elbow' &&
+      layerOf.get(e.to)! > lf &&
+      !pinned.has(e.from) &&
+      !pinned.has(e.to);
+    let pts: [number, number][];
+    if (elbow) {
+      pts = elbowRoute(from, to, via, bands, lf, down, 6);
+    } else {
+      const first = via[0] ?? [to.x + to.width / 2, to.y + to.height / 2];
+      const last = via[via.length - 1] ?? [from.x + from.width / 2, from.y + from.height / 2];
+      pts = [
+        boundaryPoint(from, first[0], first[1], 6),
+        ...via,
+        boundaryPoint(to, last[0], last[1], 6),
+      ];
+    }
+    const start = pts[0]!;
     const xs = pts.map((p) => p[0] - start[0]);
     const ys = pts.map((p) => p[1] - start[1]);
     const arrow = base(
@@ -409,20 +499,30 @@ export function diagramElements(
       roundness: null,
       points: pts.map((_, k) => [xs[k], ys[k]]),
       lastCommittedPoint: null,
-      startBinding: { elementId: startShape.id, focus: 0, gap: 6 },
-      endBinding: { elementId: endShape.id, focus: 0, gap: 6 },
+      // fixedPoint pins an elbow's ends to the middle of the facing sides, so Excalidraw re-routes
+      // it the same way when either shape moves.
+      startBinding: {
+        elementId: startShape.id,
+        focus: 0,
+        gap: 6,
+        ...(elbow && { fixedPoint: down ? [0.5, 1] : [1, 0.5] }),
+      },
+      endBinding: {
+        elementId: endShape.id,
+        focus: 0,
+        gap: 6,
+        ...(elbow && { fixedPoint: down ? [0.5, 0] : [0, 0.5] }),
+      },
       startArrowhead: null,
       endArrowhead: 'arrow',
-      elbowed: false,
+      elbowed: elbow,
+      ...(elbow && { fixedSegments: null, startIsSpecial: null, endIsSpecial: null }),
     });
     (startShape.boundElements as unknown[]).push({ type: 'arrow', id: arrow.id });
     (endShape.boundElements as unknown[]).push({ type: 'arrow', id: arrow.id });
     out.push(arrow);
     if (e.label) {
-      // On the middle point of a bent arrow, else the middle of the segment.
-      const mid = via.length
-        ? via[Math.floor((via.length - 1) / 2)]!
-        : ([(start[0] + end[0]) / 2, (start[1] + end[1]) / 2] as [number, number]);
+      const mid = midpoint(pts);
       const label = textElement(e.label, mid[0], mid[1], arrow.id);
       label.fontSize = 16;
       arrow.boundElements = [{ type: 'text', id: label.id }];
