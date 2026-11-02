@@ -51,7 +51,8 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .side-create button:hover{border-color:var(--line-strong)}
 .side-create .more{padding:6px 7px;color:var(--fg-3)}
 svg.i.t-doc{color:var(--honey-ink)}
-svg.i.t-board{color:var(--p1)}
+/* whiteboards: a filled blue tile, so they read apart from outline doc icons at a glance */
+svg.i.t-board{color:#fff;background:var(--p1);border-radius:4px;padding:2px;stroke-width:2.1}
 .nav .total{margin-left:auto;font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums}
 .tree .kind-tag{margin-left:auto;flex:none;font-size:10.5px;line-height:16px;padding:0 5px;border-radius:4px;color:var(--p1);background:color-mix(in srgb,var(--p1) 14%,transparent)}
 .nav{padding:0 8px;display:flex;flex-direction:column;gap:1px}
