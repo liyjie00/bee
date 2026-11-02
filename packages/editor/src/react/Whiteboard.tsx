@@ -24,6 +24,8 @@ const LOCAL_ORIGIN = 'bee:whiteboard-local';
 /** Lets an embed read what the board currently shows. */
 export interface WhiteboardHandle {
   getView(): WhiteboardView | null;
+  /** Zooms to the whole drawing now, without touching the saved range. */
+  fitAll(): void;
 }
 
 /** Shows `view` (scene units) centred in the canvas, as large as fits. */
@@ -114,6 +116,9 @@ function Board({ ydoc, provider, user, editable, embedded, fitContent, view, onH
         const s = a.getAppState();
         const z = s.zoom.value;
         return { x: -s.scrollX, y: -s.scrollY, w: s.width / z, h: s.height / z };
+      },
+      fitAll: () => {
+        if (apiRef.current) fitAll(apiRef.current);
       },
     });
     return () => onHandle?.(null);

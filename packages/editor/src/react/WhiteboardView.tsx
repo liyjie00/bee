@@ -128,6 +128,20 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
               )}
             </>
           )}
+          {documentId && (
+            <button
+              type="button"
+              className="bee-embed-icon bee-embed-fit"
+              title={t.whiteboardFitAll}
+              aria-label={t.whiteboardFitAll}
+              onClick={() => board.current?.fitAll()}
+            >
+              <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+                <rect x="4.5" y="4.5" width="7" height="7" rx="1" />
+                <path d="M1.5 4V1.5H4M12 1.5h2.5V4M1.5 12v2.5H4M12 14.5h2.5V12" />
+              </svg>
+            </button>
+          )}
           {documentId && document.fullscreenEnabled && (
             <button
               type="button"
