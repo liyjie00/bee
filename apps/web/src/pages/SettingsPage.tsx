@@ -1,8 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '../api/http';
+import { DOC_FONTS, DOC_FONT_SIZES, type UserPrefs } from '@bee/shared';
 import type { ApiTokenDTO, ConnectedAppDTO } from '../api/types';
 import { Icon } from '../components/Icon';
 import { TopBar } from '../components/TopBar';
+import { applyDocPrefs } from '../lib/docPrefs';
+import { useSession } from '../state/session';
 import { copyText, errMsg, useToast } from '../state/toast';
 import { useAgo, useT } from '../i18n';
 
@@ -20,7 +23,55 @@ function CopyField({ value }: { value: string }) {
   );
 }
 
-/** Account settings: connecting Claude (MCP), connected OAuth apps and personal API tokens. */
+/** Document font size and font style, saved on the account. */
+function ReadingSection() {
+  const t = useT();
+  const toast = useToast();
+  const { session, setSession } = useSession();
+  const prefs = session?.user.prefs ?? {};
+  const size = prefs.docFontSize ?? 'medium';
+  const font = prefs.docFont ?? 'sans';
+
+  async function save(patch: UserPrefs) {
+    applyDocPrefs({ ...prefs, ...patch });
+    try {
+      setSession(await api.updateMe({ prefs: patch }));
+    } catch (e) {
+      applyDocPrefs(prefs);
+      toast(errMsg(e));
+    }
+  }
+
+  return (
+    <section>
+      <h2>{t('settings.readingTitle')}</h2>
+      <p className="lead">{t('settings.readingLead')}</p>
+      <div className="pref-row">
+        <span className="lbl">{t('settings.fontSize')}</span>
+        <div className="seg" role="group" aria-label={t('settings.fontSize')}>
+          {DOC_FONT_SIZES.map((s) => (
+            <button key={s} className={s === size ? 'on' : ''} aria-pressed={s === size} onClick={() => save({ docFontSize: s })}>
+              {t(`settings.fontSize.${s}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="pref-row">
+        <span className="lbl">{t('settings.font')}</span>
+        <div className="seg" role="group" aria-label={t('settings.font')}>
+          {DOC_FONTS.map((f) => (
+            <button key={f} className={f === font ? 'on' : ''} aria-pressed={f === font} onClick={() => save({ docFont: f })}>
+              {t(`settings.font.${f}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="bee-prose pref-preview">{t('settings.preview')}</p>
+    </section>
+  );
+}
+
+/** Account settings: document text, connecting Claude (MCP), connected OAuth apps and personal API tokens. */
 export function SettingsPage() {
   const t = useT();
   const ago = useAgo();
@@ -61,6 +112,8 @@ export function SettingsPage() {
       <TopBar crumbs={[{ label: t('settings.title') }]} />
       <div className="page settings">
         <h1>{t('settings.title')}</h1>
+
+        <ReadingSection />
 
         <section>
           <h2>{t('settings.claudeTitle')}</h2>

@@ -29,6 +29,13 @@
       "when": 1793635527601,
       "tag": "0003_mcp_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793637483595,
+      "tag": "0004_user_prefs",
+      "breakpoints": true
     }
   ]
 }

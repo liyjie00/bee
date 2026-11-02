@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { users, workspaceMembers, workspaces, type Db } from '@bee/db';
-import { SESSION_COOKIE, type MeResponse } from '@bee/shared';
+import { DOC_FONTS, DOC_FONT_SIZES, SESSION_COOKIE, type MeResponse } from '@bee/shared';
 import type { Config } from '../env.js';
 import {
   createSession,
@@ -89,6 +89,10 @@ const updateMeBody = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
+  prefs: z
+    .object({ docFontSize: z.enum(DOC_FONT_SIZES).optional(), docFont: z.enum(DOC_FONTS).optional() })
+    .strict()
+    .optional(),
 });
 const passwordBody = z.object({
   currentPassword: z.string(),
@@ -161,10 +165,10 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.patch('/auth/me', async (req) => {
     const user = requireUser(req);
-    const body = parse(updateMeBody, req.body);
+    const { prefs, ...body } = parse(updateMeBody, req.body);
     const [u] = await db
       .update(users)
-      .set({ ...body, updatedAt: new Date() })
+      .set({ ...body, ...(prefs && { prefs: { ...user.prefs, ...prefs } }), updatedAt: new Date() })
       .where(eq(users.id, user.id))
       .returning();
     return me(u!);

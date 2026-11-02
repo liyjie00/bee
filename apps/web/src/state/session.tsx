@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../api/http';
+import { applyDocPrefs } from '../lib/docPrefs';
 import type { DocumentDTO, FolderDTO, Session, TreeDTO, WorkspaceDTO } from '../api/types';
 
 interface SessionCtx {
@@ -20,6 +21,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       .catch(() => setSession(null))
       .finally(() => setLoading(false));
   }, []);
+  useEffect(() => {
+    // Signed-out visitors (share links) keep whatever this browser last used.
+    if (session) applyDocPrefs(session.user.prefs);
+  }, [session]);
   const value = useMemo(
     () => ({ session, loading, setSession, workspace: session?.workspaces[0] ?? null }),
     [session, loading],

@@ -24,6 +24,7 @@ export function userDTO(u: UserRow): UserDTO {
     avatarUrl: u.avatarUrl,
     color: u.color,
     createdAt: u.createdAt.toISOString(),
+    prefs: u.prefs ?? {},
   };
 }
 

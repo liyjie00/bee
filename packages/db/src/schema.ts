@@ -16,6 +16,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type {
   CommentAnchor,
+  UserPrefs,
   DocumentType,
   GrantableRole,
   LinkRole,
@@ -41,6 +42,7 @@ export const users = pgTable(
     passwordHash: text('password_hash').notNull(),
     avatarUrl: text('avatar_url'),
     color: text('color').notNull(),
+    prefs: jsonb('prefs').$type<UserPrefs>().notNull().default({}),
     createdAt: createdAt(),
     updatedAt: ts('updated_at').notNull().defaultNow(),
   },

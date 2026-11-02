@@ -17,6 +17,18 @@ export interface UserDTO {
   avatarUrl: string | null;
   color: string;
   createdAt: string;
+  prefs: UserPrefs;
+}
+
+export const DOC_FONT_SIZES = ['small', 'medium', 'large'] as const;
+export type DocFontSize = (typeof DOC_FONT_SIZES)[number];
+export const DOC_FONTS = ['sans', 'serif', 'mono'] as const;
+export type DocFont = (typeof DOC_FONTS)[number];
+
+/** Per-user reading preferences; missing keys mean the default (medium / sans). */
+export interface UserPrefs {
+  docFontSize?: DocFontSize;
+  docFont?: DocFont;
 }
 
 /** Minimal user info shown next to comments, versions, members. */

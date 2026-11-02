@@ -18,6 +18,7 @@ import type {
   VersionDTO,
   VersionContentResponse,
   MeResponse,
+  UpdateMeBody,
   ActivityItem,
   SearchResponse,
   ShareResolveResponse,
@@ -38,6 +39,7 @@ export interface BeeApi {
   login(email: string, password: string): Promise<MeResponse>;
   register(name: string, email: string, password: string): Promise<MeResponse>;
   logout(): Promise<void>;
+  updateMe(patch: UpdateMeBody): Promise<MeResponse>;
 
   tree(workspaceId: string): Promise<TreeDTO>;
   search(workspaceId: string, q: string): Promise<SearchHit[]>;

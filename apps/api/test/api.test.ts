@@ -54,6 +54,16 @@ describe('auth', () => {
     expect(r.status).toBe(400);
     expect(r.json.error.code).toBe('validation');
   });
+
+  it('stores reading prefs and merges partial updates', async () => {
+    const { c, user } = await signup(app, 'prefs1');
+    expect(user.prefs).toEqual({});
+    await c.patch('/api/auth/me', { prefs: { docFontSize: 'small' } });
+    const r = await c.patch('/api/auth/me', { prefs: { docFont: 'serif' } });
+    expect(r.json.user.prefs).toEqual({ docFontSize: 'small', docFont: 'serif' });
+    expect((await c.get('/api/auth/me')).json.user.prefs).toEqual({ docFontSize: 'small', docFont: 'serif' });
+    expect((await c.patch('/api/auth/me', { prefs: { docFont: 'comic' } })).status).toBe(400);
+  });
 });
 
 describe('documents, folders and permissions', () => {

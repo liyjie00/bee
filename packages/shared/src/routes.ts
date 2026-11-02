@@ -24,6 +24,7 @@ import type {
   SharingDTO,
   TreeDTO,
   UserDTO,
+  UserPrefs,
   UserRef,
   VersionDTO,
   WorkspaceDTO,
@@ -58,6 +59,8 @@ export interface UpdateMeBody {
   name?: string;
   avatarUrl?: string | null;
   color?: string;
+  /** Merged into the stored prefs. */
+  prefs?: UserPrefs;
 }
 /** POST /api/auth/password */
 export interface ChangePasswordBody {

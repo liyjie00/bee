@@ -33,7 +33,9 @@
 /* ---------- prose ---------- */
 .bee-prose {
   outline: none;
-  font-size: 15.5px;
+  /* The app sets these from the reader's settings (font size / font style). */
+  font-family: var(--doc-font, inherit);
+  font-size: var(--doc-font-size, 14.5px);
   line-height: 1.75;
   min-height: 240px;
   padding-bottom: 80px;
@@ -53,15 +55,15 @@
   font-weight: 700;
 }
 .bee-prose h1 {
-  font-size: 28px;
+  font-size: 1.8em;
   margin: 36px 0 10px;
 }
 .bee-prose h2 {
-  font-size: 21px;
+  font-size: 1.36em;
   margin: 32px 0 8px;
 }
 .bee-prose h3 {
-  font-size: 17.5px;
+  font-size: 1.13em;
   margin: 26px 0 6px;
 }
 .bee-prose > :first-child {
@@ -152,7 +154,7 @@
   border-collapse: collapse;
   width: 100%;
   table-layout: fixed;
-  font-size: 14px;
+  font-size: 0.93em;
 }
 .bee-prose th,
 .bee-prose td {
