@@ -27,6 +27,7 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
   const onHandle = useCallback((h: WhiteboardHandle | null) => (board.current = h), []);
   // Size while dragging the resize handle; written to the node on release.
   const [draft, setDraft] = useState<{ width: number; height: number } | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
   const width = draft?.width ?? Math.min(100, Math.max(MIN_WIDTH, Number(node.attrs.width) || 100));
   const height = draft?.height ?? (Number(node.attrs.height) || WHITEBOARD_DEFAULT_HEIGHT);
 
@@ -75,6 +76,17 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
     handle.addEventListener('pointercancel', up);
   };
 
+  // Full screen shows the whole drawing; the saved range comes back on exit (Esc or the button).
+  useEffect(() => {
+    const onChange = () => setFullscreen(!!wrapper.current && document.fullscreenElement === wrapper.current);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  const toggleFullscreen = () => {
+    if (fullscreen) void document.exitFullscreen();
+    else void wrapper.current?.requestFullscreen();
+  };
+
   const saveView = () => {
     const v = board.current?.getView();
     if (v && v.w > 0 && v.h > 0) updateAttributes({ view: formatWhiteboardView(v) });
@@ -116,6 +128,24 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
               )}
             </>
           )}
+          {documentId && document.fullscreenEnabled && (
+            <button
+              type="button"
+              className={`bee-embed-icon bee-embed-fullscreen${fullscreen ? ' is-active' : ''}`}
+              title={fullscreen ? t.whiteboardExitFullscreen : t.whiteboardFullscreen}
+              aria-label={fullscreen ? t.whiteboardExitFullscreen : t.whiteboardFullscreen}
+              aria-pressed={fullscreen}
+              onClick={toggleFullscreen}
+            >
+              <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+                {fullscreen ? (
+                  <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4" />
+                ) : (
+                  <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" />
+                )}
+              </svg>
+            </button>
+          )}
           {documentId && ctx?.onOpenWhiteboard && (
             <button type="button" className="bee-embed-action" title={t.openWhiteboard} onClick={() => ctx.onOpenWhiteboard!(documentId)}>
               <span className="bee-embed-action-icon" aria-hidden>
@@ -138,8 +168,8 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
             locale={ctx.locale}
             theme={ctx.theme}
             embedded
-            fitContent={linked}
-            view={view}
+            fitContent={linked || fullscreen}
+            view={fullscreen ? null : view}
             onHandle={onHandle}
           />
         ) : (

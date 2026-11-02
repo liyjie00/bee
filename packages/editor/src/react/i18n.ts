@@ -104,6 +104,8 @@ const zhCN = {
   whiteboardSetView: '设为显示范围',
   whiteboardSetViewHint: '设为显示范围：先拖动画面、按住 Ctrl/⌘ 滚轮缩放到想要的位置，再点这里',
   whiteboardResetView: '显示全图',
+  whiteboardFullscreen: '全屏查看全部内容',
+  whiteboardExitFullscreen: '退出全屏',
   uploading: '正在上传…',
   uploadFailed: '图片上传失败',
 };
@@ -206,6 +208,8 @@ const en: Messages = {
   whiteboardSetView: 'Use as display range',
   whiteboardSetViewHint: 'Use as display range: pan the board and Ctrl/⌘ + scroll to zoom, then click here',
   whiteboardResetView: 'Show whole board',
+  whiteboardFullscreen: 'Full screen, whole board',
+  whiteboardExitFullscreen: 'Exit full screen',
   uploading: 'Uploading…',
   uploadFailed: 'Image upload failed',
 };
