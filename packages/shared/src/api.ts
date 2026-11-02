@@ -210,3 +210,43 @@ export interface ConnectedAppDTO {
   createdAt: string;
   lastUsedAt: string | null;
 }
+
+export type NotificationKind = 'mention' | 'reply' | 'share' | 'access_request';
+
+export interface AccessRequestDTO {
+  id: string;
+  documentId: string;
+  user: UserRef & { email: string };
+  role: GrantableRole;
+  message: string | null;
+  status: 'pending' | 'granted' | 'declined';
+  grantedRole: GrantableRole | null;
+  createdAt: string;
+}
+
+export interface NotificationDTO {
+  id: string;
+  kind: NotificationKind;
+  /** for guests: id '' and the guest's nickname */
+  actor: UserRef | null;
+  document: { id: string; title: string; type: DocumentType } | null;
+  folder: { id: string; name: string } | null;
+  threadId: string | null;
+  /** comment text (mention, reply) or the granted role (share) */
+  detail: string | null;
+  /** access_request: the request, with its current status */
+  request: AccessRequestDTO | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface TemplateDTO {
+  id: string;
+  workspaceId: string;
+  title: string;
+  markdown: string;
+  createdBy: UserRef | null;
+  /** the caller may delete it (its creator, or a workspace admin) */
+  canDelete: boolean;
+  createdAt: string;
+}

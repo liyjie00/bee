@@ -417,3 +417,72 @@ export const aiSettings = pgTable('ai_settings', {
   keys: text('keys').notNull(),
   updatedAt: ts('updated_at').notNull().defaultNow(),
 });
+
+/** Someone without access asked for it; the document's editors decide. One row per person and document. */
+export const accessRequests = pgTable(
+  'access_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role').$type<GrantableRole>().notNull(),
+    message: text('message'),
+    status: text('status').$type<'pending' | 'granted' | 'declined'>().notNull().default('pending'),
+    /** the role actually granted */
+    grantedRole: text('granted_role').$type<GrantableRole>(),
+    handledById: uuid('handled_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    handledAt: ts('handled_at'),
+  },
+  (t) => [uniqueIndex('access_requests_doc_user_key').on(t.documentId, t.userId)],
+);
+
+/**
+ * In-app notifications: someone @mentioned the user in a comment, replied in a thread the user
+ * took part in, or shared a document or folder with them.
+ */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'mention' | 'reply' | 'share' | 'access_request'>().notNull(),
+    documentId: uuid('document_id').references(() => documents.id, { onDelete: 'cascade' }),
+    folderId: uuid('folder_id').references(() => folders.id, { onDelete: 'cascade' }),
+    threadId: uuid('thread_id').references(() => commentThreads.id, { onDelete: 'cascade' }),
+    requestId: uuid('request_id').references(() => accessRequests.id, { onDelete: 'cascade' }),
+    /** null for guests, who carry actorName instead */
+    actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    actorName: text('actor_name'),
+    /** comment text, or the role for shares */
+    detail: text('detail'),
+    readAt: ts('read_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
+);
+
+/** Documents saved as templates, offered to everyone in the workspace when creating a doc. */
+export const templates = pgTable(
+  'templates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    markdown: text('markdown').notNull(),
+    createdById: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('templates_ws_idx').on(t.workspaceId, t.createdAt)],
+);

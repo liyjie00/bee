@@ -14,6 +14,7 @@ import {
 } from '@bee/shared';
 import { docAccess, guestsMayComment, validShareLink, type DocAccess } from '../lib/access.js';
 import { logActivity } from '../lib/activity.js';
+import { docReaders, notifyComment } from '../lib/notify.js';
 import { badRequest, forbidden, HttpError, notFound, unauthorized } from '../lib/errors.js';
 import { loadUserRefs, refOr } from '../lib/dto.js';
 import { clientIp } from '../lib/ip.js';
@@ -226,13 +227,24 @@ export async function commentRoutes(app: FastifyInstance) {
     const { id } = parse(idParams, req.params);
     const b = parse(z.object({ anchor, body, guestName }), req.body);
     const { a, cols, actorId, label } = await authorFor(req, id, b.body, b.guestName);
-    const t = await db.transaction(async (tx) => {
+    const { t, c } = await db.transaction(async (tx) => {
       const [t] = await tx
         .insert(commentThreads)
         .values({ documentId: id, anchor: b.anchor ?? null, createdById: actorId })
         .returning();
-      await tx.insert(comments).values({ threadId: t!.id, documentId: id, body: b.body, ...cols });
-      return t!;
+      const [c] = await tx
+        .insert(comments)
+        .values({ threadId: t!.id, documentId: id, body: b.body, ...cols })
+        .returning();
+      return { t: t!, c: c! };
+    });
+    await notifyComment(db, a, {
+      threadId: t.id,
+      commentId: c.id,
+      actorId,
+      actorName: c.guestName,
+      body: b.body,
+      reply: false,
     });
     await logActivity(db, {
       workspaceId: a.doc.workspaceId,
@@ -259,6 +271,14 @@ export async function commentRoutes(app: FastifyInstance) {
         .update(commentThreads)
         .set({ resolvedAt: null, resolvedById: null })
         .where(eq(commentThreads.id, id));
+    await notifyComment(db, a, {
+      threadId: id,
+      commentId: c!.id,
+      actorId,
+      actorName: c!.guestName,
+      body: b.body,
+      reply: true,
+    });
     await logActivity(db, {
       workspaceId: a.doc.workspaceId,
       documentId: t.documentId,
@@ -268,6 +288,29 @@ export async function commentRoutes(app: FastifyInstance) {
     });
     const refs = await loadUserRefs(db, [actorId]);
     return reply.status(201).send({ comment: commentDTO(c!, refs, null, viewerOf(req, a)) });
+  });
+
+  // People who can be @mentioned: signed-in readers of the document. Guests get an empty list.
+  app.get('/documents/:id/mentionable', async (req) => {
+    const { id } = parse(idParams, req.params);
+    const { q } = parse(z.object({ q: z.string().max(100).optional() }), req.query);
+    const a = await docAccess(db, {
+      userId: req.user?.id ?? null,
+      documentId: id,
+      shareToken: req.shareToken,
+    });
+    if (!req.user || !can.comment(a.role)) return { users: [] };
+    const needle = (q ?? '').trim().toLowerCase();
+    const users = (await docReaders(db, a))
+      .filter(
+        (u) =>
+          !needle ||
+          u.name.toLowerCase().includes(needle) ||
+          u.email.toLowerCase().startsWith(needle),
+      )
+      .sort((x, y) => x.name.localeCompare(y.name))
+      .slice(0, 20);
+    return { users };
   });
 
   app.patch('/threads/:id', async (req) => {

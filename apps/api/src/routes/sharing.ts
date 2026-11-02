@@ -19,6 +19,7 @@ import {
   type FolderRow,
 } from '../lib/access.js';
 import { logActivity } from '../lib/activity.js';
+import { notifyShare } from '../lib/notify.js';
 import { randomToken } from '../lib/auth.js';
 import { badRequest, forbidden, notFound } from '../lib/errors.js';
 import { documentDTO, documentDTOs, loadUserRefs, shareLinkDTO, userRef } from '../lib/dto.js';
@@ -179,6 +180,14 @@ export async function sharingRoutes(app: FastifyInstance) {
         set: { role: body.role },
       })
       .returning();
+    if (target)
+      await notifyShare(db, {
+        userId: target.id,
+        actorId: user.id,
+        workspaceId: r.workspaceId,
+        ...(type === 'document' ? { documentId: id } : { folderId: id }),
+        role: body.role,
+      }).catch((err) => req.log.warn({ err }, 'share notification failed'));
     if (type === 'document') {
       await logActivity(db, {
         workspaceId: r.workspaceId,
