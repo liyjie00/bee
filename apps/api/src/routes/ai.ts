@@ -389,8 +389,10 @@ function providerError(err: unknown): string {
   if (e.status === 401 || e.status === 403)
     return 'Your AI account rejected the request. Reconnect it in Ask AI settings.';
   if (e.status === 402) return 'Your AI account is out of credits.';
-  if (e.status === 429) return 'Your AI account is rate limited. Try again in a moment.';
+  if (e.status === 429) return 'Your AI account hit its rate limit or quota for this model. Wait a moment, or pick another model.';
   if (e.status === 404) return 'This model is not available to your AI account. Pick another model.';
+  if (e.status === 503 || e.status === 529)
+    return 'The model is overloaded at the provider right now. Try again in a moment, or pick another model.';
   return e.message ? `The AI provider returned an error: ${e.message.slice(0, 300)}` : 'The AI request failed.';
 }
 

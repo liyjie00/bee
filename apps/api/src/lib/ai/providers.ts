@@ -64,7 +64,7 @@ const DEFAULT_MODEL: Record<AiProvider, RegExp[]> = {
   anthropic: [/^claude-opus-5-5$/, /^claude-sonnet-5-5$/, /^claude-/],
   openai: [/^gpt-\d+(\.\d+)?$/, /^gpt-/],
   xai: [/^grok-\d+(\.\d+)?$/, /^grok-/],
-  gemini: [/pro$/, /^gemini-/],
+  gemini: [/^gemini-\d+(\.\d+)?-flash$/, /^gemini-flash-latest$/, /^gemini-/],
 };
 
 export interface ModelInfo {
@@ -78,15 +78,16 @@ const baseUrl = (provider: AiProvider): string | undefined =>
   (provider === 'anthropic' ? undefined : OPENAI_COMPAT[provider]);
 
 function anthropicClient(apiKey: string) {
-  return new Anthropic({ apiKey, baseURL: baseUrl('anthropic'), maxRetries: 2, timeout: 10 * 60_000 });
+  return new Anthropic({ apiKey, baseURL: baseUrl('anthropic'), maxRetries: 1, timeout: 5 * 60_000 });
 }
 
 function openaiClient(provider: Exclude<AiProvider, 'anthropic'>, apiKey: string, publicUrl: string) {
   return new OpenAI({
     apiKey,
     baseURL: baseUrl(provider),
-    maxRetries: 2,
-    timeout: 10 * 60_000,
+    // One quick retry: an overloaded model should fail fast so the user can switch.
+    maxRetries: 1,
+    timeout: 5 * 60_000,
     // OpenRouter app attribution.
     defaultHeaders: provider === 'openrouter' ? { 'HTTP-Referer': publicUrl, 'X-Title': 'Bee' } : undefined,
   });
@@ -121,7 +122,7 @@ export async function listModels(
       models.push({ id, name: id, created: m.created ?? 0 });
     }
     const chat: Record<string, RegExp> = { openai: /^(gpt-|o\d|chatgpt)/, xai: /^grok/, gemini: /^gemini/ };
-    const notChat = /(audio|realtime|tts|transcribe|image|embedding|search|moderation|vision|imagen|veo|aqa)/;
+    const notChat = /(audio|realtime|tts|transcribe|image|embedding|search|moderation|vision|imagen|veo|aqa|live|robotics|banana|computer-use|omni|customtools|nano)/;
     models = models.filter((m) => chat[provider]!.test(m.id) && !notChat.test(m.id));
   }
   models.sort((a, b) => b.created - a.created);
