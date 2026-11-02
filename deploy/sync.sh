@@ -67,6 +67,9 @@ fi
 # Docker VM can hang indefinitely. Refresh them by hand with `docker pull`.
 docker compose build --pull=false
 docker compose up -d --no-build --remove-orphans
+# Compose does not recreate a container when only an inline config changed, so the
+# proxy would keep serving its old Caddyfile. Recreating it takes a second.
+docker compose up -d --no-build --force-recreate --no-deps proxy
 for i in {1..60}; do
   if curl -fsS http://localhost:7070/api/health >/dev/null 2>&1; then
     echo "$SHA $(date '+%F %T')" >> .deploys
