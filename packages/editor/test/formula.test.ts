@@ -113,3 +113,46 @@ describe('TableSheet decorations', () => {
     editor.destroy();
   });
 });
+
+describe('table tools', () => {
+  const cell = (c: string, tag = 'td') => `<${tag}><p>${c}</p></${tag}>`;
+
+  it('sorts body rows by the selected column using computed values', async () => {
+    const { sortTableByColumn } = await import('../src/react/table-sheet.js');
+    const editor = new Editor({
+      extensions: [...schemaExtensions({ collaborative: false }), TableSheet],
+      content: `<table><tr>${cell('Name', 'th')}${cell('Score', 'th')}</tr><tr>${cell('a')}${cell('=5*2')}</tr><tr>${cell('b')}${cell('')}</tr><tr>${cell('c')}${cell('3')}</tr></table>`,
+    });
+    let pos = -1;
+    editor.state.doc.descendants((n, p) => {
+      if (n.isText && n.text === 'Score') pos = p;
+    });
+    editor.commands.setTextSelection(pos + 1);
+    expect(sortTableByColumn('desc')(editor.state, editor.view.dispatch)).toBe(true);
+    const names = () => {
+      const out: string[] = [];
+      editor.state.doc.descendants((n) => {
+        if (n.type.name === 'tableRow') out.push(n.firstChild!.textContent);
+      });
+      return out;
+    };
+    expect(names()).toEqual(['Name', 'a', 'c', 'b']);
+    editor.commands.setTextSelection(pos + 1);
+    sortTableByColumn('asc')(editor.state, editor.view.dispatch);
+    expect(names()).toEqual(['Name', 'c', 'a', 'b']);
+    editor.destroy();
+  });
+
+  it('stores cell colors and alignment as attributes', () => {
+    const editor = new Editor({
+      extensions: [...schemaExtensions({ collaborative: false })],
+      content: `<table><tr><td data-bg="yellow" data-color="red" data-align="center"><p>x</p></td><td data-bg="nope"><p>y</p></td></tr></table>`,
+    });
+    const html = editor.getHTML();
+    expect(html).toContain('data-bg="yellow"');
+    expect(html).toContain('data-color="red"');
+    expect(html).toContain('data-align="center"');
+    expect(html).not.toContain('nope');
+    editor.destroy();
+  });
+});

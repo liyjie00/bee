@@ -10,6 +10,7 @@ import { insertImages, type UploadImage } from './image-upload.js';
 import { MessagesContext, resolveMessages, type Locale, type Messages } from './i18n.js';
 import { BeeEditorContext, type BeeEditorContextValue } from './context.js';
 import type { SlashHost } from './SlashMenu.js';
+import { TableToolbar } from './TableToolbar.js';
 import type { Theme } from './theme.js';
 
 export interface BeeEditorProps {
@@ -199,6 +200,7 @@ function EditorInner(props: InnerProps) {
     <BeeEditorContext.Provider value={ctx}>
       <div className={`bee-editor ${props.className ?? ''}`}>
         {editor && <SelectionBubble editor={editor} editable={editable} canComment={canComment} messages={t} onComment={props.onCreateComment} />}
+        {editor && editable && <TableToolbar editor={editor} messages={t} />}
         {editor && <BlockLinkButton editor={editor} messages={t} documentId={props.documentId} shareToken={props.shareToken} onCopy={props.onCopyBlockLink} />}
         <EditorContent editor={editor} className="bee-editor-content" />
         <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={onFile} />

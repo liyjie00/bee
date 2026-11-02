@@ -1,6 +1,6 @@
 import { Extension } from '@tiptap/core';
-import type { Node as PMNode } from '@tiptap/pm/model';
-import { Plugin, PluginKey, type EditorState } from '@tiptap/pm/state';
+import { Fragment, type Node as PMNode } from '@tiptap/pm/model';
+import { Plugin, PluginKey, type EditorState, type Transaction } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
 import { CellSelection, TableMap } from '@tiptap/pm/tables';
 import { Sheet, columnName, display, isFormula } from './formula.js';
@@ -185,3 +185,79 @@ export const TableSheet = Extension.create<TableSheetOptions>({
     ];
   },
 });
+
+type Command = (state: EditorState, dispatch?: (tr: Transaction) => void) => boolean;
+
+/** The table around the selection and the column/rows the selection covers. */
+export function selectedTable(state: EditorState) {
+  const { $from, $to } = state.selection;
+  for (let d = $from.depth; d > 0; d--) {
+    const table = $from.node(d);
+    if (table.type.spec.tableRole !== 'table') continue;
+    const start = $from.start(d);
+    const map = TableMap.get(table);
+    const cellAt = (pos: number) => {
+      const $p = state.doc.resolve(pos);
+      for (let k = $p.depth; k > d; k--) if (isCell($p.node(k))) return $p.before(k) - start;
+      return null;
+    };
+    const sel = state.selection;
+    const a = sel instanceof CellSelection ? sel.$anchorCell.pos - start : cellAt($from.pos);
+    const b = sel instanceof CellSelection ? sel.$headCell.pos - start : cellAt($to.pos);
+    const rect = a !== null && b !== null ? map.rectBetween(a, b) : null;
+    return { table, pos: start - 1, start, map, rect };
+  }
+  return null;
+}
+
+/**
+ * Sorts the table's body rows (rows below leading header rows) by the selected column, using the
+ * computed value of formulas. Numbers sort before text; blank cells always go last.
+ * Refuses tables with row-spanning cells, whose rows cannot be moved independently.
+ */
+export function sortTableByColumn(direction: 'asc' | 'desc'): Command {
+  return (state, dispatch) => {
+    const found = selectedTable(state);
+    if (!found?.rect) return false;
+    const { table, pos, map, rect } = found;
+    let rowSpan = false;
+    table.descendants((node) => {
+      if (isCell(node) && (node.attrs.rowspan as number) > 1) rowSpan = true;
+      return !isCell(node);
+    });
+    if (rowSpan) return false;
+
+    const rows: PMNode[] = [];
+    table.forEach((row) => rows.push(row));
+    let head = 0;
+    while (head < rows.length && rows[head]!.childCount && everyChild(rows[head]!, (c) => c.type.spec.tableRole === 'header_cell')) head++;
+    if (rows.length - head < 2) return false;
+    if (!dispatch) return true;
+
+    const grid = rows.map((_, r) =>
+      Array.from({ length: map.width }, (_, c) => table.nodeAt(map.map[r * map.width + c]!)!.textContent),
+    );
+    const sheet = new Sheet(grid);
+    const col = rect.left;
+    const keyed = rows.slice(head).map((row, i) => ({ row, value: sheet.evaluate(head + i, col) }));
+    const rank = (v: unknown) => (v === null || v === '' ? 2 : typeof v === 'number' ? 0 : 1);
+    keyed.sort((x, y) => {
+      const rx = rank(x.value);
+      const ry = rank(y.value);
+      if (rx !== ry || rx === 2) return rx - ry;
+      const cmp = rx === 0 ? (x.value as number) - (y.value as number) : display(x.value as never).localeCompare(display(y.value as never));
+      return direction === 'asc' ? cmp : -cmp;
+    });
+    const sorted = table.copy(Fragment.from([...rows.slice(0, head), ...keyed.map((k) => k.row)]));
+    dispatch(state.tr.replaceWith(pos, pos + table.nodeSize, sorted).scrollIntoView());
+    return true;
+  };
+}
+
+function everyChild(node: PMNode, test: (child: PMNode) => boolean): boolean {
+  let ok = true;
+  node.forEach((child) => {
+    if (!test(child)) ok = false;
+  });
+  return ok;
+}
