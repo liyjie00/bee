@@ -204,6 +204,8 @@ export const shareLinks = pgTable(
     token: text('token').notNull().unique(),
     role: text('role').$type<LinkRole>().notNull(),
     public: boolean('public').notNull().default(true),
+    /** public links only: visitors may comment without signing in, under a nickname */
+    guestComments: boolean('guest_comments').notNull().default(false),
     expiresAt: ts('expires_at'),
     createdById: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
@@ -220,9 +222,8 @@ export const commentThreads = pgTable(
       .notNull()
       .references(() => documents.id, { onDelete: 'cascade' }),
     anchor: jsonb('anchor').$type<CommentAnchor>(),
-    createdById: uuid('created_by')
-      .notNull()
-      .references(() => users.id),
+    /** null when a guest (anonymous share-link visitor) started the thread */
+    createdById: uuid('created_by').references(() => users.id),
     createdAt: createdAt(),
     resolvedAt: ts('resolved_at'),
     resolvedById: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
@@ -240,9 +241,13 @@ export const comments = pgTable(
     documentId: uuid('document_id')
       .notNull()
       .references(() => documents.id, { onDelete: 'cascade' }),
-    authorId: uuid('author_id')
-      .notNull()
-      .references(() => users.id),
+    /** null for guest comments, which carry guestName instead */
+    authorId: uuid('author_id').references(() => users.id),
+    guestName: text('guest_name'),
+    /** sha256 of the guest's browser key, so guests can delete their own comments */
+    guestKeyHash: text('guest_key_hash'),
+    /** share link a guest comment came through */
+    shareLinkId: uuid('share_link_id').references(() => shareLinks.id, { onDelete: 'set null' }),
     body: text('body').notNull(),
     createdAt: createdAt(),
     editedAt: ts('edited_at'),

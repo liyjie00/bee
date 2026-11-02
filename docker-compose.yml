@@ -38,6 +38,8 @@ services:
       UPLOAD_DIR: /data/uploads
       COLLAB_INTERNAL_URL: http://collab:1234
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:7070}
+      GUEST_COMMENT_RATE_LIMIT: ${GUEST_COMMENT_RATE_LIMIT:-5}
+      GUEST_COMMENT_HOURLY_LIMIT: ${GUEST_COMMENT_HOURLY_LIMIT:-60}
     volumes:
       - uploads:/data/uploads
     healthcheck:

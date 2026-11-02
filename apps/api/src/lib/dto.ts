@@ -113,6 +113,7 @@ export function shareLinkDTO(l: ShareLinkRow, publicUrl: string): ShareLinkDTO {
     token: l.token,
     role: l.role,
     public: l.public,
+    guestComments: l.guestComments,
     expiresAt: iso(l.expiresAt),
     createdAt: l.createdAt.toISOString(),
     url: publicUrl + shareLinkPath(l.token),

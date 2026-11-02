@@ -40,11 +40,13 @@ const grantBody = z
 const linkBody = z.object({
   role: z.enum(LINK_ROLES),
   public: z.boolean().default(true),
+  guestComments: z.boolean().default(false),
   expiresAt: z.iso.datetime().nullable().optional(),
 });
 const linkPatch = z.object({
   role: z.enum(LINK_ROLES).optional(),
   public: z.boolean().optional(),
+  guestComments: z.boolean().optional(),
   expiresAt: z.iso.datetime().nullable().optional(),
 });
 
@@ -233,6 +235,7 @@ export async function sharingRoutes(app: FastifyInstance) {
         token: randomToken(18),
         role: body.role,
         public: body.public,
+        guestComments: body.guestComments,
         expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
         createdById: user.id,
       })
@@ -242,7 +245,7 @@ export async function sharingRoutes(app: FastifyInstance) {
       documentId: id,
       actorId: user.id,
       kind: 'shared',
-      detail: `link: ${body.role}${body.public ? ' (public)' : ''}`,
+      detail: `link: ${body.role}${body.public ? ' (public)' : ''}${body.guestComments ? ' (guest comments)' : ''}`,
     });
     return reply.status(201).send({ link: shareLinkDTO(l!, config.publicUrl) });
   });
@@ -264,6 +267,7 @@ export async function sharingRoutes(app: FastifyInstance) {
       .set({
         role: body.role,
         public: body.public,
+        guestComments: body.guestComments,
         expiresAt:
           body.expiresAt === undefined
             ? undefined

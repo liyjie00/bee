@@ -97,6 +97,8 @@ export interface ShareLinkDTO {
   role: LinkRole;
   /** anyone with the link (no login); false = signed-in workspace members only */
   public: boolean;
+  /** public links only: anyone with the link can comment under a nickname, without signing in */
+  guestComments: boolean;
   expiresAt: string | null;
   createdAt: string;
   /** absolute URL, e.g. https://bee.zippyzoo.dev/s/<token> */
@@ -126,7 +128,12 @@ export interface CommentDTO {
   /** set only on the first comment of a thread */
   anchor: CommentAnchor | null;
   body: string;
+  /** for guest comments: id '' and the guest's nickname */
   author: UserRef;
+  /** written by an anonymous share-link visitor */
+  guest: boolean;
+  /** the caller may delete it (their own comment, or they own the document) */
+  canDelete: boolean;
   createdAt: string;
   editedAt: string | null;
 }

@@ -210,6 +210,105 @@ describe('share links', () => {
   });
 });
 
+describe('guest comments', () => {
+  it('guest comments need a public commenter link', async () => {
+    const owner = await signup(app, 'guestowner2');
+    const doc = (
+      await owner.c.post('/api/documents', { workspaceId: owner.workspace.id, title: 'Closed' })
+    ).json.document;
+    const link = (
+      await owner.c.post(`/api/documents/${doc.id}/links`, {
+        role: 'viewer',
+        public: true,
+        guestComments: true,
+      })
+    ).json.link;
+    const anon = client(app);
+    const res = await anon.post(
+      `/api/documents/${doc.id}/threads`,
+      { anchor: null, body: 'Hi', guestName: 'Ann' },
+      { 'x-share-token': link.token, 'x-guest-key': 'guest-key-three-0123456789' },
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it('public links with guest comments let anonymous visitors comment under a nickname', async () => {
+    const owner = await signup(app, 'guestowner');
+    const doc = (
+      await owner.c.post('/api/documents', { workspaceId: owner.workspace.id, title: 'Open' })
+    ).json.document;
+    const link = (
+      await owner.c.post(`/api/documents/${doc.id}/links`, {
+        role: 'commenter',
+        public: true,
+        guestComments: true,
+      })
+    ).json.link;
+    expect(link.guestComments).toBe(true);
+
+    const anon = client(app);
+    const share = { 'x-share-token': link.token };
+    const g1 = { ...share, 'x-guest-key': 'guest-key-one-0123456789' };
+    const g2 = { ...share, 'x-guest-key': 'guest-key-two-0123456789' };
+    expect((await anon.get(`/api/share/${link.token}`)).json.role).toBe('commenter');
+
+    // A nickname is required.
+    const noName = await anon.post(
+      `/api/documents/${doc.id}/threads`,
+      { anchor: null, body: 'Hi' },
+      g1,
+    );
+    expect(noName.status).toBe(400);
+    expect(noName.json.error.code).toBe('guest_name_required');
+
+    const t = await anon.post(
+      `/api/documents/${doc.id}/threads`,
+      { anchor: null, body: 'Hello from a guest', guestName: 'Ann' },
+      g1,
+    );
+    expect(t.status).toBe(201);
+    const first = t.json.thread.comments[0];
+    expect(first).toMatchObject({ guest: true, canDelete: true, author: { id: '', name: 'Ann' } });
+    const r = await anon.post(
+      `/api/threads/${t.json.thread.id}/comments`,
+      { body: 'Reply', guestName: 'Ben' },
+      g2,
+    );
+    expect(r.status).toBe(201);
+
+    // Each guest may delete only their own comments; the owner may delete any.
+    const seen = (await anon.get(`/api/documents/${doc.id}/threads`, g2)).json.threads[0].comments;
+    expect(seen.map((c: { canDelete: boolean }) => c.canDelete)).toEqual([false, true]);
+    expect((await anon.del(`/api/comments/${first.id}`, g2)).status).toBe(403);
+    const ownerView = (await owner.c.get(`/api/documents/${doc.id}/threads`)).json.threads[0];
+    expect(ownerView.comments.every((c: { canDelete: boolean }) => c.canDelete)).toBe(true);
+    expect((await owner.c.del(`/api/comments/${first.id}`)).status).toBe(200);
+    expect((await anon.del(`/api/comments/${r.json.comment.id}`, g2)).status).toBe(200);
+    expect((await owner.c.get(`/api/documents/${doc.id}/threads`)).json.threads).toHaveLength(0);
+
+    // Guests cannot resolve threads or edit the document's sharing.
+    expect(
+      (await anon.patch(`/api/threads/${t.json.thread.id}`, { resolved: true }, g1)).status,
+    ).toBe(401);
+
+    // Rate limit per IP.
+    let limited = false;
+    for (let i = 0; i < 10 && !limited; i++) {
+      const x = await anon.post(
+        `/api/documents/${doc.id}/threads`,
+        { anchor: null, body: `spam ${i}`, guestName: 'Spam' },
+        g1,
+      );
+      limited = x.status === 429;
+    }
+    expect(limited).toBe(true);
+
+    // Turning guest comments off stops anonymous comments.
+    await owner.c.patch(`/api/links/${link.id}`, { guestComments: false });
+    expect((await anon.get(`/api/share/${link.token}`)).json.role).toBe('viewer');
+  });
+});
+
 describe('embedded documents', () => {
   it('a whiteboard inside a doc inherits the parent access and share link', async () => {
     const owner = await signup(app, 'embedowner');

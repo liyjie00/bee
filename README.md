@@ -70,6 +70,8 @@ Back them up with e.g. `docker compose exec postgres pg_dump -U bee bee > backup
 | `ALLOWED_ORIGINS` | `http://localhost:7070` | Extra origins allowed to make cookie-authenticated requests |
 | `ALLOW_REGISTRATION` | `true` | Set `false` to close sign-ups |
 | `MAX_UPLOAD_MB` | `25` | Per-file upload limit |
+| `GUEST_COMMENT_RATE_LIMIT` | `5` | Guest (no sign-in) comments per IP per minute |
+| `GUEST_COMMENT_HOURLY_LIMIT` | `60` | Guest comments per share link per hour |
 | `BEE_PORT` | `7070` | Host port of the proxy |
 
 ## License

@@ -86,6 +86,9 @@ export function ShareDialog({ doc, onClose, onChange }: { doc: DocumentDTO; onCl
       for (const l of sharing?.links ?? []) await api.deleteLink(l.id);
       if (a !== 'private') await api.createLink(doc.id, a === 'public' ? 'viewer' : linkRole, a === 'public');
     });
+  // Guest comments raise a public link to commenter; turning them off returns it to read-only.
+  const setGuestComments = (on: boolean) =>
+    link && run(() => api.updateLink(link.id, { role: on ? 'commenter' : 'viewer', guestComments: on }));
   const changeLinkRole = (r: LinkRole) => {
     setLinkRole(r);
     if (link) void run(() => api.updateLink(link.id, { role: r }));
@@ -189,6 +192,21 @@ export function ShareDialog({ doc, onClose, onChange }: { doc: DocumentDTO; onCl
               </button>
             ))}
           </div>
+          {access === 'public' && (
+            <label className="toggle" style={{ alignItems: 'flex-start', cursor: doc.role === 'owner' ? 'pointer' : undefined }}>
+              <input
+                type="checkbox"
+                style={{ marginTop: 3 }}
+                checked={!!link?.guestComments}
+                disabled={busy || doc.role !== 'owner'}
+                onChange={(e) => setGuestComments(e.target.checked)}
+              />
+              <span>
+                <b style={{ fontWeight: 500, display: 'block', color: 'var(--fg)' }}>{t('share.guestComments')}</b>
+                <small style={{ color: 'var(--fg-3)', fontSize: 12 }}>{t('share.guestCommentsHint')}</small>
+              </span>
+            </label>
+          )}
           {access === 'link' && (
             <div className="toggle">
               {t('share.link')}

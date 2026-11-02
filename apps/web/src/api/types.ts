@@ -70,16 +70,18 @@ export interface BeeApi {
   restoreVersion(docId: string, versionId: string): Promise<void>;
 
   threads(docId: string): Promise<CommentThreadDTO[]>;
-  createThread(docId: string, anchor: CommentAnchor | null, body: string): Promise<CommentThreadDTO>;
-  reply(threadId: string, body: string): Promise<void>;
+  /** `guestName` is required for anonymous visitors on a link with guest comments */
+  createThread(docId: string, anchor: CommentAnchor | null, body: string, guestName?: string): Promise<CommentThreadDTO>;
+  reply(threadId: string, body: string, guestName?: string): Promise<void>;
+  deleteComment(commentId: string): Promise<void>;
   setResolved(threadId: string, resolved: boolean): Promise<CommentThreadDTO>;
 
   sharing(docId: string): Promise<SharingDTO>;
   addGrant(docId: string, email: string, role: GrantableRole): Promise<void>;
   updateGrant(grantId: string, role: GrantableRole): Promise<void>;
   removeGrant(grantId: string): Promise<void>;
-  createLink(docId: string, role: LinkRole, isPublic: boolean): Promise<ShareLinkDTO>;
-  updateLink(linkId: string, patch: { role?: LinkRole; public?: boolean }): Promise<ShareLinkDTO>;
+  createLink(docId: string, role: LinkRole, isPublic: boolean, guestComments?: boolean): Promise<ShareLinkDTO>;
+  updateLink(linkId: string, patch: { role?: LinkRole; public?: boolean; guestComments?: boolean }): Promise<ShareLinkDTO>;
   deleteLink(linkId: string): Promise<void>;
   resolveShare(token: string): Promise<SharedDocDTO>;
 

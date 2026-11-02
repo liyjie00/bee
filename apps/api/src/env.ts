@@ -11,6 +11,10 @@ export interface Config {
   allowRegistration: boolean;
   /** max auth attempts per IP per minute */
   authRateLimit: number;
+  /** max guest (anonymous) comments per IP per minute */
+  guestCommentRateLimit: number;
+  /** max guest comments per share link per hour */
+  guestCommentHourlyLimit: number;
   /** origins accepted for cookie-authenticated mutations (public URL is always included) */
   allowedOrigins: string[];
 }
@@ -33,6 +37,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     maxUploadBytes: Number(env.MAX_UPLOAD_MB ?? 25) * 1024 * 1024,
     allowRegistration: env.ALLOW_REGISTRATION !== 'false',
     authRateLimit: Number(env.AUTH_RATE_LIMIT ?? 20),
+    guestCommentRateLimit: Number(env.GUEST_COMMENT_RATE_LIMIT ?? 5),
+    guestCommentHourlyLimit: Number(env.GUEST_COMMENT_HOURLY_LIMIT ?? 60),
     allowedOrigins: (env.ALLOWED_ORIGINS ?? '')
       .split(',')
       .map((s) => s.trim().replace(/\/$/, ''))

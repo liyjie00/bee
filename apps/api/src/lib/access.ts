@@ -116,13 +116,21 @@ export async function validShareLink(
 }
 
 /**
- * Role a share link gives. Anonymous visitors are capped at viewer (they cannot
- * comment or edit without an identity); private links need a signed-in user.
+ * Role a share link gives. Anonymous visitors are capped at viewer, or commenter on
+ * public links with guest comments on (they never edit without an identity);
+ * private links need a signed-in user.
  */
 export function linkRoleFor(link: ShareLinkRow | null, userId: string | null): LinkRole | null {
   if (!link) return null;
-  if (!userId) return link.public ? 'viewer' : null;
+  if (!userId) {
+    if (!link.public) return null;
+    return guestsMayComment(link) ? 'commenter' : 'viewer';
+  }
   return link.role;
+}
+
+export function guestsMayComment(link: ShareLinkRow | null): boolean {
+  return !!link && link.public && link.guestComments && can.comment(link.role);
 }
 
 export interface DocAccess {

@@ -8,6 +8,12 @@ export interface Draft {
   anchor: CommentAnchor | null;
 }
 
+/** Anonymous share-link visitor commenting under a nickname. */
+export interface GuestIdentity {
+  name: string;
+  setName(name: string): void;
+}
+
 const VERB: Record<ActivityDTO['kind'], MessageKey> = {
   created: 'activity.created',
   edited: 'activity.edited',
@@ -28,6 +34,7 @@ function Body({ text }: { text: string }) {
 
 export function CommentsPanel({
   me,
+  guest,
   threads,
   activity,
   activeId,
@@ -38,10 +45,13 @@ export function CommentsPanel({
   onCancelDraft,
   onReply,
   onResolve,
+  onDelete,
   onClose,
   onActivityTab,
 }: {
   me: UserDTO | null;
+  /** set for anonymous visitors who may comment */
+  guest: GuestIdentity | null;
   threads: CommentThreadDTO[];
   activity: ActivityDTO[] | null;
   activeId: string | null;
@@ -52,6 +62,7 @@ export function CommentsPanel({
   onCancelDraft(): void;
   onReply(threadId: string, body: string): Promise<void>;
   onResolve(threadId: string, resolved: boolean): Promise<void>;
+  onDelete(commentId: string): Promise<void>;
   onClose(): void;
   onActivityTab(): void;
 }) {
@@ -68,7 +79,14 @@ export function CommentsPanel({
   }, [activeId]);
 
   const mine = (th: CommentThreadDTO) =>
-    !!me && th.comments.some((c) => c.author.id === me.id || c.body.includes('@' + me.name));
+    me
+      ? th.comments.some((c) => c.author.id === me.id || c.body.includes('@' + me.name))
+      : th.comments.some((c) => c.guest && c.canDelete);
+  const author = me ? { name: me.name, color: me.color } : guest ? { name: guest.name.trim() || t('comments.guest'), color: undefined } : null;
+  // Guests need a nickname before they can send.
+  const ready = !!me || !!guest?.name.trim();
+  const nameRef = useRef<HTMLInputElement>(null);
+  const needName = () => nameRef.current?.focus();
   const shown = threads.filter((th) => (filter === 'open' ? !th.resolved : filter === 'mine' ? mine(th) : true));
   const openCount = threads.filter((th) => !th.resolved).length;
 
@@ -106,7 +124,22 @@ export function CommentsPanel({
               </button>
             ))}
           </div>
-          {draft && me && <DraftCard me={me} draft={draft} onCreate={onCreate} onCancel={onCancelDraft} />}
+          {guest && canComment && (
+            <div className="guest-name">
+              <input
+                ref={nameRef}
+                value={guest.name}
+                maxLength={40}
+                placeholder={t('comments.guestName')}
+                aria-label={t('comments.guestName')}
+                onChange={(e) => guest.setName(e.target.value)}
+              />
+              <small>{t('comments.guestNameHint')}</small>
+            </div>
+          )}
+          {draft && author && (
+            <DraftCard author={author} draft={draft} ready={ready} onNeedName={needName} onCreate={onCreate} onCancel={onCancelDraft} />
+          )}
           {shown.length === 0 && !draft && (
             <p style={{ color: 'var(--fg-3)', fontSize: 13, margin: '8px 2px' }}>
               {canComment ? t('comments.hint') : t('comments.none')}
@@ -129,16 +162,32 @@ export function CommentsPanel({
               {th.comments.map((c) => (
                 <div className="cm" key={c.id}>
                   <Avatar sm name={c.author.name} color={c.author.color} />
-                  <div style={{ minWidth: 0 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div className="who">
                       {c.author.name}
+                      {c.guest && <span className="guest-tag">{t('comments.guest')}</span>}
                       <time dateTime={c.createdAt}>{ago(c.createdAt)}</time>
+                      {c.canDelete && (
+                        <button
+                          className="ico cm-del"
+                          title={t('comments.delete')}
+                          aria-label={t('comments.delete')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(t('comments.confirmDelete'))) void onDelete(c.id);
+                          }}
+                        >
+                          <Icon name="trash" size={13} />
+                        </button>
+                      )}
                     </div>
                     <Body text={c.body} />
                   </div>
                 </div>
               ))}
-              {canComment && <ReplyBox thread={th} onReply={onReply} onResolve={onResolve} />}
+              {canComment && (
+                <ReplyBox thread={th} ready={ready} onNeedName={needName} onReply={onReply} onResolve={me ? onResolve : undefined} />
+              )}
             </div>
           ))}
         </div>
@@ -164,12 +213,27 @@ export function CommentsPanel({
   );
 }
 
-function DraftCard({ me, draft, onCreate, onCancel }: { me: UserDTO; draft: Draft; onCreate(b: string): Promise<void>; onCancel(): void }) {
+function DraftCard({
+  author,
+  draft,
+  ready,
+  onNeedName,
+  onCreate,
+  onCancel,
+}: {
+  author: { name: string; color?: string };
+  draft: Draft;
+  ready: boolean;
+  onNeedName(): void;
+  onCreate(b: string): Promise<void>;
+  onCancel(): void;
+}) {
   const t = useT();
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const send = async () => {
     if (!body.trim() || busy) return;
+    if (!ready) return onNeedName();
     setBusy(true);
     try {
       await onCreate(body.trim());
@@ -182,15 +246,15 @@ function DraftCard({ me, draft, onCreate, onCancel }: { me: UserDTO; draft: Draf
     <div className="thread draft active">
       {q && <div className="quote">{q.length > 60 ? q.slice(0, 60) + '…' : q}</div>}
       <div className="cm">
-        <Avatar sm name={me.name} color={me.color} />
+        <Avatar sm name={author.name} color={author.color} />
         <div className="who">
-          {me.name}
+          {author.name}
           <time>{t('comments.new')}</time>
         </div>
       </div>
       <div className="reply">
         <input
-          autoFocus
+          autoFocus={ready}
           placeholder={t('comments.placeholder')}
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -209,17 +273,23 @@ function DraftCard({ me, draft, onCreate, onCancel }: { me: UserDTO; draft: Draf
 
 function ReplyBox({
   thread,
+  ready,
+  onNeedName,
   onReply,
   onResolve,
 }: {
   thread: CommentThreadDTO;
+  ready: boolean;
+  onNeedName(): void;
   onReply(id: string, b: string): Promise<void>;
-  onResolve(id: string, r: boolean): Promise<void>;
+  /** absent for guests, who cannot resolve threads */
+  onResolve?(id: string, r: boolean): Promise<void>;
 }) {
   const t = useT();
   const [body, setBody] = useState('');
   const send = async () => {
     if (!body.trim()) return;
+    if (!ready) return onNeedName();
     const b = body.trim();
     setBody('');
     await onReply(thread.id, b);
@@ -233,14 +303,16 @@ function ReplyBox({
         onChange={(e) => setBody(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && void send()}
       />
-      <button
-        className="ico"
-        title={thread.resolved ? t('comments.reopen') : t('comments.resolve')}
-        aria-label={thread.resolved ? t('comments.reopen') : t('comments.resolve')}
-        onClick={() => onResolve(thread.id, !thread.resolved)}
-      >
-        <Icon name={thread.resolved ? 'restore' : 'check'} />
-      </button>
+      {onResolve && (
+        <button
+          className="ico"
+          title={thread.resolved ? t('comments.reopen') : t('comments.resolve')}
+          aria-label={thread.resolved ? t('comments.reopen') : t('comments.resolve')}
+          onClick={() => onResolve(thread.id, !thread.resolved)}
+        >
+          <Icon name={thread.resolved ? 'restore' : 'check'} />
+        </button>
+      )}
     </div>
   );
 }

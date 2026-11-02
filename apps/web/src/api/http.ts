@@ -24,10 +24,48 @@ export class HttpError extends Error {
   }
 }
 
+const GUEST_KEY = 'bee.guestKey';
+const GUEST_NAME = 'bee.guestName';
+
+/** Random per-browser key that lets a guest commenter delete their own comments later. */
+function guestKey(): string {
+  try {
+    let k = localStorage.getItem(GUEST_KEY);
+    if (!k) {
+      k = Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem(GUEST_KEY, k);
+    }
+    return k;
+  } catch {
+    return 'ephemeral-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  }
+}
+
+/** Nickname a guest last commented under, remembered across share links. */
+export const guestName = {
+  get: (): string => {
+    try {
+      return localStorage.getItem(GUEST_NAME) ?? '';
+    } catch {
+      return '';
+    }
+  },
+  set: (name: string) => {
+    try {
+      localStorage.setItem(GUEST_NAME, name);
+    } catch {
+      /* private mode */
+    }
+  },
+};
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined && !(body instanceof FormData)) headers['content-type'] = 'application/json';
-  if (api.shareToken) headers['x-share-token'] = api.shareToken;
+  if (api.shareToken) {
+    headers['x-share-token'] = api.shareToken;
+    headers['x-guest-key'] = guestKey();
+  }
   const res = await fetch(`/api${path}`, {
     method,
     credentials: 'same-origin',
@@ -100,10 +138,13 @@ export const api: BeeApi = {
   },
 
   threads: async (id) => (await req<ThreadsResponse>('GET', `/documents/${id}/threads`)).threads,
-  createThread: async (id, anchor, body) =>
-    (await req<ThreadResponse>('POST', `/documents/${id}/threads`, { anchor, body })).thread,
-  reply: async (tid, body) => {
-    await req('POST', `/threads/${tid}/comments`, { body });
+  createThread: async (id, anchor, body, guestName) =>
+    (await req<ThreadResponse>('POST', `/documents/${id}/threads`, { anchor, body, guestName })).thread,
+  reply: async (tid, body, guestName) => {
+    await req('POST', `/threads/${tid}/comments`, { body, guestName });
+  },
+  deleteComment: async (cid) => {
+    await req('DELETE', `/comments/${cid}`);
   },
   setResolved: async (tid, resolved) => (await req<ThreadResponse>('PATCH', `/threads/${tid}`, { resolved })).thread,
 
@@ -117,8 +158,8 @@ export const api: BeeApi = {
   removeGrant: async (gid) => {
     await req('DELETE', `/grants/${gid}`);
   },
-  createLink: async (id, role, isPublic) =>
-    (await req<LinkResponse>('POST', `/documents/${id}/links`, { role, public: isPublic })).link,
+  createLink: async (id, role, isPublic, guestComments = false) =>
+    (await req<LinkResponse>('POST', `/documents/${id}/links`, { role, public: isPublic, guestComments })).link,
   updateLink: async (lid, patch) => (await req<LinkResponse>('PATCH', `/links/${lid}`, patch)).link,
   deleteLink: async (lid) => {
     await req('DELETE', `/links/${lid}`);

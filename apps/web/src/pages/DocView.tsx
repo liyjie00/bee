@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BeeEditor, BeeWhiteboard, blockLink, type BeeUser, type CollabStatus, type Editor } from '@bee/editor';
 import { can, parseBlockFragment } from '@bee/shared';
-import { api } from '../api/http';
+import { api, guestName, HttpError } from '../api/http';
 import type { ActivityDTO, CommentAnchor, CommentThreadDTO, DocumentDTO, UserDTO } from '../api/types';
-import { CommentsPanel, type Draft } from '../components/CommentsPanel';
+import { CommentsPanel, type Draft, type GuestIdentity } from '../components/CommentsPanel';
 import { Icon } from '../components/Icon';
 import { Avatar } from '../components/Menu';
 import { ShareDialog, accessOf, type Access } from '../components/ShareDialog';
@@ -55,12 +55,28 @@ export function DocView({
   const [words, setWords] = useState(0);
 
   const editable = can.edit(doc.role);
-  const canComment = can.comment(doc.role) && !!me;
+  // Anonymous visitors get commenter only through a public link with guest comments on.
+  const isGuest = !me && !!shareToken;
+  const canComment = can.comment(doc.role) && (!!me || isGuest);
   const isBoard = doc.type === 'whiteboard';
+  const [nick, setNick] = useState(guestName.get);
+  const guest: GuestIdentity | null = isGuest ? { name: nick, setName: setNick } : null;
   const user = useMemo(
-    () => (me ? { id: me.id, name: me.name, color: me.color } : { id: 'guest', name: 'Guest', color: guestColor }),
+    () =>
+      me
+        ? { id: me.id, name: me.name, color: me.color }
+        : { id: 'guest', name: guestName.get() || t('comments.guest'), color: guestColor },
     [me],
   );
+  const commentError = (e: unknown) =>
+    toast(e instanceof HttpError && e.status === 429 ? t('comments.rateLimited') : errMsg(e));
+  /** nickname to send with a guest comment, remembered for next time */
+  const guestNick = () => {
+    if (!isGuest) return undefined;
+    const n = nick.trim();
+    guestName.set(n);
+    return n;
+  };
 
   useEffect(() => setTitle(doc.title), [doc.id, doc.title]);
   useEffect(() => {
@@ -105,18 +121,27 @@ export function DocView({
   async function createThread(body: string) {
     if (!draft) return;
     try {
-      const t = await api.createThread(doc.id, draft.anchor, body);
+      const t = await api.createThread(doc.id, draft.anchor, body, guestNick());
       setThreads((ts) => [t, ...ts]);
       setDraft(null);
       setActiveId(t.id);
     } catch (e) {
-      toast(errMsg(e));
+      commentError(e);
     }
   }
   async function reply(id: string, body: string) {
     try {
-      await api.reply(id, body);
+      await api.reply(id, body, guestNick());
       setThreads(await api.threads(doc.id));
+    } catch (e) {
+      commentError(e);
+    }
+  }
+  async function deleteComment(id: string) {
+    try {
+      await api.deleteComment(id);
+      setThreads(await api.threads(doc.id));
+      toast(t('comments.deleted'));
     } catch (e) {
       toast(errMsg(e));
     }
@@ -280,6 +305,7 @@ export function DocView({
       {showPanel && (
         <CommentsPanel
           me={me}
+          guest={guest}
           threads={threads}
           activity={activity}
           activeId={activeId}
@@ -290,6 +316,7 @@ export function DocView({
           onCancelDraft={() => setDraft(null)}
           onReply={reply}
           onResolve={resolve}
+          onDelete={deleteComment}
           onClose={() => setPanel(false)}
           onActivityTab={() => api.activity(doc.id).then(setActivity, () => setActivity([]))}
         />

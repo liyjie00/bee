@@ -181,6 +181,15 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .cm{display:flex;gap:8px}
 .cm .who{font-size:12.5px;font-weight:500}.cm .who time{color:var(--fg-3);font-weight:400;margin-left:6px;font-size:11.5px}
 .cm p{margin:2px 0 0;font-size:13.5px;line-height:1.55}
+.cm .who{display:flex;align-items:center}
+.cm .guest-tag{margin-left:6px;font-size:10.5px;font-weight:400;color:var(--fg-3);border:1px solid var(--line);border-radius:4px;padding:0 4px;line-height:15px}
+.cm .cm-del{margin-left:auto;padding:3px;opacity:0;color:var(--fg-3)}
+.cm:hover .cm-del,.cm .cm-del:focus-visible{opacity:1}
+@media (hover:none){.cm .cm-del{opacity:1}}
+.guest-name{display:flex;flex-direction:column;gap:4px;margin:0 2px 10px}
+.guest-name input{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;background:var(--bg);color:var(--fg)}
+.guest-name input:focus{outline:none;border-color:var(--honey)}
+.guest-name small{color:var(--fg-3);font-size:11.5px}
 .reply{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--fg-3);font-size:13px;background:var(--bg)}
 .reply input{flex:1;border:0;background:transparent;font:inherit;color:var(--fg);min-width:0}
 .reply input:focus{outline:none}
