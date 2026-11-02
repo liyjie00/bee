@@ -86,6 +86,26 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 
 .view{flex:1;overflow:auto;min-height:0;container-type:inline-size}
 .view[hidden]{display:none!important}
+.doc-stage{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+
+/* ---------- outline (H1–H6), opens from the left edge ---------- */
+.outline{position:absolute;left:0;bottom:0;z-index:6;pointer-events:none}
+.outline > *{pointer-events:auto}
+.outline-edge{position:absolute;left:0;top:0;bottom:0;width:44px}
+.outline-rail{position:absolute;left:12px;top:40px;display:flex;flex-direction:column;gap:8px;padding:6px 6px 6px 0;max-height:calc(100% - 80px);overflow:hidden;transition:opacity .15s}
+.outline-rail i{display:block;height:2px;border-radius:2px;background:var(--line-strong);flex:none}
+.outline-rail i.on{background:var(--honey)}
+.outline-list{position:absolute;left:10px;top:24px;width:264px;max-height:calc(100% - 48px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:8px 6px;opacity:0;visibility:hidden;transform:translateX(-8px);transition:opacity .15s,transform .15s,visibility 0s .15s}
+.outline.open .outline-list{opacity:1;visibility:visible;transform:none;transition:opacity .15s,transform .15s}
+.outline.open .outline-rail{opacity:0}
+.outline-ttl{font-size:12px;font-weight:600;color:var(--fg-3);padding:2px 10px 6px;letter-spacing:.04em}
+.outline-list button{display:block;width:100%;text-align:left;padding:5px 10px;border-radius:7px;color:var(--fg-2);font-size:13px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.outline-list button:hover{background:var(--sunk);color:var(--fg)}
+.outline-list button.lv1{font-weight:600;color:var(--fg)}
+.outline-list button.lv2{padding-left:22px}.outline-list button.lv3{padding-left:34px}.outline-list button.lv4{padding-left:46px}.outline-list button.lv5{padding-left:58px}.outline-list button.lv6{padding-left:70px}
+.outline-list button.lv3,.outline-list button.lv4,.outline-list button.lv5,.outline-list button.lv6{color:var(--fg-3)}
+.outline-list button.on{background:var(--honey-wash);color:var(--honey-ink);font-weight:600}
+@media (max-width:820px),(hover:none){.outline{display:none}}
 
 /* ---------- editor ---------- */
 .page{max-width:760px;margin:0 auto;padding:40px 56px 120px;position:relative}

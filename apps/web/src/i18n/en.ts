@@ -104,6 +104,7 @@ export const en = {
   'doc.title': 'Title',
   'doc.inTrash': 'This document is in the trash. Restore it to edit.',
   'doc.history': 'Version history',
+  'doc.outline': 'Outline',
   'doc.comments': 'Comments',
   'doc.share': 'Share',
   'doc.online': 'Online now',
