@@ -10,6 +10,7 @@ export const BLOCK_TYPES = [
   'listItem',
   'taskItem',
   'codeBlock',
+  'blockMath',
   'image',
   'table',
   'whiteboard',

@@ -27,6 +27,7 @@ export const INSTRUCTIONS = `Bee is a collaborative document editor (folders, Ma
 - read_document returns the live content as Markdown. Prefer edit_document with mode "str_replace" for targeted edits: "find" must match the Markdown exactly once (copy it from read_document). Use "append" to add at the end, "replace" to rewrite everything. Edits show up live for people who have the document open; unchanged paragraphs keep their comments.
 - add_comment with a "quote" pins the comment to that text; without it the comment is about the whole document.
 - Diagrams: draw_diagram draws boxes with text and connecting arrows on a whiteboard (laid out automatically), on an existing board, a new one, or a new board embedded at the end of a document. read_whiteboard describes a board. For a quick diagram inside a document, a \`\`\`mermaid code block via edit_document also renders.
+- Math: LaTeX between $…$ (inline) or $$…$$ on lines of their own (block) renders as formulas; write a literal dollar as \\$.
 - Spreadsheets in a document appear as \`<!-- bee:sheet <id> name="…" -->\` followed by a table of their computed values. Keep the marker line when editing around them; the values table is read-only (changes to it are ignored).
 - Whiteboards cannot be read or edited as Markdown.`;
 

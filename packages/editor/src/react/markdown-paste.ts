@@ -6,7 +6,7 @@ import type { JSONNode } from '../markdown/types.js';
 import { readSheet, sheetTextGrid } from '../schema/sheet-data.js';
 import { sheetDoc } from './sheet/commands.js';
 
-const MARKDOWN_HINT = /^(#{1,6}\s|[-*+]\s|\d+\.\s|>\s|```|\|.*\|\s*$|- \[[ xX]\]\s)|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)/m;
+const MARKDOWN_HINT = /^(#{1,6}\s|[-*+]\s|\d+\.\s|>\s|```|\|.*\|\s*$|- \[[ xX]\]\s)|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)|^\s*(\$\$|\\\[)|\$(?!\s)[^$\n]+?(?<!\s)\$(?!\d)|\\\(.+?\\\)/m;
 
 export function looksLikeMarkdown(text: string): boolean {
   return MARKDOWN_HINT.test(text);

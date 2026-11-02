@@ -44,6 +44,8 @@ function buildItems(host: SlashHost, editor: Editor): SlashItem[] {
     { id: 'quote', title: t.quote, hint: t.quoteHint, icon: '❝', keywords: 'quote blockquote 引用', run: (e, r) => chain(e, r).toggleBlockquote().run() },
     { id: 'code', title: t.codeBlock, hint: t.codeBlockHint, icon: '</>', keywords: 'code codeblock pre 代码', run: (e, r) => chain(e, r).setCodeBlock().run() },
     { id: 'mermaid', title: t.mermaid, hint: t.mermaidHint, icon: '⤳', keywords: 'mermaid diagram flowchart chart 流程图 图', run: (e, r) => chain(e, r).setCodeBlock({ language: 'mermaid' }).run() },
+    { id: 'mathBlock', title: t.mathBlock, hint: t.mathBlockHint, icon: '∑', keywords: 'math formula equation latex katex tex block 公式 数学 方程', run: (e, r) => chain(e, r).insertBlockMath().run() },
+    { id: 'mathInline', title: t.mathInline, hint: t.mathInlineHint, icon: '𝑥', keywords: 'math formula equation latex katex tex inline 公式 数学 行内', run: (e, r) => chain(e, r).insertInlineMath().run() },
     { id: 'table', title: t.table, hint: t.tableHint, icon: '▦', keywords: 'table grid 表格', run: (e, r) => chain(e, r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
     sheetDoc(editor)
       ? { id: 'sheet', title: t.sheet, hint: t.sheetHint, icon: 'fx', keywords: 'sheet spreadsheet excel formula univer grid table 电子表格 表格 公式', run: (e, r) => { chain(e, r).run(); insertNewSheet(e, t.sheetBaseName); } }

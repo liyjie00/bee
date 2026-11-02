@@ -1,9 +1,12 @@
+import { dollarsNeedEscape } from '../schema/math.js';
 import type { JSONMark, JSONNode } from './types.js';
 
 const MARK_DELIMS: Record<string, string> = { bold: '**', italic: '_', strike: '~~', code: '`' };
 
 function escapeText(text: string): string {
-  return text.replace(/([\\`*_~[\]#<>|])/g, '\\$1');
+  const escaped = text.replace(/([\\`*_~[\]#<>|])/g, '\\$1');
+  // Only where the `$`s would read back as math, so prices like "$5" stay as they are.
+  return dollarsNeedEscape(text) ? escaped.replace(/\$/g, '\\$') : escaped;
 }
 
 function markOpen(mark: JSONMark): string {
@@ -36,6 +39,11 @@ function inline(nodes: JSONNode[] = []): string {
       out += `![${String(node.attrs?.alt ?? '')}](${String(node.attrs?.src ?? '')})`;
       continue;
     }
+    if (node.type === 'inlineMath') {
+      closeTo(0);
+      out += inlineMath(String(node.attrs?.latex ?? ''));
+      continue;
+    }
     if (node.type !== 'text' || !node.text) continue;
     const marks = (node.marks ?? []).filter((m) => m.type === 'link' || m.type in MARK_DELIMS);
     // Keep the common prefix of already-open marks, close the rest.
@@ -52,6 +60,12 @@ function inline(nodes: JSONNode[] = []): string {
   closeTo(0);
   open = [];
   return out;
+}
+
+/** `$x$` when that reads back as the same formula, else `$$x$$` (e.g. for `$ x $` or a trailing `$5`). */
+function inlineMath(latex: string): string {
+  const single = `$${latex}$`;
+  return /^\$(?!\s)(?:\\.|[^\\$\n])+?(?<!\s)\$$/.test(single) ? single : `$$${latex.replace(/\n/g, ' ')}$$`;
 }
 
 function indent(text: string, prefix: string, first = prefix): string {
@@ -109,6 +123,8 @@ function block(node: JSONNode): string {
       const fence = text.includes('```') ? '````' : '```';
       return `${fence}${String(node.attrs?.language ?? '')}\n${text}\n${fence}`;
     }
+    case 'blockMath':
+      return `$$\n${String(node.attrs?.latex ?? '')}\n$$`;
     case 'horizontalRule':
       return '---';
     case 'image':

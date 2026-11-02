@@ -78,6 +78,7 @@ export function yUpdateHasBlock(update: Uint8Array, blockId: string, field = RIC
 /** Plain text of a document, e.g. for search indexing. */
 export function jsonToText(node: JSONNode): string {
   if (node.text) return node.text;
+  if (node.type === 'inlineMath' || node.type === 'blockMath') return String(node.attrs?.latex ?? '');
   const sep = node.type === 'doc' || node.type.endsWith('List') || node.type === 'table' ? '\n' : node.type === 'tableRow' ? '\t' : '';
   return (node.content ?? []).map(jsonToText).join(sep);
 }

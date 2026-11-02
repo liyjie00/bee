@@ -1,5 +1,45 @@
-import { Lexer, type Token, type Tokens } from 'marked';
+import { Marked, type Token, type TokenizerExtension, type Tokens } from 'marked';
+import { INLINE_DOLLAR_MATH } from '../schema/math.js';
 import type { JSONMark, JSONNode } from './types.js';
+
+interface MathToken {
+  type: 'inlineMath' | 'blockMath';
+  raw: string;
+  latex: string;
+}
+
+/** `$$…$$` or `\[…\]` on lines of their own. */
+const BLOCK_MATH = /^ {0,3}(?:\$\$([^]+?)\$\$|\\\[([^]+?)\\\]) *(?:\n+|$)/;
+const INLINE_MATH = [/^\$\$((?:\\.|[^\\$])+?)\$\$/, INLINE_DOLLAR_MATH, /^\\\(((?:\\.|[^\\\n])+?)\\\)/];
+
+const mathExtensions: TokenizerExtension[] = [
+  {
+    name: 'blockMath',
+    level: 'block',
+    start: (src) => /^ {0,3}(?:\$\$|\\\[)/m.exec(src)?.index,
+    tokenizer(src) {
+      const m = BLOCK_MATH.exec(src);
+      if (!m) return undefined;
+      const latex = (m[1] ?? m[2] ?? '').trim();
+      return latex ? ({ type: 'blockMath', raw: m[0], latex } satisfies MathToken) : undefined;
+    },
+  },
+  {
+    name: 'inlineMath',
+    level: 'inline',
+    // Stop at every backslash too, so `\$` reaches marked's escape rule instead of opening math.
+    start: (src) => /[$\\]/.exec(src)?.index,
+    tokenizer(src) {
+      for (const re of INLINE_MATH) {
+        const m = re.exec(src);
+        if (m?.[1]?.trim()) return { type: 'inlineMath', raw: m[0], latex: m[1].trim() } satisfies MathToken;
+      }
+      return undefined;
+    },
+  },
+];
+
+const marked = new Marked({ gfm: true, extensions: mathExtensions });
 
 const WHITEBOARD_COMMENT = /^<!--\s*bee:whiteboard\s+([A-Za-z0-9_-]+)((?:\s+[a-z]+(?:=[-\w.,]+)?)*)\s*-->\s*$/;
 const COLUMNS_MARK = /^<!--\s*bee:(columns|column|\/columns)\s*-->\s*$/;
@@ -38,7 +78,10 @@ function inline(tokens: Token[] = [], marks: JSONMark[] = []): JSONNode[] {
   const out: JSONNode[] = [];
   const text = (t: string, m = marks) => {
     if (!t) return;
-    out.push(m.length ? { type: 'text', text: t, marks: m } : { type: 'text', text: t });
+    // Our tokenizer stops at every `$` and `\`, so plain text arrives in pieces: join them.
+    const last = out[out.length - 1];
+    if (last?.type === 'text' && JSON.stringify(last.marks ?? []) === JSON.stringify(m)) last.text += t;
+    else out.push(m.length ? { type: 'text', text: t, marks: m } : { type: 'text', text: t });
   };
   for (const token of tokens) {
     switch (token.type) {
@@ -75,6 +118,9 @@ function inline(tokens: Token[] = [], marks: JSONMark[] = []): JSONNode[] {
         break;
       case 'html':
         text((token as Tokens.HTML).text);
+        break;
+      case 'inlineMath':
+        out.push({ type: 'inlineMath', attrs: { latex: (token as unknown as MathToken).latex } });
         break;
       default:
         if ('text' in token && typeof token.text === 'string') text(token.text);
@@ -171,6 +217,8 @@ function block(token: Token, inList: boolean): JSONNode[] {
       if (m) return [{ type: 'whiteboard', attrs: whiteboardAttrs(m[1]!, m[2] ?? '') }];
       return [];
     }
+    case 'blockMath':
+      return [{ type: 'blockMath', attrs: { latex: (token as unknown as MathToken).latex } }];
     case 'space':
       return [];
     default:
@@ -216,7 +264,7 @@ function blocks(tokens: Token[] = [], inList = false): JSONNode[] {
 
 /** Parses GitHub-flavoured Markdown into Tiptap JSON matching the Bee schema. */
 export function markdownToJSON(markdown: string): JSONNode {
-  const tokens = new Lexer({ gfm: true }).lex(markdown);
+  const tokens = marked.lexer(markdown);
   const content = blocks(tokens);
   return { type: 'doc', content: content.length ? content : [{ type: 'paragraph' }] };
 }

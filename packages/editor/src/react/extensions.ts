@@ -7,6 +7,7 @@ import type * as Y from 'yjs';
 import { schemaExtensions } from '../schema/index.js';
 import { BLOCK_ID_ATTR } from '../schema/block-id.js';
 import { CodeBlockView } from './CodeBlockView.js';
+import { BlockMathView, InlineMathView } from './MathView.js';
 import { WhiteboardView } from './WhiteboardView.js';
 import { SheetView } from './sheet/SheetView.js';
 import { CommentHighlights } from './comments.js';
@@ -48,6 +49,8 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
   const collaborative = !!opts.ydoc;
   const base = schemaExtensions({ collaborative }).map((ext) => {
     if (ext.name === 'codeBlock') return ext.extend({ addNodeView: () => ReactNodeViewRenderer(CodeBlockView) });
+    if (ext.name === 'inlineMath') return ext.extend({ addNodeView: () => ReactNodeViewRenderer(InlineMathView, { as: 'span' }) });
+    if (ext.name === 'blockMath') return ext.extend({ addNodeView: () => ReactNodeViewRenderer(BlockMathView) });
     if (ext.name === 'whiteboard') {
       return ext.extend({
         addNodeView: () =>
