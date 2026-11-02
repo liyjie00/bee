@@ -173,10 +173,25 @@ interface Box {
   height: number;
   x: number;
   y: number;
+  /** placeholder that routes an edge across a layer */
+  dummy?: boolean;
 }
 
-/** Layered layout: each node goes one layer below its deepest parent (cycles are broken). */
-function layout(d: Diagram, origin: { x: number; y: number }): Map<string, Box> {
+const DUMMY_SIZE = 40;
+
+interface Layout {
+  boxes: Map<string, Box>;
+  /** bend points (box centres of placeholders) of edges spanning several layers, by edge index */
+  waypoints: Map<number, [number, number][]>;
+}
+
+/**
+ * Layered layout: each node goes one layer below its deepest parent (cycles are broken). Edges
+ * that skip layers get a placeholder in every layer they cross, so they bend around the nodes
+ * there instead of running through them, and each layer is ordered by the average position of
+ * its parents to reduce crossings.
+ */
+function layout(d: Diagram, origin: { x: number; y: number }): Layout {
   const boxes = new Map<string, Box>();
   for (const n of d.nodes) {
     const lines = n.label.split('\n');
@@ -191,8 +206,9 @@ function layout(d: Diagram, origin: { x: number; y: number }): Map<string, Box> 
       y: 0,
     });
   }
+  const edges = d.edges ?? [];
   const parents = new Map<string, string[]>();
-  for (const e of d.edges ?? []) parents.set(e.to, [...(parents.get(e.to) ?? []), e.from]);
+  for (const e of edges) parents.set(e.to, [...(parents.get(e.to) ?? []), e.from]);
   const layer = new Map<string, number>();
   const visiting = new Set<string>();
   const depth = (id: string): number => {
@@ -209,16 +225,59 @@ function layout(d: Diagram, origin: { x: number; y: number }): Map<string, Box> 
   const layers: Box[][] = [];
   for (const n of d.nodes) (layers[depth(n.id)] ??= []).push(boxes.get(n.id)!);
 
+  // Placeholders for edges that skip layers; `up` links each box to the boxes feeding it.
+  const up = new Map<Box, Box[]>();
+  const link = (from: Box, to: Box) => up.set(to, [...(up.get(to) ?? []), from]);
+  const chains = new Map<number, Box[]>();
+  edges.forEach((e, i) => {
+    const from = boxes.get(e.from)!;
+    const to = boxes.get(e.to)!;
+    const lf = layer.get(e.from)!;
+    const lt = layer.get(e.to)!;
+    if (lt <= lf) return; // back edge (cycle): drawn straight
+    let prev = from;
+    const chain: Box[] = [];
+    for (let l = lf + 1; l < lt; l++) {
+      const dummy: Box = {
+        node: { id: `#${i}.${l}`, label: '' },
+        width: DUMMY_SIZE,
+        height: DUMMY_SIZE,
+        x: 0,
+        y: 0,
+        dummy: true,
+      };
+      (layers[l] ??= []).push(dummy);
+      link(prev, dummy);
+      chain.push(dummy);
+      prev = dummy;
+    }
+    link(prev, to);
+    if (chain.length) chains.set(i, chain);
+  });
+
   const down = (d.direction ?? 'down') === 'down';
   // Leave room for edge labels between layers.
-  const labels = (d.edges ?? []).map((e) => e.label ?? '').filter(Boolean);
+  const labels = edges.map((e) => e.label ?? '').filter(Boolean);
   const gap = Math.max(
     LAYER_GAP,
     ...labels.map((l) => (down ? l.split('\n').length * 16 * LINE_HEIGHT : textWidth(l, 16)) + 50),
   );
-  // Main-axis position of each layer, and cross-axis extent so layers are centred on each other.
   const cross = (b: Box) => (down ? b.width : b.height);
   const main = (b: Box) => (down ? b.height : b.width);
+  // Order each layer by the average cross-axis slot of its parents (one top-down sweep).
+  const slot = new Map<Box, number>();
+  layers.forEach((l) => {
+    if (!l) return;
+    const bary = (b: Box) => {
+      const ps = (up.get(b) ?? []).filter((p) => slot.has(p));
+      return ps.length ? ps.reduce((s, p) => s + slot.get(p)!, 0) / ps.length : Infinity;
+    };
+    const keyed = l.map((b, i) => ({ b, k: bary(b), i }));
+    keyed.sort((x, y) => (x.k === y.k ? x.i - y.i : x.k - y.k));
+    l.splice(0, l.length, ...keyed.map((x) => x.b));
+    l.forEach((b, i) => slot.set(b, i - (l.length - 1) / 2));
+  });
+  // Main-axis position of each layer, and cross-axis extent so layers are centred on each other.
   const spans = layers.map(
     (l) => (l ?? []).reduce((s, b) => s + cross(b), 0) + SIBLING_GAP * ((l?.length ?? 1) - 1),
   );
@@ -241,12 +300,23 @@ function layout(d: Diagram, origin: { x: number; y: number }): Map<string, Box> 
     }
     pos += thickness + gap;
   });
-  // Explicit positions win (relative to the diagram origin).
+  // Explicit positions win (relative to the diagram origin); their edges are then drawn straight.
+  const pinned = new Set<string>();
   for (const b of boxes.values()) {
     if (b.node.x !== undefined) b.x = origin.x + b.node.x;
     if (b.node.y !== undefined) b.y = origin.y + b.node.y;
+    if (b.node.x !== undefined || b.node.y !== undefined) pinned.add(b.node.id);
   }
-  return boxes;
+  const waypoints = new Map<number, [number, number][]>();
+  for (const [i, chain] of chains) {
+    const e = edges[i]!;
+    if (pinned.has(e.from) || pinned.has(e.to)) continue;
+    waypoints.set(
+      i,
+      chain.map((b) => [b.x + b.width / 2, b.y + b.height / 2]),
+    );
+  }
+  return { boxes, waypoints };
 }
 
 /** Where the segment from the box centre towards (tx, ty) leaves the box. */
@@ -298,7 +368,10 @@ export function diagramElements(
   }
   const bounds = boardBounds(existing);
   // An empty board starts a little inset, clear of the embed toolbar and the canvas edge.
-  const boxes = layout(d, { x: bounds?.minX ?? 40, y: bounds ? bounds.maxY + 120 : 100 });
+  const { boxes, waypoints } = layout(d, {
+    x: bounds?.minX ?? 40,
+    y: bounds ? bounds.maxY + 120 : 100,
+  });
   const out: Element[] = [];
   const shapes = new Map<string, Element>();
   for (const b of boxes.values()) {
@@ -311,21 +384,30 @@ export function diagramElements(
     shapes.set(b.node.id, shape);
     out.push(shape, label);
   }
-  for (const e of d.edges ?? []) {
+  (d.edges ?? []).forEach((e, i) => {
     const from = boxes.get(e.from)!;
     const to = boxes.get(e.to)!;
-    const [sx, sy] = boundaryPoint(from, to.x + to.width / 2, to.y + to.height / 2, 6);
-    const [ex, ey] = boundaryPoint(to, from.x + from.width / 2, from.y + from.height / 2, 6);
-    const arrow = base('arrow', sx, sy, Math.abs(ex - sx), Math.abs(ey - sy));
+    const via = waypoints.get(i) ?? [];
+    const first = via[0] ?? [to.x + to.width / 2, to.y + to.height / 2];
+    const last = via[via.length - 1] ?? [from.x + from.width / 2, from.y + from.height / 2];
+    const start = boundaryPoint(from, first[0], first[1], 6);
+    const end = boundaryPoint(to, last[0], last[1], 6);
+    const pts = [start, ...via, end];
+    const xs = pts.map((p) => p[0] - start[0]);
+    const ys = pts.map((p) => p[1] - start[1]);
+    const arrow = base(
+      'arrow',
+      start[0],
+      start[1],
+      Math.max(...xs) - Math.min(...xs),
+      Math.max(...ys) - Math.min(...ys),
+    );
     const startShape = shapes.get(e.from)!;
     const endShape = shapes.get(e.to)!;
     Object.assign(arrow, {
       strokeStyle: e.dashed ? 'dashed' : 'solid',
       roundness: { type: 2 },
-      points: [
-        [0, 0],
-        [ex - sx, ey - sy],
-      ],
+      points: pts.map((_, k) => [xs[k], ys[k]]),
       lastCommittedPoint: null,
       startBinding: { elementId: startShape.id, focus: 0, gap: 6 },
       endBinding: { elementId: endShape.id, focus: 0, gap: 6 },
@@ -337,12 +419,16 @@ export function diagramElements(
     (endShape.boundElements as unknown[]).push({ type: 'arrow', id: arrow.id });
     out.push(arrow);
     if (e.label) {
-      const label = textElement(e.label, (sx + ex) / 2, (sy + ey) / 2, arrow.id);
+      // On the middle point of a bent arrow, else the middle of the segment.
+      const mid = via.length
+        ? via[Math.floor((via.length - 1) / 2)]!
+        : ([(start[0] + end[0]) / 2, (start[1] + end[1]) / 2] as [number, number]);
+      const label = textElement(e.label, mid[0], mid[1], arrow.id);
       label.fontSize = 16;
       arrow.boundElements = [{ type: 'text', id: label.id }];
       out.push(label);
     }
-  }
+  });
   assignIndices(indexAfter, out);
   return out;
 }

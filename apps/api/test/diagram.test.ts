@@ -69,4 +69,34 @@ describe('diagramElements', () => {
       diagramElements({ nodes: [{ id: 'a', label: 'A' }], edges: [{ from: 'a', to: 'x' }] }),
     ).toThrow(/unknown node/);
   });
+
+  it('bends edges that skip a layer around the nodes in between', () => {
+    const els = diagramElements({
+      nodes: [
+        { id: 'q', label: 'Signed in?', shape: 'diamond' },
+        { id: 'login', label: 'Login' },
+        { id: 'home', label: 'Home' },
+      ],
+      edges: [
+        { from: 'q', to: 'login' },
+        { from: 'q', to: 'home', label: 'yes' },
+        { from: 'login', to: 'home' },
+      ],
+    });
+    const login = els.find(
+      (e) =>
+        e.type === 'rectangle' && els.some((t) => t.containerId === e.id && t.text === 'Login'),
+    )!;
+    const skip = els.filter((e) => e.type === 'arrow')[1]!;
+    const pts = (skip.points as number[][]).map(([x, y]) => [skip.x + x!, skip.y + y!]);
+    expect(pts).toHaveLength(3);
+    const [bx, by] = pts[1]!;
+    const inside =
+      bx! >= login.x &&
+      bx! <= login.x + login.width &&
+      by! >= login.y &&
+      by! <= login.y + login.height;
+    expect(inside).toBe(false);
+    expect(by).toBeGreaterThan(login.y - 1);
+  });
 });
