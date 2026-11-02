@@ -26,6 +26,8 @@ export const en = {
   'nav.recent': 'Recent',
   'nav.shared': 'Shared with me',
   'nav.boards': 'Whiteboards',
+  'nav.createDoc': 'Document',
+  'nav.createBoard': 'Whiteboard',
   'boards.summary': '{n} whiteboards',
   'boards.empty': 'No whiteboards yet',
   'boards.emptyHint': 'Use “New whiteboard” in the top right to sketch, draw a flowchart or brainstorm.',

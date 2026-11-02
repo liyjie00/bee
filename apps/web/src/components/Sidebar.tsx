@@ -353,13 +353,13 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         <kbd className="hide-phone">⌘K</kbd>
       </button>
       <div className="side-create">
-        <button onClick={() => rootCreate.create('doc')}>
+        <button title={t('tree.newDoc')} onClick={() => rootCreate.create('doc')}>
           <Icon name="doc" className="t-doc" />
-          {t('tree.newDoc')}
+          <span>{t('nav.createDoc')}</span>
         </button>
-        <button onClick={() => rootCreate.create('whiteboard')}>
+        <button title={t('tree.newBoard')} onClick={() => rootCreate.create('whiteboard')}>
           <Icon name="board" className="t-board" />
-          {t('tree.newBoard')}
+          <span>{t('nav.createBoard')}</span>
         </button>
         <button
           className="more"
