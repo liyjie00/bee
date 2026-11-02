@@ -68,11 +68,41 @@ services:
       BEE_PUBLIC_URL: ${BEE_PUBLIC_URL:-http://localhost:7070}
 
   proxy:
-    build: { context: ., dockerfile: deploy/Dockerfile.proxy }
+    image: caddy:2-alpine
     restart: unless-stopped
     depends_on: [api, collab, web]
     ports:
       - '${BEE_PORT:-7070}:7070'
+    # Inline config instead of a bind mount: the Docker VM on macOS cannot read
+    # files under ~/Documents, and the deploy swaps the checkout directory.
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+
+configs:
+  caddyfile:
+    content: |
+      {
+      	auto_https off
+      	admin off
+      }
+
+      :7070 {
+      	encode zstd gzip
+      	request_body {
+      		max_size 50MB
+      	}
+
+      	handle /api/* {
+      		reverse_proxy api:8421
+      	}
+      	handle /collab* {
+      		reverse_proxy collab:1234
+      	}
+      	handle {
+      		reverse_proxy web:8423
+      	}
+      }
 
 volumes:
   pgdata:

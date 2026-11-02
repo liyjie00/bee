@@ -17,7 +17,7 @@ private / member / public-link sharing.
 
 ## Ports
 
-Public: **7070** (Caddy) → `/api/*` api:8421, `/collab*` collab:1234, `/*` web:8423.
+Public: **7070** (Caddy, config inline in `docker-compose.yml`) → `/api/*` api:8421, `/collab*` collab:1234, `/*` web:8423.
 Dev Postgres: `localhost:54329`.
 
 ## Quick start (self-host)

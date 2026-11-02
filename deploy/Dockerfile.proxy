@@ -1,6 +1,0 @@
-# Public reverse proxy. The Caddyfile is baked in (no bind mount), so the stack
-# works where the Docker VM cannot read the checkout (e.g. macOS ~/Documents
-# privacy restrictions) and survives the deploy directory swap.
-FROM caddy:2-alpine
-COPY deploy/Caddyfile /etc/caddy/Caddyfile
-EXPOSE 7070
