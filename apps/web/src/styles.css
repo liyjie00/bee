@@ -34,7 +34,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .mono{font-family:var(--f-mono)}
 
-.app{display:grid;grid-template-columns:252px minmax(0,1fr) auto;height:100%}
+/* rows pinned to the viewport so .view (not the page) scrolls */
+.app{display:grid;grid-template-columns:252px minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr);height:100%}
 
 /* ---------- sidebar ---------- */
 .side{background:var(--sunk);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;padding-left:env(safe-area-inset-left,0px)}
@@ -62,7 +63,7 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .a-j{background:#5b6b4f}.a-1{background:var(--p1)}.a-2{background:var(--p2)}.a-3{background:var(--p3)}
 
 /* ---------- main ---------- */
-.main{display:flex;flex-direction:column;min-width:0;background:var(--surface)}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--surface)}
 .top{display:flex;align-items:center;gap:10px;height:52px;padding:0 16px;border-bottom:1px solid var(--line);flex:none}
 .crumb{display:flex;align-items:center;gap:6px;color:var(--fg-3);min-width:0;white-space:nowrap;overflow:hidden}
 .crumb b{color:var(--fg);font-weight:500;overflow:hidden;text-overflow:ellipsis}
