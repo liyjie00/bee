@@ -18,6 +18,7 @@ import type {
   VersionDTO,
   VersionContentResponse,
   MeResponse,
+  AuthProvidersResponse,
   UpdateMeBody,
   ActivityItem,
   SearchResponse,
@@ -44,6 +45,8 @@ export interface BeeApi {
   me(): Promise<MeResponse | null>;
   login(email: string, password: string): Promise<MeResponse>;
   register(name: string, email: string, password: string): Promise<MeResponse>;
+  authProviders(): Promise<AuthProvidersResponse>;
+  setupAccount(name: string, password: string): Promise<MeResponse>;
   logout(): Promise<void>;
   updateMe(patch: UpdateMeBody): Promise<MeResponse>;
 

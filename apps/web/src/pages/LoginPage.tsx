@@ -1,10 +1,14 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/http';
 import { BeeLogo } from '../components/Logo';
 import { useSession } from '../state/session';
 import { errMsg } from '../state/toast';
 import { useT } from '../i18n';
+import { GoogleMark } from '../components/GoogleMark';
+
+/** ?error= codes the Google sign-in callback sends back here */
+const GOOGLE_ERRORS = ['google_failed', 'google_cancelled', 'google_unverified', 'google_unavailable', 'registration_disabled'] as const;
 
 export function LoginPage() {
   const { session, setSession } = useSession();
@@ -15,15 +19,24 @@ export function LoginPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const next = params.get('next') || '/';
+  const googleError = params.get('error');
+  const [error, setError] = useState<string | null>(() => {
+    const code = GOOGLE_ERRORS.find((c) => c === googleError);
+    return code ? t(`login.error.${code}`) : null;
+  });
+  const [busy, setBusy] = useState(false);
+  const [google, setGoogle] = useState(false);
+  useEffect(() => {
+    api.authProviders().then((p) => setGoogle(p.google), () => setGoogle(false));
+  }, []);
   // OAuth consent pages are served by the api, outside the SPA, so they need a full page load.
   const external = next.startsWith('/oauth/');
   if (session && external) {
     window.location.replace(next);
     return null;
   }
+  if (session?.user.setupRequired) return <Navigate to={`/welcome?next=${encodeURIComponent(next)}`} replace />;
   if (session) return <Navigate to={next} replace />;
 
   async function submit(e: FormEvent) {
@@ -50,6 +63,15 @@ export function LoginPage() {
           <BeeLogo height={40} />
         </h1>
         <p style={{ margin: 0, color: 'var(--fg-3)' }}>{mode === 'login' ? t('login.title') : t('login.registerTitle')}</p>
+        {google && (
+          <>
+            <a className="btn google-btn" href={`/api/auth/google?next=${encodeURIComponent(next)}`}>
+              <GoogleMark />
+              {t('login.google')}
+            </a>
+            <div className="auth-or">{t('login.orEmail')}</div>
+          </>
+        )}
         {mode === 'register' && (
           <label>
             {t('login.name')}
@@ -75,7 +97,7 @@ export function LoginPage() {
         <button className="btn primary" disabled={busy} type="submit">
           {busy ? t('login.wait') : mode === 'login' ? t('login.signIn') : t('login.register')}
         </button>
-        <div className="switch">
+        <div className="auth-switch">
           {mode === 'login' ? t('login.noAccount') : t('login.haveAccount')}
           <button type="button" onClick={() => (setMode(mode === 'login' ? 'register' : 'login'), setError(null))}>
             {mode === 'login' ? t('login.toRegister') : t('login.signIn')}

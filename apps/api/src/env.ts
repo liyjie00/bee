@@ -28,6 +28,9 @@ export interface Config {
   /** Web Push (VAPID) keys; browser notifications are off without them */
   vapidPublicKey: string | null;
   vapidPrivateKey: string | null;
+  /** Google OAuth client; "Continue with Google" is off without it */
+  googleClientId: string | null;
+  googleClientSecret: string | null;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -60,5 +63,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     mailFrom: env.MAIL_FROM || 'Bee <notifications@localhost>',
     vapidPublicKey: env.VAPID_PUBLIC_KEY || null,
     vapidPrivateKey: env.VAPID_PRIVATE_KEY || null,
+    googleClientId: env.GOOGLE_CLIENT_ID || null,
+    googleClientSecret: env.GOOGLE_CLIENT_SECRET || null,
   };
 }

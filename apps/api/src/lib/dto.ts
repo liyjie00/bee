@@ -25,6 +25,7 @@ export function userDTO(u: UserRow): UserDTO {
     color: u.color,
     createdAt: u.createdAt.toISOString(),
     prefs: u.prefs ?? {},
+    setupRequired: u.setupRequired,
   };
 }
 

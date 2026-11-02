@@ -5,6 +5,7 @@ import { DocPage } from './pages/DocPage';
 import { FolderPage } from './pages/FolderPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { LoginPage } from './pages/LoginPage';
+import { WelcomePage } from './pages/WelcomePage';
 import { SharePage } from './pages/SharePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -21,6 +22,7 @@ export function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/welcome" element={<WelcomePage />} />
               <Route path="/s/:token" element={<SharePage />} />
               <Route path="/s/:token/d/:docId" element={<SharePage />} />
               <Route path="/p/:token" element={<SharePage />} />

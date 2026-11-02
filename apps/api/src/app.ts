@@ -8,6 +8,7 @@ import type { Config } from './env.js';
 import { userForSession, type UserRow } from './lib/auth.js';
 import { HttpError } from './lib/errors.js';
 import { authRoutes, setSessionCookie } from './routes/auth.js';
+import { googleAuthRoutes } from './routes/google-auth.js';
 import { workspaceRoutes } from './routes/workspaces.js';
 import { folderRoutes } from './routes/folders.js';
 import { documentRoutes } from './routes/documents.js';
@@ -184,6 +185,7 @@ export async function buildApp(opts: {
   await app.register(
     async (api) => {
       await api.register(authRoutes);
+      await api.register(googleAuthRoutes);
       await api.register(workspaceRoutes);
       await api.register(folderRoutes);
       await api.register(documentRoutes);

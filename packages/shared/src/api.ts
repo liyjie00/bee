@@ -18,6 +18,8 @@ export interface UserDTO {
   color: string;
   createdAt: string;
   prefs: UserPrefs;
+  /** signed up with Google: must choose a name and password before using Bee */
+  setupRequired: boolean;
 }
 
 export const DOC_FONT_SIZES = ['small', 'medium', 'large'] as const;

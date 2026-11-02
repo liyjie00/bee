@@ -107,6 +107,8 @@ export const api: BeeApi = {
     }),
   login: (email, password) => req('POST', '/auth/login', { email, password }),
   register: (name, email, password) => req('POST', '/auth/register', { name, email, password }),
+  authProviders: () => req('GET', '/auth/providers'),
+  setupAccount: (name, password) => req('POST', '/auth/setup', { name, password }),
   updateMe: (patch) => req('PATCH', '/auth/me', patch),
   logout: async () => {
     await req('POST', '/auth/logout');

@@ -1,12 +1,12 @@
 import { sql } from 'drizzle-orm';
 import { createDb, runMigrations } from '@bee/db';
 import { buildApp } from '../src/app.js';
-import { loadConfig } from '../src/env.js';
+import { loadConfig, type Config } from '../src/env.js';
 
 export const TEST_DB =
   process.env.TEST_DATABASE_URL ?? 'postgres://bee:bee@localhost:54329/bee_test';
 
-export async function setup() {
+export async function setup(overrides: Partial<Config> = {}) {
   await runMigrations(TEST_DB);
   const { db, pool } = createDb(TEST_DB);
   await db.execute(sql`truncate users, workspaces cascade`);
@@ -16,6 +16,7 @@ export async function setup() {
     authRateLimit: 1000,
     uploadDir: './data/test-uploads',
     collabInternalUrl: 'http://127.0.0.1:9',
+    ...overrides,
   };
   const app = await buildApp({ db, config });
   return { app, db, pool, config };
@@ -26,6 +27,7 @@ export type App = Awaited<ReturnType<typeof setup>>['app'];
 /** Minimal cookie-jar client around app.inject. */
 export function client(app: App) {
   let cookie = '';
+  const jar = new Map<string, string>();
   const call = async (
     method: string,
     url: string,
@@ -39,8 +41,14 @@ export function client(app: App) {
       headers: { ...(cookie ? { cookie } : {}), ...headers },
     });
     const set = res.headers['set-cookie'];
-    const first = Array.isArray(set) ? set[0] : set;
-    if (first) cookie = first.split(';')[0]!;
+    for (const c of Array.isArray(set) ? set : set ? [set] : []) {
+      const [pair, ...attrs] = c.split(';');
+      const name = pair!.split('=')[0]!;
+      const cleared = attrs.some((a) => /^\s*(max-age=0|expires=thu, 01 jan 1970)/i.test(a));
+      jar.delete(name);
+      if (!cleared) jar.set(name, pair!);
+    }
+    cookie = [...jar.values()].join('; ');
     let json: any = null;
     try {
       json = res.json();

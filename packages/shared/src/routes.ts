@@ -65,6 +65,16 @@ export interface UpdateMeBody {
   /** Merged into the stored prefs. */
   prefs?: UserPrefs;
 }
+/** GET /api/auth/providers: sign-in methods besides email + password */
+export interface AuthProvidersResponse {
+  google: boolean;
+}
+/** GET /api/auth/google?next=/path → redirect to Google; back at /api/auth/google/callback */
+/** POST /api/auth/setup (only while user.setupRequired) → MeResponse */
+export interface AccountSetupBody {
+  name: string;
+  password: string; // min 8 chars
+}
 /** POST /api/auth/password */
 export interface ChangePasswordBody {
   currentPassword: string;
