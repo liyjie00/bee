@@ -42,13 +42,33 @@ function showView(api: ExcalidrawAPI, view: WhiteboardView) {
   });
 }
 
-/** Zooms to the whole drawing, never past 100%. */
+/** Zooms to the whole drawing with a small margin, never past 100%. */
 function fitAll(api: ExcalidrawAPI) {
-  api.scrollToContent(undefined, { fitToViewport: true, viewportZoomFactor: 0.75, animate: false });
-  if (api.getAppState().zoom.value > 1) {
-    api.updateScene({ appState: { zoom: { value: 1 as never } } });
-    api.scrollToContent(undefined, { animate: false });
+  const { width, height } = api.getAppState();
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const el of api.getSceneElements()) {
+    // Arrows and lines extend from their first point by `points`, possibly in negative directions.
+    const pts: readonly (readonly [number, number])[] =
+      'points' in el && el.points.length ? el.points : [[0, 0], [el.width, el.height]];
+    for (const [px, py] of pts) {
+      x1 = Math.min(x1, el.x + px);
+      y1 = Math.min(y1, el.y + py);
+      x2 = Math.max(x2, el.x + px);
+      y2 = Math.max(y2, el.y + py);
+    }
   }
+  if (!width || !height || x1 > x2) return;
+  const pad = 24; // screen px on each side
+  const w = Math.max(x2 - x1, 1);
+  const h = Math.max(y2 - y1, 1);
+  const zoom = Math.min(1, Math.max(0.1, Math.min((width - 2 * pad) / w, (height - 2 * pad) / h)));
+  api.updateScene({
+    appState: {
+      zoom: { value: zoom as never },
+      scrollX: -x1 + (width / zoom - w) / 2,
+      scrollY: -y1 + (height / zoom - h) / 2,
+    },
+  });
 }
 
 /** New shapes default to a clean, draw.io-like look instead of Excalidraw's hand-drawn one. */
