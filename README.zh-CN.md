@@ -73,6 +73,7 @@ docker compose exec api tar -C /data/uploads -czf - . > uploads.tgz
 | `GUEST_COMMENT_RATE_LIMIT` | `5` | 每个 IP 每分钟的访客（未登录）评论数 |
 | `GUEST_COMMENT_HOURLY_LIMIT` | `60` | 每个分享链接每小时的访客评论数 |
 | `SMTP_URL`、`MAIL_FROM` | 关闭 | 邮件通知，例如 `smtps://user:pass@smtp.example.com:465` |
+| `BUG_REPORT_TO` | 关闭 | 接收“报告问题”的邮箱（需要 `SMTP_URL`） |
 | `VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY` | 关闭 | 浏览器推送通知（`npx web-push generate-vapid-keys`） |
 | `GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET` | 关闭 | “使用 Google 登录”，回调地址 `<BEE_PUBLIC_URL>/api/auth/google/callback` |
 | `BEE_PORT` | `7070` | 代理在宿主机上的端口 |

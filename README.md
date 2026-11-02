@@ -77,6 +77,7 @@ All settings are environment variables in `.env`; see
 | `GUEST_COMMENT_RATE_LIMIT` | `5` | Guest (no sign-in) comments per IP per minute |
 | `GUEST_COMMENT_HOURLY_LIMIT` | `60` | Guest comments per share link per hour |
 | `SMTP_URL`, `MAIL_FROM` | off | Email notifications, e.g. `smtps://user:pass@smtp.example.com:465` |
+| `BUG_REPORT_TO` | off | Email address that receives "Report a problem" submissions (needs `SMTP_URL`) |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | off | Browser push notifications (`npx web-push generate-vapid-keys`) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | off | "Continue with Google"; redirect URI `<BEE_PUBLIC_URL>/api/auth/google/callback` |
 | `BEE_PORT` | `7070` | Host port of the proxy |

@@ -11,7 +11,7 @@ export async function setup(overrides: Partial<Config> = {}) {
   const { db, pool } = createDb(TEST_DB);
   await db.execute(sql`truncate users, workspaces cascade`);
   const config = {
-    ...loadConfig({ NODE_ENV: 'test', DATABASE_URL: TEST_DB }),
+    ...loadConfig({ NODE_ENV: 'test', DATABASE_URL: TEST_DB, BUG_REPORT_TO: 'bugs@example.com' }),
     collabSecret: 'test-secret',
     authRateLimit: 1000,
     uploadDir: './data/test-uploads',
