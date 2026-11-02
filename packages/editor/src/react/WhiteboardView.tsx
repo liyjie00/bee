@@ -76,16 +76,17 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
     handle.addEventListener('pointercancel', up);
   };
 
-  // Full screen shows the whole drawing; the saved range comes back on exit (Esc or the button).
+  // Full screen fills the window (not the Fullscreen API, which embedded webviews ignore) and shows
+  // the whole drawing; the saved range comes back on exit (Esc or the button).
   useEffect(() => {
-    const onChange = () => setFullscreen(!!wrapper.current && document.fullscreenElement === wrapper.current);
-    document.addEventListener('fullscreenchange', onChange);
-    return () => document.removeEventListener('fullscreenchange', onChange);
-  }, []);
-  const toggleFullscreen = () => {
-    if (fullscreen) void document.exitFullscreen();
-    else void wrapper.current?.requestFullscreen();
-  };
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFullscreen(false);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [fullscreen]);
+  const toggleFullscreen = () => setFullscreen((f) => !f);
 
   const saveView = () => {
     const v = board.current?.getView();
@@ -95,7 +96,7 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
   return (
     <NodeViewWrapper
       ref={wrapper}
-      className={`bee-embed bee-embed-whiteboard${selected ? ' is-selected' : ''}${draft ? ' is-resizing' : ''}`}
+      className={`bee-embed bee-embed-whiteboard${selected ? ' is-selected' : ''}${draft ? ' is-resizing' : ''}${fullscreen ? ' is-fullscreen' : ''}`}
       style={{ width: `${width}%`, marginLeft: align === 'left' ? 0 : 'auto', marginRight: align === 'right' ? 0 : 'auto' }}
       data-drag-handle
     >
@@ -142,7 +143,7 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
               </svg>
             </button>
           )}
-          {documentId && document.fullscreenEnabled && (
+          {documentId && (
             <button
               type="button"
               className={`bee-embed-icon bee-embed-fullscreen${fullscreen ? ' is-active' : ''}`}

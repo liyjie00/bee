@@ -539,22 +539,27 @@
 .bee-embed.is-resizing .bee-embed-body {
   pointer-events: none;
 }
-.bee-embed-whiteboard:fullscreen {
+.bee-embed-whiteboard.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: auto !important;
+  margin: 0 !important;
   display: flex;
   flex-direction: column;
   background: var(--be-bg, #fff);
   border-radius: 0;
 }
-.bee-embed-whiteboard:fullscreen .bee-embed-body {
+.bee-embed-whiteboard.is-fullscreen .bee-embed-body {
   flex: 1;
   height: auto !important;
 }
-.bee-embed-whiteboard:fullscreen .bee-embed-icon,
-.bee-embed-whiteboard:fullscreen .bee-embed-resize {
+.bee-embed-whiteboard.is-fullscreen .bee-embed-icon,
+.bee-embed-whiteboard.is-fullscreen .bee-embed-resize {
   display: none;
 }
-.bee-embed-whiteboard:fullscreen .bee-embed-fullscreen,
-.bee-embed-whiteboard:fullscreen .bee-embed-fit {
+.bee-embed-whiteboard.is-fullscreen .bee-embed-fullscreen,
+.bee-embed-whiteboard.is-fullscreen .bee-embed-fit {
   display: inline-grid;
   place-items: center;
 }
