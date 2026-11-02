@@ -1,5 +1,13 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { documents, folders, permissions, shareLinks, workspaceMembers, type Db } from '@bee/db';
+import {
+  documentEmbeds,
+  documents,
+  folders,
+  permissions,
+  shareLinks,
+  workspaceMembers,
+  type Db,
+} from '@bee/db';
 import {
   can,
   effectiveRole,
@@ -133,6 +141,37 @@ export function guestsMayComment(link: ShareLinkRow | null): boolean {
   return !!link && link.public && link.guestComments && can.comment(link.role);
 }
 
+/** Embed marker the host's Markdown keeps while it still contains the embed. */
+export const embedMarker = (embeddedId: string) => `bee:whiteboard ${embeddedId}`;
+
+async function viewableThroughHost(
+  db: Db,
+  embeddedId: string,
+  opts: { userId: string | null; shareToken?: string | null; depth?: number },
+): Promise<boolean> {
+  const hosts = await db
+    .select({ id: documents.id, markdown: documents.markdownCache })
+    .from(documentEmbeds)
+    .innerJoin(documents, eq(documents.id, documentEmbeds.documentId))
+    .where(and(eq(documentEmbeds.embeddedId, embeddedId), isNull(documents.deletedAt)))
+    .limit(20);
+  for (const h of hosts) {
+    if (!h.markdown?.includes(embedMarker(embeddedId))) continue;
+    try {
+      const host = await docAccess(db, {
+        userId: opts.userId,
+        documentId: h.id,
+        shareToken: opts.shareToken,
+        depth: (opts.depth ?? 0) + 1,
+      });
+      if (can.read(host.role)) return true;
+    } catch {
+      /* no access to this host */
+    }
+  }
+  return false;
+}
+
 export interface DocAccess {
   doc: DocRow;
   role: Role;
@@ -154,6 +193,8 @@ export async function docAccess(
     includeDeleted?: boolean;
     /** internal: recursion guard for embedded documents */
     depth?: number;
+    /** ignore access through documents that link this one in */
+    direct?: boolean;
   },
 ): Promise<DocAccess> {
   const rows = await db.select().from(documents).where(eq(documents.id, opts.documentId)).limit(1);
@@ -200,6 +241,17 @@ export async function docAccess(
     } catch {
       /* no access through the parent */
     }
+  }
+  // A standalone document linked into another one (e.g. a whiteboard inserted into a doc) can be
+  // viewed by readers of a host that still embeds it.
+  if (
+    !can.read(role) &&
+    !opts.direct &&
+    (opts.depth ?? 0) < 8 &&
+    !doc.deletedAt &&
+    !doc.parentDocumentId
+  ) {
+    if (await viewableThroughHost(db, doc.id, opts)) role = maxRole(role, 'viewer');
   }
   if (!can.read(role)) {
     if (!opts.userId) throw unauthorized();

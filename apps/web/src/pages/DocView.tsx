@@ -38,6 +38,8 @@ export function DocView({
   shareToken,
   onTitle,
   onCreateWhiteboard,
+  onPickWhiteboard,
+  whiteboardTitle,
 }: {
   doc: DocumentDTO;
   me: UserDTO | null;
@@ -45,6 +47,8 @@ export function DocView({
   shareToken?: string;
   onTitle?(title: string): void;
   onCreateWhiteboard?(): Promise<{ documentId: string }>;
+  onPickWhiteboard?(): Promise<{ documentId: string } | null>;
+  whiteboardTitle?(documentId: string): string | undefined;
 }) {
   const nav = useNavigate();
   const loc = useLocation();
@@ -301,6 +305,8 @@ export function DocView({
                   }}
                   uploadImage={(file: File) => api.upload(doc.id, file).then((r) => r.url)}
                   createWhiteboard={editable ? onCreateWhiteboard : undefined}
+                  pickWhiteboard={editable ? onPickWhiteboard : undefined}
+                  whiteboardTitle={whiteboardTitle}
                   onOpenWhiteboard={(id: string) => nav(shareToken ? `/s/${shareToken}/d/${id}` : `/d/${id}`)}
                   onReady={(ed: Editor) => {
                     editorRef.current = ed;

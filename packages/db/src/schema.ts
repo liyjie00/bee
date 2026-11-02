@@ -169,6 +169,28 @@ export const documents = pgTable(
   ],
 );
 
+/**
+ * A standalone document (e.g. a whiteboard) embedded in another document. Readers of the host
+ * document may view the embedded one while the host still embeds it.
+ */
+export const documentEmbeds = pgTable(
+  'document_embeds',
+  {
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    embeddedId: uuid('embedded_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    createdById: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.documentId, t.embeddedId] }),
+    index('document_embeds_embedded_idx').on(t.embeddedId),
+  ],
+);
+
 /** Grants on folders (inherited downward) and documents (override). */
 export const permissions = pgTable(
   'permissions',

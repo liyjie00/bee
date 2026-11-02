@@ -41,6 +41,13 @@ export interface BeeEditorProps {
   /** Creates a whiteboard document and resolves to its id. Enables the whiteboard block. */
   createWhiteboard?: () => Promise<{ documentId: string }>;
   onOpenWhiteboard?: (documentId: string) => void;
+  /**
+   * Lets the user pick an existing whiteboard and resolves to its id (null when cancelled); it is
+   * embedded read-only and live. Enables the "existing whiteboard" block.
+   */
+  pickWhiteboard?: () => Promise<{ documentId: string } | null>;
+  /** Title shown on a linked whiteboard's header. */
+  whiteboardTitle?: (documentId: string) => string | undefined;
   /** Overrides copying the block link to the clipboard. */
   onCopyBlockLink?: (blockId: string, url: string) => void;
   /** Block to scroll to once the document has synced (from `#b-<blockId>`). */
@@ -110,6 +117,19 @@ function EditorInner(props: InnerProps) {
         if (!editor || !create) return;
         void create().then(({ documentId }) => {
           if (!editor.isDestroyed) editor.chain().focus().insertWhiteboard({ documentId }).run();
+        });
+      },
+      canLinkWhiteboard: () => !!latest.current.pickWhiteboard,
+      linkWhiteboard: () => {
+        const editor = editorRef.current;
+        const pick = latest.current.pickWhiteboard;
+        if (!editor || !pick) return;
+        // Remember where to insert: the picker takes focus away from the editor.
+        const at = editor.state.selection.from;
+        void pick().then((r) => {
+          if (!r || editor.isDestroyed) return;
+          const pos = Math.min(at, editor.state.doc.content.size);
+          editor.chain().focus(pos).insertWhiteboard({ documentId: r.documentId, linked: true }).run();
         });
       },
     }),
@@ -187,8 +207,9 @@ function EditorInner(props: InnerProps) {
       locale: props.locale ?? 'en',
       theme: props.theme,
       onOpenWhiteboard: props.onOpenWhiteboard,
+      whiteboardTitle: props.whiteboardTitle,
     }),
-    [props.documentId, props.collabUrl, props.shareToken, props.user, editable, props.locale, props.theme, props.onOpenWhiteboard],
+    [props.documentId, props.collabUrl, props.shareToken, props.user, editable, props.locale, props.theme, props.onOpenWhiteboard, props.whiteboardTitle],
   );
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {

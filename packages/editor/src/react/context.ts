@@ -13,6 +13,7 @@ export interface BeeEditorContextValue {
   locale: Locale;
   theme?: Theme;
   onOpenWhiteboard?: (documentId: string) => void;
+  whiteboardTitle?: (documentId: string) => string | undefined;
 }
 
 export const BeeEditorContext = createContext<BeeEditorContextValue | null>(null);

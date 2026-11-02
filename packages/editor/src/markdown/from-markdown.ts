@@ -1,7 +1,7 @@
 import { Lexer, type Token, type Tokens } from 'marked';
 import type { JSONMark, JSONNode } from './types.js';
 
-const WHITEBOARD_COMMENT = /^<!--\s*bee:whiteboard\s+([A-Za-z0-9_-]+)\s*-->\s*$/;
+const WHITEBOARD_COMMENT = /^<!--\s*bee:whiteboard\s+([A-Za-z0-9_-]+)(\s+linked)?\s*-->\s*$/;
 
 function decodeEntities(text: string): string {
   return text
@@ -146,7 +146,7 @@ function block(token: Token, inList: boolean): JSONNode[] {
     }
     case 'html': {
       const m = WHITEBOARD_COMMENT.exec((token as Tokens.HTML).text.trim());
-      if (m) return [{ type: 'whiteboard', attrs: { documentId: m[1] } }];
+      if (m) return [{ type: 'whiteboard', attrs: { documentId: m[1], ...(m[2] ? { linked: true } : {}) } }];
       return [];
     }
     case 'space':

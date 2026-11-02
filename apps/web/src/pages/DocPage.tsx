@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, HttpError } from '../api/http';
 import type { DocumentDTO } from '../api/types';
 import { TopBar } from '../components/TopBar';
+import { WhiteboardPicker } from '../components/WhiteboardPicker';
+import { errMsg, useToast } from '../state/toast';
 import { useSession, useTree } from '../state/session';
 import { DocView } from './DocView';
 import { useT } from '../i18n';
@@ -14,6 +16,14 @@ export function DocPage() {
   const t = useT();
   const [doc, setDoc] = useState<DocumentDTO | null>(null);
   const [error, setError] = useState<{ status: number; message: string } | null>(null);
+  const toast = useToast();
+  const [picking, setPicking] = useState(false);
+  const pickResolve = useRef<((r: { documentId: string } | null) => void) | null>(null);
+  const endPick = (r: { documentId: string } | null) => {
+    pickResolve.current?.(r);
+    pickResolve.current = null;
+    setPicking(false);
+  };
 
   useEffect(() => {
     setDoc(null);
@@ -45,6 +55,7 @@ export function DocPage() {
   const title = live?.title ?? doc.title;
   const crumbs = [...tree.path(doc.folderId).map((f) => ({ label: f.name, to: `/f/${f.id}` })), { label: title || t('common.untitled') }];
   return (
+    <>
     <DocView
       doc={{ ...doc, title }}
       me={session?.user ?? null}
@@ -54,6 +65,30 @@ export function DocPage() {
         const d = await api.createDocument({ workspaceId: workspace?.id ?? doc.workspaceId, folderId: doc.folderId, parentDocumentId: doc.id, type: 'whiteboard', title: t('tree.newBoardTitle') });
         return { documentId: d.id };
       }}
+      onPickWhiteboard={() =>
+        new Promise((resolve) => {
+          pickResolve.current?.(null);
+          pickResolve.current = resolve;
+          setPicking(true);
+        })
+      }
+      whiteboardTitle={(id) => tree.doc(id)?.title || undefined}
     />
+    {picking && (
+      <WhiteboardPicker
+        excludeId={doc.id}
+        onClose={() => endPick(null)}
+        onPick={(board) => {
+          api.embedDocument(doc.id, board.id).then(
+            () => endPick({ documentId: board.id }),
+            (e) => {
+              toast(errMsg(e));
+              endPick(null);
+            },
+          );
+        }}
+      />
+    )}
+    </>
   );
 }

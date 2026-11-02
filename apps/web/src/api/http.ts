@@ -122,6 +122,9 @@ export const api: BeeApi = {
     await req('DELETE', `/documents/${id}`);
   },
   restoreDocument: async (id) => (await req<DocumentResponse>('POST', `/documents/${id}/restore`)).document,
+  embedDocument: async (id, embeddedId) => {
+    await req('POST', `/documents/${id}/embeds`, { documentId: embeddedId });
+  },
   upload: (id, file) => {
     const fd = new FormData();
     fd.append('file', file);

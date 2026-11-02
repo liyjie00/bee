@@ -64,6 +64,8 @@ export interface BeeApi {
   updateDocument(id: string, patch: { title?: string; folderId?: string | null; sort?: number }): Promise<DocumentDTO>;
   deleteDocument(id: string): Promise<void>;
   restoreDocument(id: string): Promise<DocumentDTO>;
+  /** link a standalone whiteboard into a document (readers of the document may then view it) */
+  embedDocument(docId: string, embeddedId: string): Promise<void>;
   restoreFolder(id: string): Promise<void>;
   upload(docId: string, file: File): Promise<UploadResponse>;
   blockExists(docId: string, blockId: string): Promise<boolean>;

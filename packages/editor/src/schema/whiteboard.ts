@@ -4,7 +4,7 @@ declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     whiteboard: {
       /** Inserts an embed of a whiteboard document (the board itself lives in its own Y.Doc). */
-      insertWhiteboard: (attrs: { documentId: string; height?: number }) => ReturnType;
+      insertWhiteboard: (attrs: { documentId: string; height?: number; linked?: boolean }) => ReturnType;
     };
   }
 }
@@ -22,6 +22,12 @@ export const Whiteboard = Node.create({
         default: null,
         parseHTML: (el) => el.getAttribute('data-document-id'),
         renderHTML: (attrs) => ({ 'data-document-id': attrs.documentId }),
+      },
+      /** A standalone whiteboard shown read-only here (edited on its own page), not one owned by this doc. */
+      linked: {
+        default: false,
+        parseHTML: (el) => el.getAttribute('data-linked') === 'true',
+        renderHTML: (attrs) => (attrs.linked ? { 'data-linked': 'true' } : {}),
       },
       height: {
         default: 420,

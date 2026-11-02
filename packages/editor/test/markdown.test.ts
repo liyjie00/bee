@@ -42,6 +42,8 @@ graph TD; A-->B
 ![alt](https://img/x.png)
 
 <!-- bee:whiteboard wb_123 -->
+
+<!-- bee:whiteboard wb_456 linked -->
 `;
 
 describe('markdown', () => {
@@ -61,6 +63,7 @@ describe('markdown', () => {
       'horizontalRule',
       'image',
       'whiteboard',
+      'whiteboard',
     ]);
   });
 
@@ -77,6 +80,7 @@ describe('markdown', () => {
     expect(md).toContain('| a | b |\n| --- | --- |\n| 1 | 2 |');
     expect(md).toContain('![alt](https://img/x.png)');
     expect(md).toContain('<!-- bee:whiteboard wb_123 -->');
+    expect(md).toContain('<!-- bee:whiteboard wb_456 linked -->');
     // Second pass is stable.
     expect(yUpdateToMarkdown(markdownToYUpdate(md))).toBe(md);
   });

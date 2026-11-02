@@ -26,6 +26,8 @@ interface BoardProps {
   editable: boolean;
   /** Compact embed: hides most chrome. */
   embedded?: boolean;
+  /** Zoom to fit the drawing once loaded. */
+  fitContent?: boolean;
   locale: Locale;
   theme?: Theme;
 }
@@ -34,7 +36,7 @@ interface BoardProps {
  * Excalidraw bound to a Yjs document: every element is stored in Y.Map `elements` keyed by id, and
  * merged by Excalidraw's own version-based reconciliation. Images go to Y.Map `files`.
  */
-function Board({ ydoc, provider, user, editable, embedded, locale, theme: themeProp }: BoardProps) {
+function Board({ ydoc, provider, user, editable, embedded, fitContent, locale, theme: themeProp }: BoardProps) {
   const [mod, setMod] = useState<ExcalidrawModule | null>(null);
   const apiRef = useRef<ExcalidrawAPI | null>(null);
   const t = useMessages();
@@ -121,6 +123,10 @@ function Board({ ydoc, provider, user, editable, embedded, locale, theme: themeP
       excalidrawAPI={(api: ExcalidrawAPI) => {
         apiRef.current = api;
         applyRemote();
+        if (fitContent)
+          requestAnimationFrame(() =>
+            api.scrollToContent(undefined, { fitToViewport: true, viewportZoomFactor: 0.9, animate: false }),
+          );
       }}
       initialData={{ elements: [...elementsMap.values()].map((el) => structuredClone(el)), files: Object.fromEntries(filesMap.entries()) }}
       onChange={onChange}
@@ -144,6 +150,8 @@ export interface BeeWhiteboardProps {
   user: BeeUser;
   editable: boolean;
   embedded?: boolean;
+  /** Zoom to fit the drawing once loaded (embeds of existing boards). */
+  fitContent?: boolean;
   locale?: Locale;
   /** Defaults to `<html data-theme>`, then the OS preference. */
   theme?: Theme;
@@ -152,7 +160,7 @@ export interface BeeWhiteboardProps {
 }
 
 /** A whiteboard document (its own Y.Doc), full page or embedded in a rich-text document. */
-export function BeeWhiteboard({ documentId, collabUrl, shareToken, user, editable, embedded, locale, theme, messages, onStatus }: BeeWhiteboardProps) {
+export function BeeWhiteboard({ documentId, collabUrl, shareToken, user, editable, embedded, fitContent, locale, theme, messages, onStatus }: BeeWhiteboardProps) {
   const [synced, setSynced] = useState(false);
   const conn = useCollabConnection(documentId, collabUrl, shareToken, (s) => {
     if (s === 'synced') setSynced(true);
@@ -163,7 +171,7 @@ export function BeeWhiteboard({ documentId, collabUrl, shareToken, user, editabl
     <MessagesContext.Provider value={t}>
       <div className={`bee-whiteboard${embedded ? ' bee-whiteboard-embedded' : ''}`}>
         {conn && synced ? (
-          <Board ydoc={conn.ydoc} provider={conn.provider} user={user} editable={editable} embedded={embedded} locale={locale ?? 'en'} theme={theme} />
+          <Board ydoc={conn.ydoc} provider={conn.provider} user={user} editable={editable} embedded={embedded} fitContent={fitContent} locale={locale ?? 'en'} theme={theme} />
         ) : (
           <div className="bee-whiteboard-loading">{t.whiteboardLoading}</div>
         )}

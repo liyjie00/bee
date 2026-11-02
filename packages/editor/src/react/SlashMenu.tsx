@@ -13,6 +13,8 @@ export interface SlashHost {
   pickImage: () => void;
   canCreateWhiteboard: () => boolean;
   createWhiteboard: () => void;
+  canLinkWhiteboard: () => boolean;
+  linkWhiteboard: () => void;
 }
 
 export interface SlashItem {
@@ -44,6 +46,9 @@ function buildItems(host: SlashHost): SlashItem[] {
       : null,
     host.canCreateWhiteboard()
       ? { id: 'whiteboard', title: t.whiteboard, hint: t.whiteboardHint, icon: '✎', keywords: 'whiteboard excalidraw draw board canvas 白板 画板', run: (e, r) => { chain(e, r).run(); host.createWhiteboard(); } }
+      : null,
+    host.canLinkWhiteboard()
+      ? { id: 'linkWhiteboard', title: t.linkWhiteboard, hint: t.linkWhiteboardHint, icon: '⧉', keywords: 'whiteboard existing link embed insert excalidraw diagram board 白板 已有 插入 嵌入 画板 图', run: (e, r) => { chain(e, r).run(); host.linkWhiteboard(); } }
       : null,
     { id: 'divider', title: t.divider, hint: t.dividerHint, icon: '—', keywords: 'divider hr rule line 分割线', run: (e, r) => chain(e, r).setHorizontalRule().run() },
   ];

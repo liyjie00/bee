@@ -390,6 +390,12 @@
   color: var(--be-fg-2);
   font-weight: 500;
 }
+.bee-embed-hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .bee-embed-action {
   margin-left: auto;
   font: inherit;

@@ -116,7 +116,7 @@ function block(node: JSONNode): string {
     case 'table':
       return tableToMarkdown(node);
     case 'whiteboard':
-      return `<!-- bee:whiteboard ${String(node.attrs?.documentId ?? '')} -->`;
+      return `<!-- bee:whiteboard ${String(node.attrs?.documentId ?? '')}${node.attrs?.linked ? ' linked' : ''} -->`;
     default:
       return node.content ? blocks(node.content) : '';
   }

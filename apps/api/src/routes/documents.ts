@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { and, desc, eq, isNull, max } from 'drizzle-orm';
 import { z } from 'zod';
-import { activity, documentViews, documents, type Db } from '@bee/db';
+import { activity, documentEmbeds, documentViews, documents, type Db } from '@bee/db';
 import { can, type ActivityItem, type DocumentType } from '@bee/shared';
 import { docAccess, requireDocRole, type DocRow } from '../lib/access.js';
 import { logActivity } from '../lib/activity.js';
@@ -267,6 +267,30 @@ export async function documentRoutes(app: FastifyInstance) {
       kind: 'created',
     });
     return reply.status(201).send({ document: await dto(doc, 'owner') });
+  });
+
+  // Link a standalone whiteboard into this document, so the document's readers can view it there.
+  app.post('/documents/:id/embeds', async (req) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    const { documentId: embeddedId } = parse(z.object({ documentId: z.uuid() }), req.body);
+    const host = await requireDocRole(
+      db,
+      { userId: user.id, documentId: id, shareToken: req.shareToken },
+      can.edit,
+      'You cannot edit this document',
+    );
+    const board = await docAccess(db, { userId: user.id, documentId: embeddedId, direct: true });
+    if (board.doc.type !== 'whiteboard') throw badRequest('Only whiteboards can be embedded');
+    if (board.doc.parentDocumentId) throw badRequest('This whiteboard belongs to another document');
+    if (board.doc.workspaceId !== host.doc.workspaceId)
+      throw badRequest('The whiteboard is in another workspace');
+    if (embeddedId === id) throw badRequest('A document cannot embed itself');
+    await db
+      .insert(documentEmbeds)
+      .values({ documentId: id, embeddedId, createdById: user.id })
+      .onConflictDoNothing();
+    return { ok: true };
   });
 
   app.get('/documents/:id/export.md', async (req, reply) => {

@@ -366,6 +366,63 @@ describe('embedded documents', () => {
     });
     expect(r.json()).toMatchObject({ role: 'viewer', readOnly: true, documentType: 'whiteboard' });
   });
+
+  it('an existing whiteboard linked into a doc is viewable by the doc readers', async () => {
+    const owner = await signup(app, 'wblinkowner');
+    const other = await signup(app, 'wblinkother');
+    const ws = owner.workspace.id;
+    const wb = (await owner.c.post('/api/documents', { workspaceId: ws, type: 'whiteboard' })).json
+      .document;
+    const host = (
+      await owner.c.post('/api/documents', {
+        workspaceId: ws,
+        markdown: `# Host\n\n<!-- bee:whiteboard ${wb.id} linked -->\n`,
+      })
+    ).json.document;
+    const plain = (await owner.c.post('/api/documents', { workspaceId: ws, title: 'Plain' })).json
+      .document;
+    const auth = (token: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/internal/collab/auth',
+        payload: { documentId: wb.id, shareToken: token },
+        headers: SECRET,
+      });
+
+    // Someone who cannot read the board cannot link it.
+    const otherDoc = (
+      await other.c.post('/api/documents', { workspaceId: other.workspace.id, title: 'X' })
+    ).json.document;
+    expect(
+      (await other.c.post(`/api/documents/${otherDoc.id}/embeds`, { documentId: wb.id })).status,
+    ).toBe(404);
+    expect(
+      (await owner.c.post(`/api/documents/${host.id}/embeds`, { documentId: host.id })).status,
+    ).toBe(400);
+
+    const hostLink = (
+      await owner.c.post(`/api/documents/${host.id}/links`, { role: 'viewer', public: true })
+    ).json.link;
+    expect((await auth(hostLink.token)).statusCode).not.toBe(200);
+    expect(
+      (await owner.c.post(`/api/documents/${host.id}/embeds`, { documentId: wb.id })).status,
+    ).toBe(200);
+    expect((await auth(hostLink.token)).json()).toMatchObject({ role: 'viewer', readOnly: true });
+
+    // A recorded embed no longer in the host's content gives nothing.
+    await owner.c.post(`/api/documents/${plain.id}/embeds`, { documentId: wb.id });
+    const plainLink = (
+      await owner.c.post(`/api/documents/${plain.id}/links`, { role: 'editor', public: true })
+    ).json.link;
+    expect((await auth(plainLink.token)).statusCode).not.toBe(200);
+
+    // Signed-in readers of the host too, capped at viewer.
+    await owner.c.post(`/api/documents/${host.id}/grants`, {
+      email: 'wblinkother@example.com',
+      role: 'editor',
+    });
+    expect((await other.c.get(`/api/documents/${wb.id}`)).json.document.role).toBe('viewer');
+  });
 });
 
 describe('comments', () => {

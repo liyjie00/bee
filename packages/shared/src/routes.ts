@@ -155,6 +155,14 @@ export interface UpdateDocumentBody {
 /** DELETE /api/documents/:id → Ok (to trash; ?permanent=1 hard delete, owner only, from trash) */
 /** POST /api/documents/:id/restore → { document } (from trash) */
 /** POST /api/documents/:id/duplicate → { document } */
+/**
+ * POST /api/documents/:id/embeds { documentId } → Ok (editor role on :id; read on the whiteboard).
+ * Links a standalone whiteboard of the same workspace into the document: readers of the document
+ * (including through its share links) may view the whiteboard while the document embeds it.
+ */
+export interface EmbedDocumentBody {
+  documentId: string;
+}
 /** GET /api/documents/:id/export.md → text/markdown */
 /** GET /api/documents/:id/markdown → live content as Markdown (docs only) */
 export interface MarkdownResponse {

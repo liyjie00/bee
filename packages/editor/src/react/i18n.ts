@@ -52,6 +52,8 @@ const zhCN = {
   imageHint: '上传本地图片',
   whiteboard: '白板',
   whiteboardHint: '新建 Excalidraw 白板并嵌入',
+  linkWhiteboard: '插入已有白板',
+  linkWhiteboardHint: '嵌入一个已有的白板，实时同步',
   divider: '分割线',
   dividerHint: '用 --- 也可以',
   // table toolbar
@@ -88,6 +90,7 @@ const zhCN = {
   openWhiteboard: '打开白板',
   whiteboardLoading: '正在加载白板…',
   whiteboardMissing: '白板不可用',
+  linkedWhiteboardHint: '在白板页面中编辑',
   uploading: '正在上传…',
   uploadFailed: '图片上传失败',
 };
@@ -140,6 +143,8 @@ const en: Messages = {
   imageHint: 'Upload from your computer',
   whiteboard: 'Whiteboard',
   whiteboardHint: 'Create and embed an Excalidraw board',
+  linkWhiteboard: 'Existing whiteboard',
+  linkWhiteboardHint: 'Embed a whiteboard you already have, live',
   divider: 'Divider',
   dividerHint: 'Or type ---',
   tableRow: 'Row',
@@ -174,6 +179,7 @@ const en: Messages = {
   openWhiteboard: 'Open whiteboard',
   whiteboardLoading: 'Loading whiteboard…',
   whiteboardMissing: 'Whiteboard unavailable',
+  linkedWhiteboardHint: 'Edit it on the whiteboard page',
   uploading: 'Uploading…',
   uploadFailed: 'Image upload failed',
 };
