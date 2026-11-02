@@ -116,10 +116,28 @@ function block(node: JSONNode): string {
     case 'table':
       return tableToMarkdown(node);
     case 'whiteboard':
-      return `<!-- bee:whiteboard ${String(node.attrs?.documentId ?? '')}${node.attrs?.linked ? ' linked' : ''} -->`;
+      return `<!-- bee:whiteboard ${String(node.attrs?.documentId ?? '')}${whiteboardOptions(node.attrs ?? {})} -->`;
+    case 'columns':
+      return [
+        '<!-- bee:columns -->',
+        ...(node.content ?? []).map((col) => blocks(col.content)).flatMap((md, i) => (i ? ['<!-- bee:column -->', md] : [md])),
+        '<!-- bee:/columns -->',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
     default:
       return node.content ? blocks(node.content) : '';
   }
+}
+
+/** Layout options after a whiteboard id: ` linked width=50 align=left height=300 view=x,y,w,h`. */
+function whiteboardOptions(a: Record<string, unknown>): string {
+  let out = a.linked ? ' linked' : '';
+  if (a.width && Number(a.width) !== 100) out += ` width=${Number(a.width)}`;
+  if (a.align && a.align !== 'center') out += ` align=${String(a.align)}`;
+  if (a.height && Number(a.height) !== 420) out += ` height=${Number(a.height)}`;
+  if (typeof a.view === 'string' && /^[-\d.,]+$/.test(a.view)) out += ` view=${a.view}`;
+  return out;
 }
 
 function blocks(nodes: JSONNode[] = [], sep = '\n\n'): string {

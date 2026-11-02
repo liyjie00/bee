@@ -40,7 +40,8 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
         addNodeView: () =>
           ReactNodeViewRenderer(WhiteboardView, {
             // Excalidraw owns all input inside the board; ProseMirror must not handle it.
-            stopEvent: ({ event }) => !!(event.target as HTMLElement | null)?.closest?.('.bee-embed-body'),
+            stopEvent: ({ event }) =>
+              !!(event.target as HTMLElement | null)?.closest?.('.bee-embed-body, .bee-embed-tools, .bee-embed-resize'),
             ignoreMutation: () => true,
           }),
       });

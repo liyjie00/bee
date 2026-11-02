@@ -85,6 +85,31 @@ describe('markdown', () => {
     expect(yUpdateToMarkdown(markdownToYUpdate(md))).toBe(md);
   });
 
+  it('round-trips columns and whiteboard layout', () => {
+    const md = [
+      'Intro',
+      '<!-- bee:columns -->',
+      '<!-- bee:whiteboard wb_1 linked width=60 align=left height=300 view=-10,20,400,300 -->',
+      '<!-- bee:column -->',
+      'Right **side**',
+      '<!-- bee:/columns -->',
+      'After',
+    ].join('\n\n') + '\n';
+    const json = markdownToJSON(md);
+    expect(json.content!.map((n) => n.type)).toEqual(['paragraph', 'columns', 'paragraph']);
+    const cols = json.content![1]!;
+    expect(cols.content!.map((c) => c.content![0]!.type)).toEqual(['whiteboard', 'paragraph']);
+    expect(cols.content![0]!.content![0]!.attrs).toMatchObject({
+      documentId: 'wb_1',
+      linked: true,
+      width: 60,
+      align: 'left',
+      height: 300,
+      view: '-10,20,400,300',
+    });
+    expect(yUpdateToMarkdown(markdownToYUpdate(md))).toBe(md);
+  });
+
   it('assigns unique block ids', () => {
     const update = markdownToYUpdate(SAMPLE);
     const ids = yUpdateBlockIds(update);

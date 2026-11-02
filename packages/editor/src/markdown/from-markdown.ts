@@ -1,7 +1,24 @@
 import { Lexer, type Token, type Tokens } from 'marked';
 import type { JSONMark, JSONNode } from './types.js';
 
-const WHITEBOARD_COMMENT = /^<!--\s*bee:whiteboard\s+([A-Za-z0-9_-]+)(\s+linked)?\s*-->\s*$/;
+const WHITEBOARD_COMMENT = /^<!--\s*bee:whiteboard\s+([A-Za-z0-9_-]+)((?:\s+[a-z]+(?:=[-\w.,]+)?)*)\s*-->\s*$/;
+const COLUMNS_MARK = /^<!--\s*bee:(columns|column|\/columns)\s*-->\s*$/;
+
+/** Whiteboard attributes from the options after its id (see whiteboardOptions in to-markdown). */
+function whiteboardAttrs(id: string, options: string): Record<string, unknown> {
+  const attrs: Record<string, unknown> = { documentId: id };
+  for (const opt of options.trim().split(/\s+/).filter(Boolean)) {
+    const [k, v] = opt.split('=') as [string, string | undefined];
+    if (k === 'linked') attrs.linked = true;
+    else if ((k === 'width' || k === 'height') && Number(v) > 0) attrs[k] = Number(v);
+    else if (k === 'align' && (v === 'left' || v === 'right' || v === 'center')) attrs.align = v;
+    else if (k === 'view' && v) attrs.view = v;
+  }
+  return attrs;
+}
+
+const columnsMark = (token: Token) =>
+  token.type === 'html' ? (COLUMNS_MARK.exec((token as Tokens.HTML).text.trim())?.[1] ?? null) : null;
 
 function decodeEntities(text: string): string {
   return text
@@ -146,7 +163,7 @@ function block(token: Token, inList: boolean): JSONNode[] {
     }
     case 'html': {
       const m = WHITEBOARD_COMMENT.exec((token as Tokens.HTML).text.trim());
-      if (m) return [{ type: 'whiteboard', attrs: { documentId: m[1], ...(m[2] ? { linked: true } : {}) } }];
+      if (m) return [{ type: 'whiteboard', attrs: whiteboardAttrs(m[1]!, m[2] ?? '') }];
       return [];
     }
     case 'space':
@@ -159,7 +176,28 @@ function block(token: Token, inList: boolean): JSONNode[] {
 }
 
 function blocks(tokens: Token[] = [], inList = false): JSONNode[] {
-  return tokens.flatMap((t) => block(t, inList));
+  const out: JSONNode[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    if (columnsMark(tokens[i]!) !== 'columns') {
+      out.push(...block(tokens[i]!, inList));
+      continue;
+    }
+    // <!-- bee:columns --> … <!-- bee:column --> … <!-- bee:/columns -->
+    const cols: Token[][] = [[]];
+    for (i++; i < tokens.length; i++) {
+      const mark = columnsMark(tokens[i]!);
+      if (mark === '/columns') break;
+      if (mark === 'column') cols.push([]);
+      else cols[cols.length - 1]!.push(tokens[i]!);
+    }
+    const content = cols.slice(0, 4).map((c) => {
+      const inner = blocks(c);
+      return { type: 'column', content: inner.length ? inner : [{ type: 'paragraph' }] };
+    });
+    if (content.length >= 2) out.push({ type: 'columns', content });
+    else out.push(...content[0]!.content);
+  }
+  return out;
 }
 
 /** Parses GitHub-flavoured Markdown into Tiptap JSON matching the Bee schema. */

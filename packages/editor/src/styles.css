@@ -396,8 +396,97 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.bee-embed-action {
+.bee-embed-tools {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.bee-embed-icon {
+  display: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  width: 24px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--be-fg-3);
+  cursor: pointer;
+}
+.bee-embed:hover .bee-embed-icon,
+.bee-embed.is-selected .bee-embed-icon {
+  display: inline-block;
+}
+.bee-embed-icon:hover,
+.bee-embed-icon.is-active {
+  background: var(--be-surface);
+  color: var(--be-fg-2);
+}
+.bee-embed-whiteboard {
+  position: relative;
+  max-width: 100%;
+}
+.bee-embed-resize {
+  position: absolute;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  z-index: 5;
+  opacity: 0;
+  touch-action: none;
+}
+.bee-embed-resize-right {
+  right: 0;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--be-honey) 50%);
+}
+.bee-embed-resize-left {
+  left: 0;
+  cursor: nesw-resize;
+  background: linear-gradient(225deg, transparent 50%, var(--be-honey) 50%);
+}
+.bee-embed:hover .bee-embed-resize,
+.bee-embed.is-selected .bee-embed-resize,
+.bee-embed.is-resizing .bee-embed-resize {
+  opacity: 1;
+}
+.bee-embed.is-resizing .bee-embed-body {
+  pointer-events: none;
+}
+
+/* ---------- columns ---------- */
+.bee-columns {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 24px;
+  margin: 8px 0;
+}
+.bee-column {
+  min-width: 0;
+  border-radius: 6px;
+  outline: 1px dashed transparent;
+  outline-offset: 4px;
+}
+.bee-column > :first-child {
+  margin-top: 0;
+}
+.bee-column > :last-child {
+  margin-bottom: 0;
+}
+.bee-prose[contenteditable='true'] .bee-columns:hover > .bee-column,
+.bee-prose[contenteditable='true'] .bee-column:focus-within {
+  outline-color: var(--be-line);
+}
+@media (max-width: 640px) {
+  .bee-columns {
+    grid-auto-flow: row;
+  }
+}
+.bee-embed-action {
   font: inherit;
   font-size: 12px;
   border: 1px solid var(--be-line);
@@ -418,6 +507,11 @@
 }
 .bee-whiteboard-embedded {
   min-height: 0;
+}
+.bee-whiteboard-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 .bee-wb-connectors {
   position: absolute;

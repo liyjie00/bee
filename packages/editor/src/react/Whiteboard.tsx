@@ -5,6 +5,7 @@ import { useCollabConnection, type BeeUser, type CollabStatus } from './collab.j
 import { useTheme, type Theme } from './theme.js';
 import { MessagesContext, resolveMessages, useMessages, type Locale, type Messages } from './i18n.js';
 import { WhiteboardConnectors } from './WhiteboardConnectors.js';
+import type { WhiteboardView } from '../schema/whiteboard.js';
 
 type ExcalidrawModule = typeof import('@excalidraw/excalidraw');
 type ExcalidrawAPI = Parameters<NonNullable<import('@excalidraw/excalidraw/types').ExcalidrawProps['excalidrawAPI']>>[0];
@@ -20,6 +21,34 @@ export const WHITEBOARD_FILES = 'files';
 
 const LOCAL_ORIGIN = 'bee:whiteboard-local';
 
+/** Lets an embed read what the board currently shows. */
+export interface WhiteboardHandle {
+  getView(): WhiteboardView | null;
+}
+
+/** Shows `view` (scene units) centred in the canvas, as large as fits. */
+function showView(api: ExcalidrawAPI, view: WhiteboardView) {
+  const { width, height } = api.getAppState();
+  if (!width || !height) return;
+  const zoom = Math.min(30, Math.max(0.1, Math.min(width / view.w, height / view.h)));
+  api.updateScene({
+    appState: {
+      zoom: { value: zoom as never },
+      scrollX: -view.x + (width / zoom - view.w) / 2,
+      scrollY: -view.y + (height / zoom - view.h) / 2,
+    },
+  });
+}
+
+/** Zooms to the whole drawing, never past 100%. */
+function fitAll(api: ExcalidrawAPI) {
+  api.scrollToContent(undefined, { fitToViewport: true, viewportZoomFactor: 0.75, animate: false });
+  if (api.getAppState().zoom.value > 1) {
+    api.updateScene({ appState: { zoom: { value: 1 as never } } });
+    api.scrollToContent(undefined, { animate: false });
+  }
+}
+
 interface BoardProps {
   ydoc: Y.Doc;
   provider: HocuspocusProvider;
@@ -29,6 +58,9 @@ interface BoardProps {
   embedded?: boolean;
   /** Zoom to fit the drawing once loaded. */
   fitContent?: boolean;
+  /** Part of the scene to show; overrides fitContent. */
+  view?: WhiteboardView | null;
+  onHandle?: (handle: WhiteboardHandle | null) => void;
   locale: Locale;
   theme?: Theme;
 }
@@ -37,10 +69,52 @@ interface BoardProps {
  * Excalidraw bound to a Yjs document: every element is stored in Y.Map `elements` keyed by id, and
  * merged by Excalidraw's own version-based reconciliation. Images go to Y.Map `files`.
  */
-function Board({ ydoc, provider, user, editable, embedded, fitContent, locale, theme: themeProp }: BoardProps) {
+function Board({ ydoc, provider, user, editable, embedded, fitContent, view, onHandle, locale, theme: themeProp }: BoardProps) {
   const [mod, setMod] = useState<ExcalidrawModule | null>(null);
   const apiRef = useRef<ExcalidrawAPI | null>(null);
   const [api, setApi] = useState<ExcalidrawAPI | null>(null);
+  const host = useRef<HTMLDivElement>(null);
+  const placement = useRef({ view, fitContent });
+  placement.current = { view, fitContent };
+  /** Applies the saved range (or the fit) on load, when it changes and when the embed is resized. */
+  const place = useCallback(() => {
+    const a = apiRef.current;
+    const { view: v, fitContent: fit } = placement.current;
+    if (!a) return;
+    if (v) showView(a, v);
+    else if (fit) fitAll(a);
+  }, []);
+  const viewKey = view ? `${view.x},${view.y},${view.w},${view.h}` : '';
+  useEffect(() => {
+    if (viewKey || fitContent) requestAnimationFrame(place);
+  }, [viewKey, fitContent, place]);
+  useEffect(() => {
+    const el = host.current;
+    if (!el || !embedded) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const ro = new ResizeObserver(() => {
+      clearTimeout(timer);
+      // Once Excalidraw has picked up the new canvas size.
+      timer = setTimeout(place, 150);
+    });
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      clearTimeout(timer);
+    };
+  }, [embedded, place, mod]);
+  useEffect(() => {
+    onHandle?.({
+      getView: () => {
+        const a = apiRef.current;
+        if (!a) return null;
+        const s = a.getAppState();
+        const z = s.zoom.value;
+        return { x: -s.scrollX, y: -s.scrollY, w: s.width / z, h: s.height / z };
+      },
+    });
+    return () => onHandle?.(null);
+  }, [onHandle]);
   const t = useMessages();
   const theme = useTheme(themeProp);
 
@@ -121,21 +195,13 @@ function Board({ ydoc, provider, user, editable, embedded, fitContent, locale, t
   const Excalidraw = mod.Excalidraw as unknown as ComponentType<Record<string, unknown>>;
 
   return (
-    <>
+    <div ref={host} className="bee-whiteboard-canvas">
     <Excalidraw
       excalidrawAPI={(api: ExcalidrawAPI) => {
         apiRef.current = api;
         setApi(api);
         applyRemote();
-        if (fitContent)
-          requestAnimationFrame(() => {
-            api.scrollToContent(undefined, { fitToViewport: true, viewportZoomFactor: 0.75, animate: false });
-            // Don't blow small drawings up past 100%.
-            if (api.getAppState().zoom.value > 1) {
-              api.updateScene({ appState: { zoom: { value: 1 as never } } });
-              api.scrollToContent(undefined, { animate: false });
-            }
-          });
+        requestAnimationFrame(place);
       }}
       initialData={{ elements: [...elementsMap.values()].map((el) => structuredClone(el)), files: Object.fromEntries(filesMap.entries()) }}
       onChange={onChange}
@@ -150,7 +216,7 @@ function Board({ ydoc, provider, user, editable, embedded, fitContent, locale, t
       UIOptions={embedded ? { canvasActions: { loadScene: false, saveToActiveFile: false, export: false } } : undefined}
     />
     {editable && api && <WhiteboardConnectors api={api} mod={mod} />}
-    </>
+    </div>
   );
 }
 
@@ -163,6 +229,9 @@ export interface BeeWhiteboardProps {
   embedded?: boolean;
   /** Zoom to fit the drawing once loaded (embeds of existing boards). */
   fitContent?: boolean;
+  /** Part of the scene to show (an embed's saved display range). */
+  view?: WhiteboardView | null;
+  onHandle?: (handle: WhiteboardHandle | null) => void;
   locale?: Locale;
   /** Defaults to `<html data-theme>`, then the OS preference. */
   theme?: Theme;
@@ -171,7 +240,7 @@ export interface BeeWhiteboardProps {
 }
 
 /** A whiteboard document (its own Y.Doc), full page or embedded in a rich-text document. */
-export function BeeWhiteboard({ documentId, collabUrl, shareToken, user, editable, embedded, fitContent, locale, theme, messages, onStatus }: BeeWhiteboardProps) {
+export function BeeWhiteboard({ documentId, collabUrl, shareToken, user, editable, embedded, fitContent, view, onHandle, locale, theme, messages, onStatus }: BeeWhiteboardProps) {
   const [synced, setSynced] = useState(false);
   const conn = useCollabConnection(documentId, collabUrl, shareToken, (s) => {
     if (s === 'synced') setSynced(true);
@@ -182,7 +251,7 @@ export function BeeWhiteboard({ documentId, collabUrl, shareToken, user, editabl
     <MessagesContext.Provider value={t}>
       <div className={`bee-whiteboard${embedded ? ' bee-whiteboard-embedded' : ''}`}>
         {conn && synced ? (
-          <Board ydoc={conn.ydoc} provider={conn.provider} user={user} editable={editable} embedded={embedded} fitContent={fitContent} locale={locale ?? 'en'} theme={theme} />
+          <Board ydoc={conn.ydoc} provider={conn.provider} user={user} editable={editable} embedded={embedded} fitContent={fitContent} view={view} onHandle={onHandle} locale={locale ?? 'en'} theme={theme} />
         ) : (
           <div className="bee-whiteboard-loading">{t.whiteboardLoading}</div>
         )}

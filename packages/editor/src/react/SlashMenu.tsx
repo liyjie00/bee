@@ -26,7 +26,7 @@ export interface SlashItem {
   run: (editor: Editor, range: Range) => void;
 }
 
-function buildItems(host: SlashHost): SlashItem[] {
+function buildItems(host: SlashHost, editor: Editor): SlashItem[] {
   const t = host.messages();
   const chain = (editor: Editor, range: Range) => editor.chain().focus().deleteRange(range);
   const items: (SlashItem | null)[] = [
@@ -49,6 +49,11 @@ function buildItems(host: SlashHost): SlashItem[] {
       : null,
     host.canLinkWhiteboard()
       ? { id: 'linkWhiteboard', title: t.linkWhiteboard, hint: t.linkWhiteboardHint, icon: '⧉', keywords: 'whiteboard existing link embed insert excalidraw diagram board 白板 已有 插入 嵌入 画板 图', run: (e, r) => { chain(e, r).run(); host.linkWhiteboard(); } }
+      : null,
+    { id: 'columns2', title: t.columns2, hint: t.columns2Hint, icon: '◫', keywords: 'columns column layout side 2 two 分栏 两栏 并排 布局', run: (e, r) => chain(e, r).insertColumns(2).run() },
+    { id: 'columns3', title: t.columns3, hint: t.columns3Hint, icon: '▥', keywords: 'columns column layout 3 three 分栏 三栏 布局', run: (e, r) => chain(e, r).insertColumns(3).run() },
+    editor.isActive('columns')
+      ? { id: 'unsetColumns', title: t.unsetColumns, hint: t.unsetColumnsHint, icon: '☰', keywords: 'columns remove unset 取消分栏 分栏', run: (e, r) => chain(e, r).unsetColumns().run() }
       : null,
     { id: 'divider', title: t.divider, hint: t.dividerHint, icon: '—', keywords: 'divider hr rule line 分割线', run: (e, r) => chain(e, r).setHorizontalRule().run() },
   ];
@@ -155,7 +160,7 @@ export const SlashCommand = Extension.create<{ host: SlashHost | null }>({
           const $from = state.doc.resolve(range.from);
           return $from.parent.type.name !== 'codeBlock';
         },
-        items: ({ query }) => filterSlashItems(buildItems(host), query),
+        items: ({ query, editor }) => filterSlashItems(buildItems(host, editor), query),
         command: ({ editor, range, props }) => props.run(editor, range),
         render: () => {
           let renderer: ReactRenderer<MenuHandle, MenuProps> | null = null;
