@@ -374,6 +374,14 @@ del{background:var(--del);color:var(--del-ink);border-radius:3px;padding:0 2px}
   /* both side panels take the whole screen */
   .panel,.ai-panel{left:0;width:100%!important;border-left:0;padding-top:env(safe-area-inset-top,0px)}
   .cm-connector{display:none}
+  .panel{bottom:var(--kb,0px)}
+  .ptabs button{padding:10px}
+  .ai-msg{font-size:15px}
+  .ai-text h1,.ai-text h2,.ai-text h3{font-size:16px}
+  .ai-input textarea{border-radius:12px}
+  .ai-input .btn{padding:8px 14px}
+  .ai-model{font-size:13px;padding:8px 6px}
+  .ai-card{padding:8px 10px;font-size:14px}
   .ptabs{padding:6px 8px 0}
   .ptabs .x{padding:8px}
   .pbody{padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
