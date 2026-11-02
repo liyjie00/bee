@@ -194,7 +194,8 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
               aria-label={t.whiteboardFitAll}
               onClick={() => {
                 board.current?.fitAll();
-                writeLocalView(documentId, board.current?.getView() ?? null);
+                // Excalidraw applies the new zoom/scroll in a later render; read it after that.
+                setTimeout(() => writeLocalView(documentId, board.current?.getView() ?? null), 100);
               }}
             >
               <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
