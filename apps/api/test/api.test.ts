@@ -221,15 +221,30 @@ describe('share links', () => {
     );
     expect(t.status).toBe(201);
 
+    // Sharing again keeps the document's one link URL.
     const priv = (
       await owner.c.post(`/api/documents/${doc.id}/links`, { role: 'viewer', public: false })
     ).json.link;
+    expect(priv.token).toBe(link.token);
     expect((await anon.get(`/api/share/${priv.token}`)).status).toBe(400);
     expect((await carol.c.get(`/api/share/${priv.token}`)).status).toBe(200);
 
-    // Revoke.
+    // Turning sharing off: the link says "no access" (with the document to request it on),
+    // except to people who can open the document anyway.
     await owner.c.del(`/api/links/${link.id}`);
-    expect((await anon.get(`/api/share/${link.token}`)).status).toBe(404);
+    const off = await anon.get(`/api/share/${link.token}`);
+    expect(off.status).toBe(403);
+    expect(off.json.error).toMatchObject({ code: 'link_disabled', documentId: doc.id });
+    expect((await carol.c.get(`/api/share/${link.token}`)).status).toBe(403);
+    expect((await owner.c.get(`/api/share/${link.token}`)).status).toBe(200);
+    expect((await anon.get(`/api/share/nosuchtoken123`)).status).toBe(404);
+
+    // Turning it back on revives the same URL.
+    const again = (
+      await owner.c.post(`/api/documents/${doc.id}/links`, { role: 'viewer', public: true })
+    ).json.link;
+    expect(again.token).toBe(link.token);
+    expect((await anon.get(`/api/share/${link.token}`)).status).toBe(200);
   });
 });
 

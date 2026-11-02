@@ -26,6 +26,8 @@ export class HttpError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    /** Extra fields of the error body, e.g. the documentId of a disabled share link. */
+    readonly detail: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -81,8 +83,8 @@ async function send(method: string, path: string, body?: unknown): Promise<Respo
   });
   if (!res.ok) {
     const data = await res.json().catch(() => null);
-    const e = (data as { error?: { code?: string; message?: string } } | null)?.error;
-    throw new HttpError(res.status, e?.code ?? `http_${res.status}`, e?.message ?? res.statusText);
+    const e = (data as { error?: { code?: string; message?: string } & Record<string, unknown> } | null)?.error;
+    throw new HttpError(res.status, e?.code ?? `http_${res.status}`, e?.message ?? res.statusText, e ?? {});
   }
   return res;
 }

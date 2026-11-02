@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, HttpError } from '../api/http';
 import type { SharedDocDTO } from '../api/types';
 import { BeeMark } from '../components/Logo';
@@ -12,7 +12,8 @@ export function SharePage() {
   const { token = '', docId } = useParams();
   const { session, loading } = useSession();
   const [shared, setShared] = useState<SharedDocDTO | null>(null);
-  const [error, setError] = useState<'login' | 'invalid' | null>(null);
+  const [error, setError] = useState<'needLogin' | 'noAccess' | 'invalid' | null>(null);
+  const navigate = useNavigate();
   const t = useT();
 
   useEffect(() => {
@@ -26,7 +27,14 @@ export function SharePage() {
     // private links answer 400 login_required to signed-out visitors, embedded docs 401
     const needsLogin = (e: unknown) =>
       !session && e instanceof HttpError && (e.status === 401 || e.code === 'login_required');
-    load.then(setShared, (e) => setError(needsLogin(e) ? 'login' : 'invalid'));
+    load.then(setShared, (e) => {
+      // sharing was turned off: signed-in people can request access on the document itself
+      if (e instanceof HttpError && e.code === 'link_disabled') {
+        const id = e.detail.documentId;
+        if (session && typeof id === 'string') navigate(`/d/${id}`, { replace: true });
+        else setError('noAccess');
+      } else setError(needsLogin(e) ? 'needLogin' : 'invalid');
+    });
     return () => {
       api.shareToken = null;
     };
@@ -37,9 +45,9 @@ export function SharePage() {
       <div className="auth">
         <div className="auth-card" style={{ textAlign: 'center', alignItems: 'center' }}>
           <BeeMark size={40} />
-          <h1 style={{ justifyContent: 'center' }}>{error === 'login' ? t('share.needLogin') : t('share.invalid')}</h1>
+          <h1 style={{ justifyContent: 'center' }}>{t(`share.${error}`)}</h1>
           <p style={{ margin: 0, color: 'var(--fg-3)' }}>
-            {error === 'login' ? t('share.needLoginHint') : t('share.invalidHint')}
+            {t(`share.${error}Hint`)}
           </p>
           <Link className="btn primary" to={`/login?next=${encodeURIComponent(location.pathname + location.hash)}`}>
             {t('common.signIn')}

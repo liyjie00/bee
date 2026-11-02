@@ -237,18 +237,30 @@ export async function sharingRoutes(app: FastifyInstance) {
     const { id } = parse(idParams, req.params);
     const body = parse(linkBody, req.body);
     const r = await manageable('document', id, user.id);
-    const [l] = await db
-      .insert(shareLinks)
-      .values({
-        documentId: id,
-        token: randomToken(18),
-        role: body.role,
-        public: body.public,
-        guestComments: body.guestComments,
-        expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
-        createdById: user.id,
-      })
-      .returning();
+    // A document keeps one link URL for good: sharing again revives its latest link, so
+    // links sent earlier keep working after the owner turns sharing off and on.
+    const [prev] = await db
+      .select({ id: shareLinks.id })
+      .from(shareLinks)
+      .where(eq(shareLinks.documentId, id))
+      .orderBy(desc(shareLinks.createdAt))
+      .limit(1);
+    const values = {
+      role: body.role,
+      public: body.public,
+      guestComments: body.guestComments,
+      expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+    };
+    const [l] = prev
+      ? await db
+          .update(shareLinks)
+          .set({ ...values, revokedAt: null })
+          .where(eq(shareLinks.id, prev.id))
+          .returning()
+      : await db
+          .insert(shareLinks)
+          .values({ ...values, documentId: id, token: randomToken(18), createdById: user.id })
+          .returning();
     await logActivity(db, {
       workspaceId: r.workspaceId,
       documentId: id,
@@ -298,11 +310,32 @@ export async function sharingRoutes(app: FastifyInstance) {
   });
 
   /** Landing for /s/:token. Anonymous visitors may open public links. */
-  app.get('/share/:token', async (req) => {
+  app.get('/share/:token', async (req, reply) => {
     const { token } = parse(z.object({ token: z.string().min(8).max(100) }), req.params);
     const link = await validShareLink(db, token);
-    if (!link) throw notFound('This link is invalid or has expired');
     const userId = req.user?.id ?? null;
+    if (!link) {
+      const [old] = await db
+        .select({ documentId: shareLinks.documentId })
+        .from(shareLinks)
+        .where(eq(shareLinks.token, token))
+        .limit(1);
+      if (!old) throw notFound('This link is invalid');
+      // Sharing was turned off (or the link expired): people who can still open the
+      // document directly get it; everyone else is told they have no access.
+      if (userId) {
+        try {
+          const a = await docAccess(db, { userId, documentId: old.documentId });
+          const refs = await loadUserRefs(db, [a.doc.ownerId, a.doc.lastEditedById]);
+          return { document: documentDTO(a.doc, a.role, refs), role: a.role };
+        } catch {
+          /* no access: fall through */
+        }
+      }
+      return reply.status(403).send({
+        error: { code: 'link_disabled', message: 'You do not have access', documentId: old.documentId },
+      });
+    }
     if (!linkRoleFor(link, userId)) throw badRequest('Sign in to open this link', 'login_required');
     const a = await docAccess(db, { userId, documentId: link.documentId, shareToken: token });
     const refs = await loadUserRefs(db, [a.doc.ownerId, a.doc.lastEditedById]);
