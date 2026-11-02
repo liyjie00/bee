@@ -62,11 +62,7 @@ export function LandingPage() {
 
       <section id="top" className="land-wrap land-hero">
         <div className="land-hero-text">
-          <a className="land-news" href="#mcp">
-            <span>{t('land.newPill')}</span>
-            {t('land.newPillText')}
-            <span aria-hidden="true">→</span>
-          </a>
+          <span className="land-eyebrow">{t('land.eyebrow')}</span>
           <h1>
             {t('land.title1')}
             <br />

@@ -665,6 +665,8 @@ function EmptyDocHint({
       /* private mode */
     }
   };
+  // The math block comes with the editor's KaTeX extension.
+  const canMath = 'insertBlockMath' in editor.commands;
   const board = async (linked: boolean) => {
     const r = linked ? await onPickWhiteboard?.() : await onCreateWhiteboard?.();
     if (r && !editor.isDestroyed) editor.chain().focus('start').insertWhiteboard({ documentId: r.documentId, linked }).run();
@@ -686,6 +688,17 @@ function EmptyDocHint({
           <button onClick={() => board(false)}>
             <Icon name="board" />
             {t('doc.emptyBoard')}
+          </button>
+        )}
+        {canMath && (
+          <button
+            onClick={() => {
+              editor.commands.focus('start');
+              (editor.commands as unknown as Record<string, (() => boolean) | undefined>).insertBlockMath?.();
+            }}
+          >
+            <span className="empty-sigma" aria-hidden="true">∑</span>
+            {t('doc.emptyMath')}
           </button>
         )}
         {onPickWhiteboard && (
