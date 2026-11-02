@@ -35,7 +35,7 @@
   outline: none;
   /* The app sets these from the reader's settings (font size / font style). */
   font-family: var(--doc-font, inherit);
-  font-size: var(--doc-font-size, 14.5px);
+  font-size: var(--doc-font-size, 13.5px);
   line-height: 1.75;
   min-height: 240px;
   padding-bottom: 80px;
