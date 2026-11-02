@@ -1,8 +1,8 @@
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/core';
-import { openLinkEditor } from '@bee/editor';
+import { ColorMenu, openLinkEditor, resolveMessages, type Editor as BeeEditorInstance } from '@bee/editor';
 import { Icon, type IconName } from './Icon';
-import { useT } from '../i18n';
+import { useI18n, useT } from '../i18n';
 import { PHONE_QUERY, useKeyboardInset, useMediaQuery } from '../lib/media';
 
 /* Commands come from the extensions @bee/editor registers (StarterKit, task list, table, image). */
@@ -75,6 +75,8 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
   const ib = (label: string, icon: IconName, on: boolean, act: () => void) => btn(label, on, act, <Icon name={icon} />);
 
   const link = () => editor && openLinkEditor(editor);
+  const { lang } = useI18n();
+  const colorMessages = useMemo(() => resolveMessages(lang), [lang]);
   const image = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -131,6 +133,7 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
       {btn(t('toolbar.underline'), active('underline'), () => run((c) => c.toggleUnderline()), <u>U</u>)}
       {btn(t('toolbar.strike'), active('strike'), () => run((c) => c.toggleStrike()), <s>S</s>)}
       {btn(t('toolbar.code'), active('code'), () => run((c) => c.toggleCode()), <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block' }}><path d="M5 4.5 1.5 8 5 11.5M11 4.5l3.5 3.5-3.5 3.5M9.2 3 6.8 13" /></svg>)}
+      {editor && <ColorMenu editor={editor as unknown as BeeEditorInstance} messages={colorMessages} />}
       <span className="sep" />
       {ib(t('toolbar.link'), 'link', active('link'), link)}
       {ib(t('toolbar.checklist'), 'check', active('taskList'), () => run((c) => c.toggleTaskList()))}
@@ -151,3 +154,4 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
     </div>
   );
 }
+

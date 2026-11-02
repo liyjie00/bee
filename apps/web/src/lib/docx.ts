@@ -48,6 +48,16 @@ const CELL_FILL: Record<string, string> = {
   purple: 'ECE3FB',
 };
 
+const TEXT_HEX: Record<string, string> = {
+  gray: '7B8375',
+  red: 'D93D42',
+  orange: 'E5600E',
+  yellow: 'B88A00',
+  green: '2B9A66',
+  blue: '3B7DD8',
+  purple: '8E4EC6',
+};
+
 type Block = Paragraph | Table;
 
 interface Ctx {
@@ -67,7 +77,12 @@ function runs(nodes: Node[] | undefined, extra: Partial<IRunOptions> = {}): Para
     }
     if (n.type !== 'text' || !n.text) continue;
     const m = new Set((n.marks ?? []).map((x) => x.type));
+    const fg = TEXT_HEX[String(n.marks?.find((x) => x.type === 'textColor')?.attrs?.color ?? '')];
+    const hl = n.marks?.find((x) => x.type === 'highlight');
+    const hlFill = hl ? CELL_FILL[String(hl.attrs?.color ?? 'yellow')] : undefined;
     const opts: IRunOptions = {
+      ...(fg ? { color: fg } : {}),
+      ...(hlFill ? { shading: { type: ShadingType.CLEAR, fill: hlFill, color: 'auto' } } : {}),
       ...extra,
       text: n.text,
       bold: m.has('bold') || extra.bold,
