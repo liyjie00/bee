@@ -205,6 +205,8 @@
   vertical-align: top;
   position: relative;
   min-width: 60px;
+  /* Long words and URLs wrap, so the row grows instead of the text spilling out. */
+  overflow-wrap: anywhere;
 }
 .bee-prose th {
   background: var(--be-sunk);
@@ -233,6 +235,18 @@
 }
 .bee-prose.resize-cursor {
   cursor: col-resize;
+}
+.bee-prose.bee-row-resize-cursor {
+  cursor: row-resize;
+}
+.bee-row-resize-line {
+  position: fixed;
+  z-index: 50;
+  height: 3px;
+  margin-top: -1px;
+  /* Lives on <body>, outside .bee-editor where --be-honey is defined. */
+  background: var(--honey, #e8a317);
+  pointer-events: none;
 }
 
 /* placeholder */

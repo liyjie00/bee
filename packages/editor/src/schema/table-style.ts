@@ -1,4 +1,4 @@
-import { TableCell, TableHeader } from '@tiptap/extension-table';
+import { TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 
 /** Named cell colors; the stylesheet maps each to a theme-aware color. */
 export const CELL_COLORS = ['gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple'] as const;
@@ -37,5 +37,29 @@ export const StyledTableCell = TableCell.extend({
 export const StyledTableHeader = TableHeader.extend({
   addAttributes() {
     return { ...this.parent?.(), ...styleAttributes() };
+  },
+});
+
+/** Smallest row height a drag can set, in px. */
+export const ROW_MIN_HEIGHT = 24;
+
+/**
+ * Rows with an optional height set by dragging. A table row's CSS height is a minimum:
+ * rows still grow to fit their text, the dragged height only keeps short rows taller.
+ */
+export const StyledTableRow = TableRow.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      height: {
+        default: null,
+        parseHTML: (el: HTMLElement) => {
+          const h = parseInt(el.getAttribute('data-height') ?? el.style.height, 10);
+          return Number.isFinite(h) && h >= ROW_MIN_HEIGHT ? h : null;
+        },
+        renderHTML: (attrs: Record<string, unknown>) =>
+          typeof attrs.height === 'number' ? { 'data-height': attrs.height, style: `height: ${attrs.height}px` } : {},
+      },
+    };
   },
 });
