@@ -8,3 +8,6 @@ build
 .DS_Store
 coverage
 data/
+deploy/deploy.env
+.claude/settings.local.json
+.claude/worktrees/

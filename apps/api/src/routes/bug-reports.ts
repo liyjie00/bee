@@ -119,7 +119,7 @@ export async function bugReportRoutes(app: FastifyInstance) {
       const report = row!;
 
       const mailer = getMailer();
-      if (mailer) {
+      if (mailer && config.bugReportTo) {
         const firstLine = body.split('\n')[0]!.slice(0, 80);
         const metaRows = Object.entries(meta ?? {}).map(
           ([k, v]) =>

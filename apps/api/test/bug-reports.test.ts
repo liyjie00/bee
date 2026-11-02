@@ -59,7 +59,7 @@ describe('bug reports', () => {
       expect(row!.images.map((i) => i.filename)).toEqual(['a.png', 'b.png']);
       expect(row!.emailedAt).not.toBeNull();
       expect(sent).toHaveLength(1);
-      expect(sent[0]!.to).toBe('contactus@bee.zippyzoo.dev');
+      expect(sent[0]!.to).toBe('bugs@example.com');
       expect(sent[0]!.subject).toBe(`[Bee Bug #${r.json.id}] Tab jumps to the title`);
       expect(sent[0]!.replyTo).toEqual({ name: 'bugann', address: 'bugann@example.com' });
       expect(sent[0]!.attachments).toHaveLength(2);
