@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Daily backup of the Bee stack on the Mac mini: database dump, uploads and .env,
 # kept locally and copied to the NAS. Run by launchd (deploy/com.yjl.bee-backup.plist).
-# Environment: BEE_DIR (live checkout, default ~/Documents/bee),
+# Settings (env or ~/.config/bee-backup.env): BEE_DIR (live checkout, default ~/Documents/bee),
 #              BEE_BACKUP_DIR (local copies, default ~/Documents/bee-backups/daily),
 #              BEE_NAS_URL (SMB share, e.g. smb://QNAPTS453BE.local/BeeBackups; its password
 #              must be in the login keychain: mount it once in Finder with "Remember").
@@ -14,7 +14,7 @@ LOCAL="${BEE_BACKUP_DIR:-$HOME/Documents/bee-backups/daily}"
 NAS_URL="${BEE_NAS_URL:-}"
 KEEP_LOCAL="${BEE_KEEP_LOCAL:-7}"
 KEEP_NAS="${BEE_KEEP_NAS:-30}"
-[[ -f "$APP/.backup.env" ]] && source "$APP/.backup.env"
+[[ -f "$HOME/.config/bee-backup.env" ]] && source "$HOME/.config/bee-backup.env" # survives deploys
 
 stamp=$(date +%F)
 out="$LOCAL/$stamp"
