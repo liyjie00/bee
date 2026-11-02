@@ -8,14 +8,14 @@ COPY apps/collab/package.json apps/collab/
 RUN pnpm install --frozen-lockfile --filter @bee/collab...
 COPY packages/editor packages/editor
 COPY apps/collab apps/collab
-RUN pnpm --filter @bee/editor build && pnpm --filter @bee/collab build \
-  && pnpm install --frozen-lockfile --prod --filter @bee/collab...
+RUN pnpm --filter @bee/editor build && pnpm --filter @bee/collab build
+# Self-contained production install: built workspace packages + prod dependencies only.
+RUN pnpm --filter @bee/collab --prod --config.auto-install-peers=false deploy --legacy /out
 
 FROM node:24-alpine
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=build /app /app
-WORKDIR /app/apps/collab
+COPY --from=build /out /app
 USER node
 EXPOSE 1234
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:1234/health || exit 1
