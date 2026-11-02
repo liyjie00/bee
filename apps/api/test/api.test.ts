@@ -1,15 +1,18 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { markdownToYUpdate } from '@bee/editor/markdown';
+import { sql } from 'drizzle-orm';
 import { client, setup, signup, type App } from './helpers.js';
 
 let app: App;
 let pool: { end: () => Promise<void> };
+let db: Awaited<ReturnType<typeof setup>>['db'];
 const SECRET = { 'x-collab-secret': 'test-secret' };
 
 beforeAll(async () => {
   const s = await setup();
   app = s.app;
   pool = s.pool;
+  db = s.db;
 });
 afterAll(async () => {
   await app.close();
@@ -248,6 +251,17 @@ describe('share links', () => {
     ).json.link;
     expect(again.token).toBe(link.token);
     expect((await anon.get(`/api/share/${link.token}`)).status).toBe(200);
+
+    // Older tokens (links replaced before links were kept stable) open the current link.
+    await db.execute(
+      sql`insert into share_links (document_id, token, role, public, revoked_at, created_by, created_at)
+          values (${doc.id}, 'oldtoken-0123456789', 'viewer', false, now(), ${owner.user.id}, now() - interval '1 day')`,
+    );
+    const old = await anon.get(`/api/share/oldtoken-0123456789`);
+    expect(old.status).toBe(200);
+    expect(old.json.document.id).toBe(doc.id);
+    await owner.c.del(`/api/links/${link.id}`);
+    expect((await anon.get(`/api/share/oldtoken-0123456789`)).status).toBe(403);
   });
 });
 

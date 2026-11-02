@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   documentEmbeds,
   documents,
@@ -108,19 +108,30 @@ const toGrant = (p: PermRow): Grant => ({
   role: p.role,
 });
 
-/** A share link that is not revoked or expired, optionally bound to a document. */
+const liveLink = (l: ShareLinkRow): boolean =>
+  !l.revokedAt && !(l.expiresAt && l.expiresAt.getTime() < Date.now());
+
+/**
+ * The share link a token opens, optionally bound to a document. Every link a document
+ * ever had keeps working while the document is shared: an older token (from before
+ * sharing was switched or turned off and on) stands for the document's current link.
+ */
 export async function validShareLink(
   db: Db,
   token: string | undefined | null,
   documentId?: string,
 ): Promise<ShareLinkRow | null> {
   if (!token) return null;
-  const rows = await db.select().from(shareLinks).where(eq(shareLinks.token, token)).limit(1);
-  const link = rows[0];
-  if (!link || link.revokedAt) return null;
-  if (link.expiresAt && link.expiresAt.getTime() < Date.now()) return null;
-  if (documentId && link.documentId !== documentId) return null;
-  return link;
+  const [link] = await db.select().from(shareLinks).where(eq(shareLinks.token, token)).limit(1);
+  if (!link || (documentId && link.documentId !== documentId)) return null;
+  if (liveLink(link)) return link;
+  const [current] = await db
+    .select()
+    .from(shareLinks)
+    .where(and(eq(shareLinks.documentId, link.documentId), isNull(shareLinks.revokedAt)))
+    .orderBy(desc(shareLinks.createdAt))
+    .limit(1);
+  return current && liveLink(current) ? current : null;
 }
 
 /**
