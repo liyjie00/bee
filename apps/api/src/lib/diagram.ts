@@ -393,6 +393,28 @@ function elbowRoute(
   return simplify(down ? pts : pts.map(([x, y]) => [y, x]));
 }
 
+/**
+ * Top-left corner for a w×h label beside the middle of a polyline: above a horizontal-ish stretch,
+ * right of a vertical one, so the line itself stays whole.
+ */
+export function labelBeside(pts: [number, number][], w: number, h: number): [number, number] {
+  const [mx, my] = midpoint(pts);
+  const seg = midSegment(pts);
+  const horizontal = Math.abs(seg[0]) >= Math.abs(seg[1]);
+  return horizontal ? [mx - w / 2, my - h - 6] : [mx + 8, my - h / 2];
+}
+
+/** Direction of the segment that holds the polyline's midpoint. */
+function midSegment(pts: [number, number][]): [number, number] {
+  const lens = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i]![0], p[1] - pts[i]![1]));
+  let half = lens.reduce((a, b) => a + b, 0) / 2;
+  for (let i = 0; i < lens.length; i++) {
+    if (half <= lens[i]!) return [pts[i + 1]![0] - pts[i]![0], pts[i + 1]![1] - pts[i]![1]];
+    half -= lens[i]!;
+  }
+  return [1, 0];
+}
+
 /** Point halfway along a polyline. */
 function midpoint(pts: [number, number][]): [number, number] {
   const lens = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i]![0], p[1] - pts[i]![1]));
@@ -466,10 +488,7 @@ export function diagramElements(
     // Elbows for edges going forward between auto-placed shapes; back edges and pinned shapes
     // keep a straight line, which Excalidraw leaves alone.
     const elbow =
-      d.arrows === 'elbow' &&
-      layerOf.get(e.to)! > lf &&
-      !pinned.has(e.from) &&
-      !pinned.has(e.to);
+      d.arrows === 'elbow' && layerOf.get(e.to)! > lf && !pinned.has(e.from) && !pinned.has(e.to);
     let pts: [number, number][];
     if (elbow) {
       pts = elbowRoute(from, to, via, bands, lf, down, 6);
@@ -522,10 +541,15 @@ export function diagramElements(
     (endShape.boundElements as unknown[]).push({ type: 'arrow', id: arrow.id });
     out.push(arrow);
     if (e.label) {
-      const mid = midpoint(pts);
-      const label = textElement(e.label, mid[0], mid[1], arrow.id);
+      // Free text beside the line rather than bound to it: Excalidraw cuts a bound label's gap out
+      // of the line, and free text can be dragged anywhere. customData keeps the link for reading.
+      const label = textElement(e.label, 0, 0, null);
       label.fontSize = 16;
-      arrow.boundElements = [{ type: 'text', id: label.id }];
+      label.width = Math.max(...e.label.split('\n').map((l) => textWidth(l, 16)), 1);
+      label.height = e.label.split('\n').length * 16 * LINE_HEIGHT;
+      label.textAlign = 'left';
+      [label.x, label.y] = labelBeside(pts, label.width, label.height);
+      label.customData = { labelFor: arrow.id };
       out.push(label);
     }
   });
@@ -573,13 +597,23 @@ export function describeBoard(elements: Element[]): string {
     for (const a of arrows) {
       const start = (a.startBinding as { elementId?: string } | null)?.elementId;
       const end = (a.endBinding as { elementId?: string } | null)?.elementId;
-      const label = live.find((t) => t.type === 'text' && t.containerId === a.id);
+      const label = live.find(
+        (t) =>
+          t.type === 'text' &&
+          (t.containerId === a.id ||
+            (t.customData as { labelFor?: string } | undefined)?.labelFor === a.id),
+      );
       lines.push(
         `- ${start ? labelOf(start) : 'unbound'} -> ${end ? labelOf(end) : 'unbound'}${label ? ` (label ${JSON.stringify(label.text)})` : ''}`,
       );
     }
   }
-  const free = live.filter((e) => e.type === 'text' && !e.containerId);
+  const free = live.filter(
+    (e) =>
+      e.type === 'text' &&
+      !e.containerId &&
+      !(e.customData as { labelFor?: string } | undefined)?.labelFor,
+  );
   if (free.length) {
     lines.push('Text:');
     for (const t of free)
