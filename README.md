@@ -37,6 +37,41 @@ pnpm db:migrate
 pnpm dev
 ```
 
+## Production on a Mac mini (bee.zippyzoo.dev)
+
+The reference deployment runs the same `docker-compose.yml` on a Mac mini
+(OrbStack or Docker Desktop) behind a Cloudflare Tunnel:
+
+1. On the Mac mini, install a Docker runtime and `cloudflared`, and run the
+   tunnel connector from the Cloudflare dashboard (Zero Trust → Networks →
+   Tunnels). Add a public hostname `bee.zippyzoo.dev` → `http://localhost:7070`.
+2. From a development machine with SSH access (`ssh mac-mini` must work):
+
+   ```bash
+   deploy/sync.sh
+   ```
+
+   This refuses uncommitted or non-`main` work, runs typecheck and tests
+   locally (needs `docker compose up -d postgres`), ships `git archive HEAD`
+   to `~/Documents/bee` on the mini, creates `.env` there with fresh secrets
+   on first deploy (kept afterwards), then runs `docker compose up -d --build`
+   and waits for `http://localhost:7070/api/health`.
+   Override the target with `BEE_DEPLOY_HOST` / `BEE_DEPLOY_DIR`.
+
+Data lives in the `bee_pgdata` and `bee_uploads` docker volumes on the mini.
+Back them up with e.g. `docker compose exec postgres pg_dump -U bee bee > backup.sql`.
+
+## Configuration
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `BEE_PUBLIC_URL` | `http://localhost:7070` | Used for share links, secure cookies and the CSRF origin check |
+| `SESSION_SECRET`, `COLLAB_SECRET` | required | Long random strings |
+| `ALLOWED_ORIGINS` | `http://localhost:7070` | Extra origins allowed to make cookie-authenticated requests |
+| `ALLOW_REGISTRATION` | `true` | Set `false` to close sign-ups |
+| `MAX_UPLOAD_MB` | `25` | Per-file upload limit |
+| `BEE_PORT` | `7070` | Host port of the proxy |
+
 ## License
 
 AGPL-3.0-only. Contributions require agreeing to [CLA.md](CLA.md).
