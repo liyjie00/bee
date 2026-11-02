@@ -14,6 +14,7 @@ import { ImageUpload, type UploadImage } from './image-upload.js';
 import { MarkdownPaste } from './markdown-paste.js';
 import type { BeeUser } from './collab.js';
 import { IdleCollaborationCaret } from './caret-idle.js';
+import { TableSheet } from './table-sheet.js';
 
 export interface BuildOptions {
   ydoc?: Y.Doc;
@@ -49,7 +50,11 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
     return ext;
   });
 
-  const extensions: AnyExtension[] = [...base, CommentHighlights.configure({ onClick: opts.onCommentClick ?? null })];
+  const extensions: AnyExtension[] = [
+    ...base,
+    CommentHighlights.configure({ onClick: opts.onCommentClick ?? null }),
+    TableSheet.configure({ headers: opts.editable }),
+  ];
   if (opts.placeholder) {
     extensions.push(
       Placeholder.configure({

@@ -9,6 +9,8 @@ export { blockLink, blockIdFromHash, findBlockPos, scrollToBlock } from './react
 export { insertMarkdown, editorToMarkdown, looksLikeMarkdown } from './react/markdown-paste.js';
 export { insertImages, type UploadImage } from './react/image-upload.js';
 export { builtinMessages, resolveMessages, type Locale, type Messages } from './react/i18n.js';
+export { TableSheet } from './react/table-sheet.js';
+export { Sheet, columnName, columnIndex, isFormula, type Grid } from './react/formula.js';
 export { filterSlashItems } from './react/SlashMenu.js';
 export { schemaExtensions, BLOCK_ID_ATTR, BLOCK_TYPES } from './schema/index.js';
 export type { Editor } from '@tiptap/react';

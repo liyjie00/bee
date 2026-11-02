@@ -616,3 +616,77 @@
     display: none;
   }
 }
+
+/* spreadsheet tables: computed formulas and A/B/C · 1/2/3 headers */
+.bee-prose td.bee-formula-cell > :not(.bee-formula-value):not(.bee-sheet-head),
+.bee-prose th.bee-formula-cell > :not(.bee-formula-value):not(.bee-sheet-head) {
+  display: none;
+}
+.bee-prose .bee-formula-value {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+.bee-prose .bee-formula-value.is-error {
+  color: var(--be-del-ink);
+  font-size: 13px;
+}
+.bee-prose .bee-formula-editing {
+  font-family: var(--be-mono);
+  font-size: 13px;
+}
+.bee-prose.bee-sheet-headers .tableWrapper {
+  margin-left: -34px;
+  padding: 22px 0 2px 34px;
+}
+.bee-prose .bee-sheet-head {
+  position: absolute;
+  display: flex;
+  user-select: none;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--be-fg-3);
+  font-variant-numeric: tabular-nums;
+}
+.bee-prose .bee-sheet-head[hidden] {
+  display: none;
+}
+.bee-prose .bee-sheet-head-col {
+  left: -1px;
+  right: -1px;
+  top: -21px;
+  height: 20px;
+}
+.bee-prose .bee-sheet-head-row {
+  flex-direction: column;
+  top: -1px;
+  bottom: -1px;
+  left: -33px;
+  width: 32px;
+}
+.bee-prose .bee-sheet-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--be-sunk);
+  border: 1px solid var(--be-line);
+  cursor: pointer;
+}
+.bee-prose .bee-sheet-head-col .bee-sheet-label + .bee-sheet-label {
+  border-left: 0;
+}
+.bee-prose .bee-sheet-head-row .bee-sheet-label + .bee-sheet-label {
+  border-top: 0;
+}
+.bee-prose .bee-sheet-head-col .bee-sheet-label {
+  border-bottom: 0;
+}
+.bee-prose .bee-sheet-head-row .bee-sheet-label {
+  border-right: 0;
+}
+.bee-prose .bee-sheet-label:hover,
+.bee-prose .bee-sheet-label.is-active {
+  color: var(--be-fg);
+  background: color-mix(in srgb, var(--be-honey) 22%, var(--be-sunk));
+}
