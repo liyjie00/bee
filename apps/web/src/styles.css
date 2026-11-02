@@ -502,3 +502,12 @@ input,textarea,select{font:inherit;color:var(--fg)}
 .ai-keyform{display:flex;flex-direction:column;gap:8px;width:100%}
 .ai-fine{font-size:11.5px;color:var(--fg-3);line-height:1.5;margin:0}
 .ai-keyform input[type=password]{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:0}
+/* Ask AI button: a soft honey shimmer with a twinkle */
+.ai-btn .i{color:var(--honey);animation:ai-twinkle 2.4s ease-in-out infinite;filter:drop-shadow(0 0 0 transparent)}
+.ai-btn:hover .i,.ai-btn.on .i{animation-duration:1.2s}
+@keyframes ai-twinkle{
+  0%,100%{transform:scale(1) rotate(0);opacity:.85;filter:drop-shadow(0 0 0 transparent)}
+  45%{transform:scale(1.12) rotate(8deg);opacity:1;filter:drop-shadow(0 0 4px var(--honey))}
+  55%{transform:scale(1.05) rotate(4deg);opacity:1;filter:drop-shadow(0 0 2px var(--honey))}
+}
+@media (prefers-reduced-motion:reduce){.ai-btn .i{animation:none}}

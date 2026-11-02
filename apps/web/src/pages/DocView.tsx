@@ -214,7 +214,7 @@ export function DocView({
             </button>
           )}
           {canAi && (
-            <button className={'ico' + (showAi ? ' on' : '')} aria-label={t('ai.open')} title={t('ai.open')} onClick={() => setAi((a) => !a)}>
+            <button className={'ico ai-btn' + (showAi ? ' on' : '')} aria-label={t('ai.open')} title={t('ai.open')} onClick={() => setAi((a) => !a)}>
               <Icon name="spark" />
             </button>
           )}
