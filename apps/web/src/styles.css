@@ -186,6 +186,10 @@ article.page{max-width:1140px}
 .thread{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .thread.active{border-color:var(--honey);box-shadow:0 0 0 3px var(--honey-wash)}
 .thread.resolved{opacity:.65}
+/* line from the active comment card to its highlighted text */
+.cm-connector{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:31;overflow:visible}
+.cm-connector path{fill:none;stroke:var(--honey);stroke-width:1;opacity:.55}
+.cm-connector circle{fill:var(--honey);opacity:.7}
 .quote{font-size:12.5px;color:var(--fg-2);border-left:3px solid var(--honey);padding-left:8px;line-height:1.45}
 .cm{display:flex;gap:8px}
 .cm .who{font-size:12.5px;font-weight:500}.cm .who time{color:var(--fg-3);font-weight:400;margin-left:6px;font-size:11.5px}

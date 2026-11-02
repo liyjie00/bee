@@ -5,6 +5,7 @@ import { can, parseBlockFragment } from '@bee/shared';
 import { api, guestName, HttpError } from '../api/http';
 import type { ActivityDTO, CommentAnchor, CommentThreadDTO, DocumentDTO, UserDTO } from '../api/types';
 import { AskAiPanel } from '../components/AskAiPanel';
+import { CommentConnector } from '../components/CommentConnector';
 import { CommentsPanel, type Draft, type GuestIdentity } from '../components/CommentsPanel';
 import { Icon } from '../components/Icon';
 import { Avatar } from '../components/Menu';
@@ -366,6 +367,7 @@ export function DocView({
           onActivityTab={() => api.activity(doc.id).then(setActivity, () => setActivity([]))}
         />
       )}
+      {showPanel && !isBoard && <CommentConnector activeId={activeId} />}
       {showAi && <AskAiPanel documentId={doc.id} onClose={() => setAi(false)} />}
       {share && <ShareDialog doc={doc} onClose={() => setShare(false)} onChange={setAccess} />}
     </>

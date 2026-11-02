@@ -148,6 +148,7 @@ export function CommentsPanel({
           {shown.map((th) => (
             <div
               key={th.id}
+              data-thread-id={th.id}
               ref={th.id === activeId ? activeRef : undefined}
               className={'thread' + (th.id === activeId ? ' active' : '') + (th.resolved ? ' resolved' : '')}
               onClick={() => onActivate(th.id)}
