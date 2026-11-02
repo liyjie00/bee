@@ -53,7 +53,7 @@ const zhCN = {
   whiteboard: '白板',
   whiteboardHint: '新建 Excalidraw 白板并嵌入',
   linkWhiteboard: '插入已有白板',
-  linkWhiteboardHint: '嵌入一个已有的白板，实时同步',
+  linkWhiteboardHint: '嵌入已有白板，实时同步',
   divider: '分割线',
   dividerHint: '用 --- 也可以',
   // table toolbar
@@ -144,7 +144,7 @@ const en: Messages = {
   whiteboard: 'Whiteboard',
   whiteboardHint: 'Create and embed an Excalidraw board',
   linkWhiteboard: 'Existing whiteboard',
-  linkWhiteboardHint: 'Embed a whiteboard you already have, live',
+  linkWhiteboardHint: 'Embed a board you already have',
   divider: 'Divider',
   dividerHint: 'Or type ---',
   tableRow: 'Row',

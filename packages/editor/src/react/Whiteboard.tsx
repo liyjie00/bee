@@ -124,9 +124,14 @@ function Board({ ydoc, provider, user, editable, embedded, fitContent, locale, t
         apiRef.current = api;
         applyRemote();
         if (fitContent)
-          requestAnimationFrame(() =>
-            api.scrollToContent(undefined, { fitToViewport: true, viewportZoomFactor: 0.9, animate: false }),
-          );
+          requestAnimationFrame(() => {
+            api.scrollToContent(undefined, { fitToViewport: true, viewportZoomFactor: 0.75, animate: false });
+            // Don't blow small drawings up past 100%.
+            if (api.getAppState().zoom.value > 1) {
+              api.updateScene({ appState: { zoom: { value: 1 as never } } });
+              api.scrollToContent(undefined, { animate: false });
+            }
+          });
       }}
       initialData={{ elements: [...elementsMap.values()].map((el) => structuredClone(el)), files: Object.fromEntries(filesMap.entries()) }}
       onChange={onChange}
