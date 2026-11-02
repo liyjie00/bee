@@ -280,4 +280,32 @@ describe('collab server', () => {
     });
     expect(missing.status).toBe(409);
   });
+  it('upserts whiteboard elements live and embeds blocks into docs', async () => {
+    const a = connect('board1', 'editor-a');
+    await waitFor(() => a.isSynced());
+    const el = { id: 'r1', type: 'rectangle', version: 1, isDeleted: false };
+    let res = await fetch(`${httpUrl}/internal/documents/board1/whiteboard`, {
+      method: 'POST',
+      headers: { 'x-collab-secret': SECRET },
+      body: JSON.stringify({ elements: [el], authorId: 'user-x' }),
+    });
+    expect(res.status).toBe(200);
+    await waitFor(() => a.document.getMap('elements').has('r1'));
+    res = await fetch(`${httpUrl}/internal/documents/board1/whiteboard`, { headers: { 'x-collab-secret': SECRET } });
+    expect(await res.json()).toEqual({ elements: [el] });
+    await waitFor(() => (api.storeAuthors.get('board1') ?? []).includes('user-x'));
+
+    api.states.set('doc10', markdownToYUpdate('text'));
+    res = await fetch(`${httpUrl}/internal/documents/doc10/whiteboard`, {
+      method: 'POST',
+      headers: { 'x-collab-secret': SECRET },
+      body: JSON.stringify({ elements: [el] }),
+    });
+    expect(res.status).toBe(400);
+    res = await edit('doc10', { mode: 'append_blocks', blocks: [{ type: 'whiteboard', attrs: { documentId: 'board1', height: 420 } }] });
+    expect(res.status).toBe(200);
+    const doc = new Y.Doc();
+    Y.applyUpdate(doc, api.states.get('doc10')!);
+    expect(doc.getXmlFragment('default').toJSON()).toContain('board1');
+  });
 });

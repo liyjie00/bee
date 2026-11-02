@@ -75,4 +75,4 @@ export function jsonToText(node: JSONNode): string {
   const sep = node.type === 'doc' || node.type.endsWith('List') || node.type === 'table' ? '\n' : node.type === 'tableRow' ? '\t' : '';
   return (node.content ?? []).map(jsonToText).join(sep);
 }
-export { applyMarkdown, type ApplyResult } from './apply.js';
+export { appendBlocks, applyMarkdown, type ApplyResult } from './apply.js';

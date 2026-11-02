@@ -8,6 +8,8 @@ let app: App;
 let pool: { end: () => Promise<void> };
 let fakeCollab: Server;
 const collabCalls: { method: string; url: string; body: string }[] = [];
+/** whiteboard id -> elements, for the fake collab server */
+const boards = new Map<string, Record<string, unknown>[]>();
 
 beforeAll(async () => {
   // Stand-in for the collab server's internal Markdown endpoints.
@@ -17,6 +19,16 @@ beforeAll(async () => {
     req.on('end', () => {
       collabCalls.push({ method: req.method!, url: req.url!, body });
       res.setHeader('content-type', 'application/json');
+      const board = /\/internal\/documents\/([^/]+)\/whiteboard$/.exec(req.url!);
+      if (board) {
+        const list = boards.get(board[1]!) ?? [];
+        if (req.method === 'GET') return res.end(JSON.stringify({ elements: list }));
+        const { elements } = JSON.parse(body) as { elements: { id: string }[] };
+        const byId = new Map(list.map((e) => [e.id as string, e]));
+        for (const e of elements) byId.set(e.id, e);
+        boards.set(board[1]!, [...byId.values()]);
+        return res.end(JSON.stringify({ updated: elements.length }));
+      }
       if (req.url!.endsWith('/anchor')) {
         const { quote } = JSON.parse(body) as { quote: string };
         if (quote === 'absent') {
@@ -398,5 +410,72 @@ describe('mcp', () => {
     expect((await callTool(token, 'trash_document', { documentId: docId })).text).toBe(
       'Moved to the trash.',
     );
+  });
+
+  it('draws diagrams on new, existing and embedded whiteboards', async () => {
+    const { c } = await signup(app, 'mcp3');
+    const token = (await c.post('/api/tokens', { name: 't' })).json.secret as string;
+    const nodes = [
+      { id: 'a', label: 'Start', shape: 'ellipse', color: 'green' },
+      { id: 'b', label: 'Check', shape: 'diamond' },
+      { id: 'c', label: '完成' },
+    ];
+    const edges = [
+      { from: 'a', to: 'b' },
+      { from: 'b', to: 'c', label: 'yes' },
+    ];
+    const drawn = await callTool(token, 'draw_diagram', { title: 'Flow', nodes, edges });
+    expect(drawn.isError).toBe(false);
+    expect(drawn.text).toContain('Drew 3 shape(s) and 2 arrow(s)');
+    const boardId = /whiteboard ([0-9a-f-]{36})/.exec(drawn.text)![1]!;
+    expect(boards.get(boardId)).toHaveLength(3 * 2 + 2 + 1);
+
+    const read = await callTool(token, 'read_whiteboard', { documentId: boardId });
+    expect(read.text).toContain('ellipse "Start"');
+    expect(read.text).toContain('"Check" -> "完成" (label "yes")');
+
+    const again = await callTool(token, 'draw_diagram', {
+      documentId: boardId,
+      mode: 'replace',
+      nodes: [{ id: 'x', label: 'Only' }],
+    });
+    expect(again.text).toContain('after clearing 9 element(s)');
+    expect((await callTool(token, 'read_whiteboard', { documentId: boardId })).text).not.toContain(
+      'Start',
+    );
+
+    const bad = await callTool(token, 'draw_diagram', {
+      nodes: [{ id: 'a', label: 'A' }],
+      edges: [{ from: 'a', to: 'zz' }],
+    });
+    expect(bad.isError).toBe(true);
+    expect(bad.text).toContain('unknown node');
+
+    const doc = await callTool(token, 'create_document', { title: 'Spec', markdown: 'Body' });
+    const docId = /id: ([0-9a-f-]{36})/.exec(doc.text)![1]!;
+    const embedded = await callTool(token, 'draw_diagram', {
+      embedInDocumentId: docId,
+      nodes,
+      edges,
+    });
+    expect(embedded.text).toContain(`embedded it at the end of document ${docId}`);
+    const append = collabCalls.findLast((x) => x.url === `/internal/documents/${docId}/markdown`)!;
+    expect(JSON.parse(append.body)).toMatchObject({
+      mode: 'append_blocks',
+      blocks: [{ type: 'whiteboard' }],
+    });
+
+    // Not a whiteboard / no access.
+    expect((await callTool(token, 'draw_diagram', { documentId: docId, nodes })).isError).toBe(
+      true,
+    );
+    const other = await signup(app, 'mcp4');
+    const otherToken = (await other.c.post('/api/tokens', { name: 't' })).json.secret as string;
+    expect(
+      (await callTool(otherToken, 'draw_diagram', { documentId: boardId, nodes })).isError,
+    ).toBe(true);
+    expect(
+      (await callTool(otherToken, 'draw_diagram', { embedInDocumentId: docId, nodes })).isError,
+    ).toBe(true);
   });
 });

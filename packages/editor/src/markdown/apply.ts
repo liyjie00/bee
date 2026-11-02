@@ -144,3 +144,16 @@ export function applyMarkdown(
   });
   return result;
 }
+
+/** Appends Tiptap JSON blocks (e.g. a whiteboard embed) at the end of a live document. */
+export function appendBlocks(ydoc: Y.Doc, blocks: JSONNode[], field = RICH_TEXT_FIELD): ApplyResult {
+  const fragment = ydoc.getXmlFragment(field);
+  const cur = yDocToJSON(ydoc, field).content ?? [];
+  const empty = cur.length === 1 && cur[0]!.type === 'paragraph' && !cur[0]!.content?.length;
+  const items = yBlocks(blocks, field);
+  ydoc.transact(() => {
+    if (empty && items.length) fragment.delete(0, 1);
+    fragment.insert(fragment.length, items);
+  });
+  return { kept: empty ? 0 : cur.length, removed: empty && items.length ? 1 : 0, inserted: items.length };
+}

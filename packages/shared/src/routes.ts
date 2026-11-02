@@ -190,6 +190,34 @@ export interface MarkdownEditResponse extends MarkdownResponse {
 /** GET /api/documents/:id/blocks/:blockId → BlockLinkDTO */
 export type BlockLinkResponse = BlockLinkDTO;
 
+/**
+ * GET /api/documents/:id/whiteboard → { documentId, title, description, elements } (whiteboards;
+ * `elements` are the live Excalidraw elements, `description` a plain-text summary)
+ * POST /api/documents/:id/diagram (editor role; whiteboards) → DiagramResponse
+ * Draws nodes as shapes with bound labels and edges as bound arrows, laid out in layers.
+ */
+export interface DiagramBody {
+  nodes: {
+    id: string;
+    label: string;
+    shape?: 'rectangle' | 'ellipse' | 'diamond';
+    color?: string;
+    x?: number;
+    y?: number;
+  }[];
+  edges?: { from: string; to: string; label?: string; dashed?: boolean }[];
+  direction?: 'down' | 'right';
+  /** append (default): below what is on the board; replace: clear the board first */
+  mode?: 'append' | 'replace';
+}
+export interface DiagramResponse {
+  documentId: string;
+  added: number;
+  removed: number;
+  shapes: number;
+  arrows: number;
+}
+
 // ---------- versions ----------
 /** GET /api/documents/:id/versions */
 export interface VersionsResponse {

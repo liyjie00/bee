@@ -26,6 +26,7 @@ const INSTRUCTIONS = `Bee is a collaborative document editor (folders, Markdown 
 - Start with list_documents (or search_documents) to find ids; most tools take a documentId or folderId.
 - read_document returns the live content as Markdown. Prefer edit_document with mode "str_replace" for targeted edits: "find" must match the Markdown exactly once (copy it from read_document). Use "append" to add at the end, "replace" to rewrite everything. Edits show up live for people who have the document open; unchanged paragraphs keep their comments.
 - add_comment with a "quote" pins the comment to that text; without it the comment is about the whole document.
+- Diagrams: draw_diagram draws boxes with text and connecting arrows on a whiteboard (laid out automatically), on an existing board, a new one, or a new board embedded at the end of a document. read_whiteboard describes a board. For a quick diagram inside a document, a \`\`\`mermaid code block via edit_document also renders.
 - Whiteboards cannot be read or edited as Markdown.`;
 
 class ToolError extends Error {}
@@ -38,6 +39,7 @@ interface JsonRpcRequest {
 }
 
 type Ctx = {
+  userId: string;
   call: <T>(method: InjectOptions['method'], url: string, payload?: unknown) => Promise<T>;
   collab: CollabClient;
   publicUrl: string;
@@ -379,6 +381,114 @@ const TOOLS: Tool[] = [
     },
   }),
   tool({
+    name: 'read_whiteboard',
+    title: 'Read a whiteboard',
+    description:
+      'Describes a whiteboard: its shapes with their text, positions and fills, the arrows between them, and free text.',
+    input: z.object({ documentId: id }),
+    readOnly: true,
+    run: async (a, ctx) => {
+      const r = await ctx.call<{ title: string; description: string }>(
+        'GET',
+        `/api/documents/${a.documentId}/whiteboard`,
+      );
+      return `Whiteboard: ${r.title || 'Untitled'}\nURL: ${docUrl(ctx, a.documentId)}\n\n${r.description}`;
+    },
+  }),
+  tool({
+    name: 'draw_diagram',
+    title: 'Draw a diagram on a whiteboard',
+    description:
+      'Draws a diagram (flowchart, architecture, mind map...) on a whiteboard: each node becomes a shape with its label inside, each edge an arrow bound to both shapes, laid out automatically in layers (direction "down" or "right"). Targets: `documentId` of an existing whiteboard (mode "append" draws below what is there, "replace" clears it first); or omit it to create a new whiteboard (in `folderId`, or embedded at the end of the document `embedInDocumentId`). People who have the board open see it appear live.',
+    input: z.object({
+      documentId: id.optional().describe('Existing whiteboard to draw on'),
+      mode: z
+        .enum(['append', 'replace'])
+        .optional()
+        .describe('For an existing board (default append)'),
+      title: z.string().max(500).optional().describe('Title of a new whiteboard'),
+      folderId: id.optional().describe('Folder for a new whiteboard (default: workspace root)'),
+      workspaceId: id.optional(),
+      embedInDocumentId: id
+        .optional()
+        .describe('Create the board inside this document, appended at its end'),
+      direction: z.enum(['down', 'right']).optional().describe('Layout direction (default down)'),
+      nodes: z
+        .array(
+          z.object({
+            id: z.string().min(1).max(100).describe('Your id, used by edges'),
+            label: z.string().max(2000).describe('Text inside the shape; \\n for line breaks'),
+            shape: z.enum(['rectangle', 'ellipse', 'diamond']).optional(),
+            color: z
+              .string()
+              .max(32)
+              .optional()
+              .describe(
+                'Fill: blue, green, yellow, orange, red, pink, violet, grape, cyan, teal, gray, or #rrggbb',
+              ),
+            x: z.number().optional().describe('Optional manual position (overrides the layout)'),
+            y: z.number().optional(),
+          }),
+        )
+        .min(1)
+        .max(300),
+      edges: z
+        .array(
+          z.object({
+            from: z.string(),
+            to: z.string(),
+            label: z.string().max(500).optional(),
+            dashed: z.boolean().optional(),
+          }),
+        )
+        .max(1000)
+        .optional(),
+    }),
+    run: async (a, ctx) => {
+      let boardId = a.documentId;
+      let created = '';
+      if (!boardId) {
+        const create: Record<string, unknown> = { type: 'whiteboard', title: a.title ?? '' };
+        if (a.embedInDocumentId) create.parentDocumentId = a.embedInDocumentId;
+        else {
+          let ws = a.workspaceId;
+          if (!ws && a.folderId) {
+            const { folder } = await ctx.call<{ folder: FolderDTO }>(
+              'GET',
+              `/api/folders/${a.folderId}`,
+            );
+            ws = folder.workspaceId;
+          }
+          create.workspaceId = await defaultWorkspace(ctx, ws);
+          create.folderId = a.folderId ?? null;
+        }
+        const { document: d } = await ctx.call<{ document: DocumentDTO }>(
+          'POST',
+          '/api/documents',
+          create,
+        );
+        boardId = d.id;
+        created = `Created whiteboard ${d.id}`;
+      }
+      const r = await ctx.call<{ shapes: number; arrows: number; removed: number }>(
+        'POST',
+        `/api/documents/${boardId}/diagram`,
+        { nodes: a.nodes, edges: a.edges, direction: a.direction, mode: a.mode },
+      );
+      if (!a.documentId && a.embedInDocumentId) {
+        // Creating the board needed edit access on the parent, so the embed is allowed too.
+        await ctx.collab.appendBlocks(
+          a.embedInDocumentId,
+          [{ type: 'whiteboard', attrs: { documentId: boardId, height: 480 } }],
+          ctx.userId,
+        );
+        created += ` and embedded it at the end of document ${a.embedInDocumentId}`;
+      }
+      const url = docUrl(ctx, a.embedInDocumentId && !a.documentId ? a.embedInDocumentId : boardId);
+      return `${created ? created + '. ' : ''}Drew ${r.shapes} shape(s) and ${r.arrows} arrow(s)${r.removed ? ` after clearing ${r.removed} element(s)` : ''} on whiteboard ${boardId}.\nURL: ${url}`;
+    },
+  }),
+  tool({
     name: 'list_comments',
     title: 'List comments',
     description: 'Lists the comment threads on a document with their replies.',
@@ -485,6 +595,7 @@ export async function mcpRoutes(app: FastifyInstance) {
 
   async function handle(req: FastifyRequest, msg: JsonRpcRequest) {
     const ctx: Ctx = {
+      userId: req.user!.id,
       collab,
       publicUrl,
       call: async <T>(method: InjectOptions['method'], url: string, payload?: unknown) => {

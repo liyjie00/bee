@@ -1,4 +1,5 @@
 import type { CommentAnchor, MarkdownEditBody } from '@bee/shared';
+import type { Element } from './diagram.js';
 import type { Config } from '../env.js';
 import { HttpError } from './errors.js';
 
@@ -74,5 +75,32 @@ export class CollabClient {
     if (res.status === 409 && body?.error)
       throw new HttpError(409, 'quote_not_found', body.error.message);
     throw new HttpError(502, 'collab_failed', 'Could not anchor the comment');
+  }
+
+  /** All Excalidraw elements of a whiteboard (live when open), including deleted ones. */
+  async whiteboardElements(documentId: string): Promise<Element[]> {
+    const res = await this.request(`${documentId}/whiteboard`);
+    if (!res.ok) throw new HttpError(502, 'collab_failed', 'Could not read the whiteboard');
+    return ((await res.json()) as { elements: Element[] }).elements;
+  }
+
+  /** Upserts whiteboard elements as a live edit. */
+  async putWhiteboardElements(documentId: string, elements: Element[], authorId: string) {
+    const res = await this.request(`${documentId}/whiteboard`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ elements, authorId }),
+    });
+    if (!res.ok) throw new HttpError(502, 'collab_failed', 'Could not update the whiteboard');
+  }
+
+  /** Appends Tiptap JSON blocks to a rich-text document (e.g. a whiteboard embed). */
+  async appendBlocks(documentId: string, blocks: unknown[], authorId: string) {
+    const res = await this.request(`${documentId}/markdown`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ mode: 'append_blocks', blocks, authorId }),
+    });
+    if (!res.ok) throw new HttpError(502, 'collab_failed', 'Could not update the document');
   }
 }

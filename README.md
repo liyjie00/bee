@@ -78,7 +78,8 @@ Back them up with e.g. `docker compose exec postgres pg_dump -U bee bee > backup
 
 Bee is a remote MCP server at `<BEE_PUBLIC_URL>/mcp` (Streamable HTTP). Claude can list
 folders and documents, search, read documents as Markdown, create and edit them, rename and
-move them, and read, add, reply to and resolve comments, always with the signed-in user's
+move them, draw diagrams on whiteboards (new, existing, or embedded in a document) and
+describe them, and read, add, reply to and resolve comments, always with the signed-in user's
 permissions. Edits go through the collab server as ordinary Yjs changes, so people who have
 the document open see them live; only the top-level blocks whose Markdown changed are
 replaced, so other paragraphs keep their comments and block links.

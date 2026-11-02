@@ -1,6 +1,6 @@
 import { Server, type Extension } from '@hocuspocus/server';
 import * as Y from 'yjs';
-import { applyMarkdown, yDocToMarkdown } from '@bee/editor/markdown';
+import { appendBlocks, applyMarkdown, yDocToMarkdown, type JSONNode } from '@bee/editor/markdown';
 import { ApiClient, ApiError, type Role } from './api-client.js';
 import type { CollabConfig } from './config.js';
 import { replaceDocContent } from './restore.js';
@@ -24,6 +24,9 @@ const DOCUMENT_NAME = /^[A-Za-z0-9_-]{1,64}$/;
 const RESTORE_PATH = /^\/internal\/documents\/([A-Za-z0-9_-]{1,64})\/restore$/;
 const MARKDOWN_PATH = /^\/internal\/documents\/([A-Za-z0-9_-]{1,64})\/markdown$/;
 const ANCHOR_PATH = /^\/internal\/documents\/([A-Za-z0-9_-]{1,64})\/anchor$/;
+const WHITEBOARD_PATH = /^\/internal\/documents\/([A-Za-z0-9_-]{1,64})\/whiteboard$/;
+/** Y.Map holding a whiteboard's Excalidraw elements, keyed by element id. */
+const WHITEBOARD_ELEMENTS = 'elements';
 const MAX_INTERNAL_BODY = 64 * 1024 * 1024;
 
 function readBody(req: IncomingMessage): Promise<Buffer> {
@@ -54,6 +57,16 @@ function send(res: ServerResponse, status: number, body = '') {
   res.end(body);
 }
 
+/** Parses a JSON request body, answering 400 itself (and returning null) when it is invalid. */
+async function readJSON<T>(req: IncomingMessage, res: ServerResponse): Promise<T | null> {
+  try {
+    return JSON.parse((await readBody(req)).toString('utf8')) as T;
+  } catch {
+    sendJSON(res, 400, { error: { code: 'validation', message: 'Invalid JSON body' } });
+    return null;
+  }
+}
+
 function sendJSON(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { 'content-type': 'application/json' });
   res.end(JSON.stringify(body));
@@ -61,7 +74,9 @@ function sendJSON(res: ServerResponse, status: number, body: unknown) {
 
 /** Body of POST /internal/documents/:id/markdown. */
 export interface MarkdownEdit {
-  mode: 'replace' | 'append' | 'str_replace';
+  mode: 'replace' | 'append' | 'str_replace' | 'append_blocks';
+  /** append_blocks: Tiptap JSON blocks, e.g. a whiteboard embed */
+  blocks?: JSONNode[];
   /** replace / append */
   markdown?: string;
   /** str_replace: exact text of the current Markdown to find, and its replacement */
@@ -138,6 +153,10 @@ export function editDocument(doc: Y.Doc, edit: MarkdownEdit) {
     const next = current.split(find).join(edit.replace ?? '');
     return { ...applyMarkdown(doc, next, 'replace', RICH_TEXT_FIELD), occurrences: count };
   }
+  if (edit.mode === 'append_blocks') {
+    if (!Array.isArray(edit.blocks)) throw new EditError('validation', '`blocks` is required');
+    return appendBlocks(doc, edit.blocks, RICH_TEXT_FIELD);
+  }
   if (typeof edit.markdown !== 'string') throw new EditError('validation', '`markdown` is required');
   return applyMarkdown(doc, edit.markdown, edit.mode, RICH_TEXT_FIELD);
 }
@@ -185,6 +204,31 @@ export function createCollabServer(config: CollabConfig, api = new ApiClient(con
     }
   }
 
+  /**
+   * Runs `edit` on the live document through a direct connection, attributes it to `authorId`
+   * (direct connections skip onChange) and persists it. Returns the document after the edit.
+   */
+  async function editLive(
+    instance: Server<ConnectionContext>['hocuspocus'],
+    name: string,
+    authorId: string | undefined,
+    edit: (doc: Y.Doc) => void,
+  ): Promise<Y.Doc> {
+    const connection = await instance.openDirectConnection(name, { userId: authorId ?? null, role: 'owner' });
+    try {
+      await connection.transact(edit);
+      const state = versionState(name);
+      state.dirty = true;
+      if (authorId) {
+        state.authors.add(authorId);
+        state.storeAuthors.add(authorId);
+      }
+      return connection.document!;
+    } finally {
+      await connection.disconnect().catch((err) => console.error('[collab] disconnect failed:', err));
+    }
+  }
+
   /** The live document when it is open, otherwise a copy built from the stored state. */
   async function readDoc(
     instance: Server<ConnectionContext>['hocuspocus'],
@@ -214,6 +258,7 @@ export function createCollabServer(config: CollabConfig, api = new ApiClient(con
         const restore = RESTORE_PATH.exec(path);
         const markdown = MARKDOWN_PATH.exec(path);
         const anchor = ANCHOR_PATH.exec(path);
+        const whiteboard = WHITEBOARD_PATH.exec(path);
         if (!secretMatches(request.headers['x-collab-secret'], config.collabSecret)) send(response, 401, 'unauthorized');
         else if (restore && request.method === 'POST') {
           try {
@@ -248,38 +293,45 @@ export function createCollabServer(config: CollabConfig, api = new ApiClient(con
             send(response, 500, 'anchor failed');
           }
         } else if (markdown && request.method === 'POST') {
-          const name = markdown[1]!;
-          let edit: MarkdownEdit;
+          const edit = await readJSON<MarkdownEdit>(request, response);
+          if (!edit) return Promise.reject();
           try {
-            edit = JSON.parse((await readBody(request)).toString('utf8')) as MarkdownEdit;
-          } catch {
-            sendJSON(response, 400, { error: { code: 'validation', message: 'Invalid JSON body' } });
-            return Promise.reject();
-          }
-          let connection: Awaited<ReturnType<typeof instance.openDirectConnection>> | undefined;
-          try {
-            connection = await instance.openDirectConnection(name, { userId: edit.authorId ?? null, role: 'owner' });
             let result: ReturnType<typeof editDocument> | undefined;
-            await connection.transact((doc) => {
-              result = editDocument(doc, edit);
+            const doc = await editLive(instance, markdown[1]!, edit.authorId, (d) => {
+              result = editDocument(d, edit);
             });
-            // Direct connections skip onChange, so record the author for the store and the next snapshot.
-            const state = versionState(name);
-            state.dirty = true;
-            if (edit.authorId) {
-              state.authors.add(edit.authorId);
-              state.storeAuthors.add(edit.authorId);
-            }
-            const doc = connection.document!;
-            const md = yDocToMarkdown(doc, RICH_TEXT_FIELD);
-            await connection.disconnect();
-            connection = undefined;
-            sendJSON(response, 200, { ...result, markdown: md });
+            sendJSON(response, 200, { ...result, markdown: yDocToMarkdown(doc, RICH_TEXT_FIELD) });
           } catch (err) {
-            await connection?.disconnect().catch(() => {});
             if (err instanceof EditError) sendJSON(response, err.code === 'not_found' || err.code === 'ambiguous' ? 409 : 400, { error: { code: err.code, message: err.message } });
             else {
               console.error('[collab] markdown edit failed:', err);
+              sendJSON(response, 500, { error: { code: 'internal', message: 'Edit failed' } });
+            }
+          }
+        } else if (whiteboard && request.method === 'GET') {
+          try {
+            const { doc } = await readDoc(instance, whiteboard[1]!);
+            sendJSON(response, 200, { elements: [...doc.getMap(WHITEBOARD_ELEMENTS).values()] });
+          } catch (err) {
+            console.error('[collab] whiteboard read failed:', err);
+            send(response, 500, 'read failed');
+          }
+        } else if (whiteboard && request.method === 'POST') {
+          // Upserts Excalidraw elements; deletions are elements with isDeleted and a higher version.
+          const body = await readJSON<{ elements?: { id?: unknown }[]; authorId?: string }>(request, response);
+          if (!body) return Promise.reject();
+          const elements = (body.elements ?? []).filter((e) => e && typeof e.id === 'string');
+          try {
+            await editLive(instance, whiteboard[1]!, body.authorId, (d) => {
+              if (d.getXmlFragment(RICH_TEXT_FIELD).length) throw new EditError('not_a_whiteboard', 'This document is not a whiteboard');
+              const map = d.getMap(WHITEBOARD_ELEMENTS);
+              for (const el of elements) map.set(el.id as string, el);
+            });
+            sendJSON(response, 200, { updated: elements.length });
+          } catch (err) {
+            if (err instanceof EditError) sendJSON(response, 400, { error: { code: err.code, message: err.message } });
+            else {
+              console.error('[collab] whiteboard edit failed:', err);
               sendJSON(response, 500, { error: { code: 'internal', message: 'Edit failed' } });
             }
           }

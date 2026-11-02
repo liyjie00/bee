@@ -6,6 +6,7 @@ import { can, type ActivityItem, type DocumentType } from '@bee/shared';
 import { docAccess, requireDocRole, type DocRow } from '../lib/access.js';
 import { logActivity } from '../lib/activity.js';
 import { CollabClient } from '../lib/collab.js';
+import { deleteAll, describeBoard, diagramElements } from '../lib/diagram.js';
 import { deriveCaches, markdownToYUpdate, yUpdateToMarkdown } from '../lib/content.js';
 import { badRequest, forbidden, notFound } from '../lib/errors.js';
 import { documentDTO, loadUserRefs, refOr } from '../lib/dto.js';
@@ -32,6 +33,35 @@ const markdownEditBody = z.discriminatedUnion('mode', [
     replaceAll: z.boolean().optional(),
   }),
 ]);
+const diagramBody = z.object({
+  nodes: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(100),
+        label: z.string().max(2000),
+        shape: z.enum(['rectangle', 'ellipse', 'diamond']).optional(),
+        color: z.string().max(32).optional(),
+        x: z.number().finite().optional(),
+        y: z.number().finite().optional(),
+      }),
+    )
+    .min(1)
+    .max(300),
+  edges: z
+    .array(
+      z.object({
+        from: z.string().min(1).max(100),
+        to: z.string().min(1).max(100),
+        label: z.string().max(500).optional(),
+        dashed: z.boolean().optional(),
+      }),
+    )
+    .max(1000)
+    .optional(),
+  direction: z.enum(['down', 'right']).optional(),
+  /** append: draw below what is there; replace: clear the board first */
+  mode: z.enum(['append', 'replace']).optional(),
+});
 const updateBody = z.object({
   title: z.string().max(500).optional(),
   icon: z.string().max(64).nullable().optional(),
@@ -338,6 +368,49 @@ export async function documentRoutes(app: FastifyInstance) {
     if (a.doc.type !== 'doc') throw badRequest('Only docs can be edited as Markdown');
     const r = await collab.editMarkdown(id, body, user.id);
     return { documentId: id, title: a.doc.title, ...r };
+  });
+
+  app.get('/documents/:id/whiteboard', async (req) => {
+    const { id } = parse(idParams, req.params);
+    const a = await docAccess(db, {
+      userId: req.user?.id ?? null,
+      documentId: id,
+      shareToken: req.shareToken,
+    });
+    if (a.doc.type !== 'whiteboard') throw badRequest('This document is not a whiteboard');
+    const elements = (await collab.whiteboardElements(id)).filter((e) => !e.isDeleted);
+    return { documentId: id, title: a.doc.title, description: describeBoard(elements), elements };
+  });
+
+  /** Draws a node/edge diagram on a whiteboard as a live edit. */
+  app.post('/documents/:id/diagram', async (req) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    const body = parse(diagramBody, req.body);
+    const a = await requireDocRole(
+      db,
+      { userId: user.id, documentId: id, shareToken: req.shareToken },
+      can.edit,
+      'You cannot edit this whiteboard',
+    );
+    if (a.doc.type !== 'whiteboard') throw badRequest('This document is not a whiteboard');
+    const existing = await collab.whiteboardElements(id);
+    const removed = body.mode === 'replace' ? deleteAll(existing) : [];
+    let added;
+    try {
+      // Replacing starts at the origin, but indices still follow the deleted elements.
+      added = diagramElements(body, body.mode === 'replace' ? [] : existing, existing);
+    } catch (err) {
+      throw badRequest((err as Error).message, 'validation');
+    }
+    await collab.putWhiteboardElements(id, [...removed, ...added], user.id);
+    return {
+      documentId: id,
+      added: added.length,
+      removed: removed.length,
+      shapes: added.filter((e) => e.type !== 'text' && e.type !== 'arrow').length,
+      arrows: added.filter((e) => e.type === 'arrow').length,
+    };
   });
 
   app.get('/documents/:id/blocks/:blockId', async (req) => {
