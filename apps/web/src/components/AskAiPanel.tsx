@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AI_PROVIDERS, type AiProvider, type AiSettingsDTO, type AiStreamEvent } from '@bee/shared';
 import { aiApi } from '../api/ai';
@@ -40,6 +40,17 @@ const PROVIDER_LABEL: Record<AiProvider, string> = {
 const KEY_PROVIDERS = AI_PROVIDERS.filter((p) => p !== 'openrouter');
 const SUGGESTIONS: MessageKey[] = ['ai.suggest.summarize', 'ai.suggest.polish', 'ai.suggest.outline', 'ai.suggest.newDoc'];
 
+const WIDTH_KEY = 'bee.aiPanelWidth';
+const clampWidth = (w: number) => Math.round(Math.min(Math.max(w, 300), Math.min(900, innerWidth - 360)));
+function savedWidth(): number {
+  try {
+    const w = Number(localStorage.getItem(WIDTH_KEY));
+    return w > 0 ? clampWidth(w) : 380;
+  } catch {
+    return 380;
+  }
+}
+
 /** Conversations survive switching documents within this tab. */
 const conversations = new Map<string, Msg[]>();
 
@@ -54,6 +65,32 @@ export function AskAiPanel({ documentId, onClose }: { documentId: string; onClos
   const [busy, setBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(savedWidth);
+
+  /** Drag the left edge to resize; the width is remembered per browser. */
+  function startResize(e: PointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = width;
+    let w = startW;
+    const move = (ev: globalThis.PointerEvent) => {
+      w = clampWidth(startW + startX - ev.clientX);
+      setWidth(w);
+    };
+    const up = () => {
+      removeEventListener('pointermove', move);
+      removeEventListener('pointerup', up);
+      document.body.classList.remove('resizing');
+      try {
+        localStorage.setItem(WIDTH_KEY, String(w));
+      } catch {
+        /* private mode */
+      }
+    };
+    document.body.classList.add('resizing');
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', up);
+  }
 
   const load = () => aiApi.settings().then(setSettings, (e) => toast(errMsg(e)));
   useEffect(() => {
@@ -159,7 +196,23 @@ export function AskAiPanel({ documentId, onClose }: { documentId: string; onClos
   }
 
   return (
-    <aside className="panel ai-panel" aria-label={t('ai.panel')}>
+    <aside className="panel ai-panel" aria-label={t('ai.panel')} style={{ '--ai-w': `${width}px` } as CSSProperties}>
+      <div
+        className="ai-resize"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={t('ai.resize')}
+        title={t('ai.resize')}
+        onPointerDown={startResize}
+        onDoubleClick={() => {
+          setWidth(380);
+          try {
+            localStorage.removeItem(WIDTH_KEY);
+          } catch {
+            /* private mode */
+          }
+        }}
+      />
       <div className="ptabs">
         <button className={view === 'chat' ? 'on' : ''} onClick={() => setView('chat')}>
           <Icon name="spark" size={14} /> {t('ai.title')}

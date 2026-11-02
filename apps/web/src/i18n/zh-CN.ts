@@ -317,5 +317,6 @@ export const zhCN: Record<MessageKey, string> = {
   'ai.remove': "移除",
   'ai.keysNote': "Key 加密存储，只用于你自己的 Ask AI 请求。Claude 和 Gemini 的会员订阅无法在这里使用：Anthropic 和 Google 不允许第三方应用用订阅登录。",
   'ai.provider': "服务商",
+  'ai.resize': "拖动调整宽度，双击恢复默认",
   'ai.model': "模型",
 };

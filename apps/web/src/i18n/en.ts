@@ -315,6 +315,7 @@ export const en = {
   'ai.remove': "Remove",
   'ai.keysNote': "Keys are stored encrypted and used only for your Ask AI requests. Claude and Gemini subscriptions cannot be used here: Anthropic and Google do not allow third-party apps to sign in with them.",
   'ai.provider': "Provider",
+  'ai.resize': "Drag to resize, double-click to reset",
   'ai.model': "Model",
 } as const;
 

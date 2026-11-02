@@ -29,6 +29,8 @@ import { INSTRUCTIONS, TOOLS, ToolError, injectCaller, type Ctx } from './mcp.js
  */
 
 const MAX_STEPS = 20;
+/** a model step that sends nothing for this long is abandoned */
+const STALL_MS = 120_000;
 const MAX_TOOL_RESULT = 100_000;
 const OAUTH_COOKIE = 'bee_ai_oauth';
 
@@ -251,6 +253,8 @@ export async function aiRoutes(app: FastifyInstance) {
         'content-type': 'text/event-stream; charset=utf-8',
         'cache-control': 'no-cache, no-transform',
         'x-accel-buffering': 'no',
+        // Keeps the proxy's gzip/zstd from buffering the stream.
+        'content-encoding': 'identity',
         connection: 'keep-alive',
       });
       const send = (e: AiStreamEvent) => {
@@ -266,8 +270,28 @@ export async function aiRoutes(app: FastifyInstance) {
           tools: TOOL_SPECS,
           model,
         });
+        req.log.info({ provider, model, doc: doc?.id }, 'ai chat start');
         for (let step = 0; ; step++) {
-          const r = await session.step((delta) => send({ type: 'text', delta }), abort.signal);
+          const t0 = Date.now();
+          // Abandon a step whose stream goes quiet, instead of spinning forever.
+          const stall = new AbortController();
+          let timer = setTimeout(() => stall.abort(), STALL_MS);
+          const r = await session
+            .step(
+              (delta) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => stall.abort(), STALL_MS);
+                send({ type: 'text', delta });
+              },
+              AbortSignal.any([abort.signal, stall.signal]),
+            )
+            .catch((err: unknown) => {
+              if (stall.signal.aborted && !abort.signal.aborted)
+                throw Object.assign(new Error('The model stopped responding. Try again, or pick another model.'), { stalled: true });
+              throw err;
+            })
+            .finally(() => clearTimeout(timer));
+          req.log.info({ step, ms: Date.now() - t0, stop: r.stop, tools: r.toolCalls.map((c) => c.name) }, 'ai chat step');
           if (r.stop === 'refusal') {
             send({ type: 'error', message: 'The model declined this request.' });
             break;
@@ -287,7 +311,8 @@ export async function aiRoutes(app: FastifyInstance) {
         }
         send({ type: 'done' });
       } catch (err) {
-        if (!abort.signal.aborted) {
+        if (abort.signal.aborted) req.log.info('ai chat cancelled by the client');
+        else {
           req.log.warn({ err, provider, model }, 'ai chat failed');
           send({ type: 'error', message: providerError(err) });
         }
@@ -354,7 +379,8 @@ async function runTool(
 
 /** A readable message for provider failures (bad key, no credits, rate limits). */
 function providerError(err: unknown): string {
-  const e = err as { status?: number; message?: string };
+  const e = err as { status?: number; message?: string; stalled?: boolean };
+  if (e.stalled) return e.message!;
   if (e.status === 401 || e.status === 403)
     return 'Your AI account rejected the request. Reconnect it in Ask AI settings.';
   if (e.status === 402) return 'Your AI account is out of credits.';

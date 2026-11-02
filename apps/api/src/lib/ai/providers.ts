@@ -21,6 +21,8 @@ export interface ToolCall {
   name: string;
   /** raw JSON text of the arguments (parsed and validated by the caller) */
   args: string;
+  /** provider data to send back with the call (Gemini's thought signature) */
+  extra?: unknown;
 }
 
 export interface ToolOutput {
@@ -235,8 +237,12 @@ class OpenAICompatSession implements ChatSession {
         onText(choice.delta.content);
       }
       for (const tc of choice.delta.tool_calls ?? []) {
-        const c = (calls[tc.index] ??= { id: '', name: '', args: '' });
+        // Gemini sends each call whole and may leave out `index`.
+        const i = tc.index ?? (tc.id || !calls.length ? calls.length : calls.length - 1);
+        const c = (calls[i] ??= { id: '', name: '', args: '' });
         if (tc.id) c.id = tc.id;
+        const extra = (tc as { extra_content?: unknown }).extra_content;
+        if (extra) c.extra = extra;
         if (tc.function?.name) c.name += tc.function.name;
         if (tc.function?.arguments) c.args += tc.function.arguments;
       }
@@ -251,6 +257,8 @@ class OpenAICompatSession implements ChatSession {
           id: c.id,
           type: 'function' as const,
           function: { name: c.name, arguments: c.args || '{}' },
+          // Gemini 3 rejects a follow-up turn without the call's thought signature.
+          ...(c.extra ? { extra_content: c.extra } : {}),
         })),
       }),
     });
