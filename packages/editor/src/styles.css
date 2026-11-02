@@ -541,6 +541,11 @@
   width: 100%;
   height: 100%;
 }
+/* Read-only embeds have nothing to do in Excalidraw's menu bar; it only covers the drawing. */
+.bee-whiteboard-embedded .excalidraw--view-mode .App-bottom-bar,
+.bee-whiteboard-embedded .excalidraw--view-mode .layer-ui__wrapper__footer {
+  display: none;
+}
 .bee-wb-connectors {
   position: absolute;
   inset: 0;
