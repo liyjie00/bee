@@ -102,14 +102,14 @@ function NotificationsSection() {
   const { session, setSession } = useSession();
   const prefs = session?.user.prefs ?? {};
   const muted = new Set(prefs.mutedNotifications ?? []);
-  const [server, setServer] = useState<{ push: boolean; vapidPublicKey: string | null } | null>(null);
+  const [server, setServer] = useState<{ email: boolean; push: boolean; vapidPublicKey: string | null } | null>(null);
   const [on, setOn] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const supported = pushSupported();
   const denied = supported && Notification.permission === 'denied';
 
   useEffect(() => {
-    api.delivery().then(setServer, () => setServer({ push: false, vapidPublicKey: null }));
+    api.delivery().then(setServer, () => setServer({ email: false, push: false, vapidPublicKey: null }));
     currentSubscription().then((s) => setOn(!!s), () => setOn(false));
   }, []);
 
@@ -119,6 +119,14 @@ function NotificationsSection() {
     else next.add(k);
     try {
       setSession(await api.updateMe({ prefs: { mutedNotifications: [...next] } }));
+    } catch (e) {
+      toast(errMsg(e));
+    }
+  };
+  const emailOn = prefs.emailNotifications !== false;
+  const toggleEmail = async () => {
+    try {
+      setSession(await api.updateMe({ prefs: { emailNotifications: !emailOn } }));
     } catch (e) {
       toast(errMsg(e));
     }
@@ -176,14 +184,22 @@ function NotificationsSection() {
           </div>
         )}
       </div>
-      <div className="notif-pref is-soon">
+      <div className={'notif-pref' + (server?.email ? '' : ' is-soon')}>
         <div>
           <b>
-            {t('settings.notif.email')} <span className="soon">{t('settings.notif.soon')}</span>
+            {t('settings.notif.email')}
+            {server && !server.email && <span className="soon">{t('settings.notif.soon')}</span>}
           </b>
           <small>{t('settings.notif.emailHint', { email: session?.user.email ?? '' })}</small>
         </div>
-        <button className="switch" role="switch" aria-checked={false} aria-label={t('settings.notif.email')} disabled />
+        <button
+          className="switch"
+          role="switch"
+          aria-checked={!!server?.email && emailOn}
+          aria-label={t('settings.notif.email')}
+          disabled={!server?.email}
+          onClick={toggleEmail}
+        />
       </div>
       <div className="notif-kinds">
         <span className="lbl">{t('settings.notif.kinds')}</span>
