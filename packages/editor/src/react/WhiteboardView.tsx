@@ -135,7 +135,11 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
               className="bee-embed-icon bee-embed-fit"
               title={t.whiteboardFitAll}
               aria-label={t.whiteboardFitAll}
-              onClick={() => board.current?.fitAll()}
+              onClick={() => {
+                // Editors also drop the saved range, so the fit sticks after a reload.
+                if (editable && view) updateAttributes({ view: null });
+                board.current?.fitAll();
+              }}
             >
               <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
                 <rect x="4.5" y="4.5" width="7" height="7" rx="1" />
@@ -183,7 +187,8 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
             locale={ctx.locale}
             theme={ctx.theme}
             embedded
-            fitContent={linked || fullscreen}
+            // Without a saved range the embed always shows the whole drawing.
+            fitContent
             view={fullscreen ? null : view}
             onHandle={onHandle}
           />
