@@ -315,7 +315,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
           <Avatar name={session.user.name} color={session.user.color} />
           <div className="meta" style={{ minWidth: 0, flex: 1 }}>
             <div style={{ color: 'var(--fg)', fontSize: 13 }}>{session.user.name}</div>
-            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{session.user.email}</div>
+            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={session.user.email}>{session.user.email}</div>
           </div>
           <button className="ico" title={t('nav.settings')} aria-label={t('nav.settings')} onClick={() => nav('/settings')}>
             <Icon name="gear" />

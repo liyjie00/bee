@@ -15,7 +15,12 @@ function CopyField({ value }: { value: string }) {
   return (
     <div className="copy-field">
       <code>{value}</code>
-      <button className="btn" onClick={async () => toast((await copyText(value)) ? t('settings.copied') : t('common.copyFailed'))}>
+      <button
+        className="btn"
+        onClick={async () =>
+          toast((await copyText(value)) ? t('settings.copied') : t('common.copyFailed'))
+        }
+      >
         <Icon name="copy" />
         {t('settings.copy')}
       </button>
@@ -50,7 +55,12 @@ function ReadingSection() {
         <span className="lbl">{t('settings.fontSize')}</span>
         <div className="seg" role="group" aria-label={t('settings.fontSize')}>
           {DOC_FONT_SIZES.map((s) => (
-            <button key={s} className={s === size ? 'on' : ''} aria-pressed={s === size} onClick={() => save({ docFontSize: s })}>
+            <button
+              key={s}
+              className={s === size ? 'on' : ''}
+              aria-pressed={s === size}
+              onClick={() => save({ docFontSize: s })}
+            >
               {t(`settings.fontSize.${s}`)}
             </button>
           ))}
@@ -60,7 +70,12 @@ function ReadingSection() {
         <span className="lbl">{t('settings.font')}</span>
         <div className="seg" role="group" aria-label={t('settings.font')}>
           {DOC_FONTS.map((f) => (
-            <button key={f} className={f === font ? 'on' : ''} aria-pressed={f === font} onClick={() => save({ docFont: f })}>
+            <button
+              key={f}
+              className={f === font ? 'on' : ''}
+              aria-pressed={f === font}
+              onClick={() => save({ docFont: f })}
+            >
               {t(`settings.font.${f}`)}
             </button>
           ))}
@@ -105,96 +120,111 @@ export function SettingsPage() {
     }
   }
 
-  const used = (iso: string | null) => (iso ? t('settings.lastUsed', { when: ago(iso) }) : t('settings.neverUsed'));
+  const used = (iso: string | null) =>
+    iso ? t('settings.lastUsed', { when: ago(iso) }) : t('settings.neverUsed');
 
   return (
     <main className="main">
       <TopBar crumbs={[{ label: t('settings.title') }]} />
-      <div className="page settings">
-        <h1>{t('settings.title')}</h1>
+      {/* .view is the scroll container; the page itself never scrolls */}
+      <div className="view">
+        <div className="page settings">
+          <h1>{t('settings.title')}</h1>
 
-        <ReadingSection />
+          <ReadingSection />
 
-        <section>
-          <h2>{t('settings.claudeTitle')}</h2>
-          <p className="lead">{t('settings.claudeLead')}</p>
-          <label className="lbl">{t('settings.mcpUrl')}</label>
-          <CopyField value={mcpUrl} />
-          <p className="lead" style={{ marginTop: 14 }}>{t('settings.claudeCode')}</p>
-          <CopyField value={`claude mcp add --transport http bee ${mcpUrl} --header "Authorization: Bearer <token>"`} />
-        </section>
-
-        <section>
-          <h2>{t('settings.appsTitle')}</h2>
-          {apps && apps.length === 0 && <p className="lead">{t('settings.appsEmpty')}</p>}
-          <ul className="rows">
-            {apps?.map((a) => (
-              <li key={a.id}>
-                <div>
-                  <b>{a.name}</b>
-                  <span>
-                    {t('settings.connected', { when: ago(a.createdAt) })} · {used(a.lastUsedAt)}
-                  </span>
-                </div>
-                <button
-                  className="btn"
-                  onClick={async () => {
-                    await api.revokeApp(a.id).then(() => toast(t('settings.revoked')), (e) => toast(errMsg(e)));
-                    load();
-                  }}
-                >
-                  {t('settings.revoke')}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section>
-          <h2>{t('settings.tokensTitle')}</h2>
-          <p className="lead">{t('settings.tokensLead')}</p>
-          <form className="token-form" onSubmit={create}>
-            <input
-              className="field-in"
-              aria-label={t('settings.tokenName')}
-              placeholder={t('settings.tokenNamePlaceholder')}
-              value={name}
-              maxLength={100}
-              onChange={(e) => setName(e.target.value)}
+          <section>
+            <h2>{t('settings.claudeTitle')}</h2>
+            <p className="lead">{t('settings.claudeLead')}</p>
+            <label className="lbl">{t('settings.mcpUrl')}</label>
+            <CopyField value={mcpUrl} />
+            <p className="lead" style={{ marginTop: 14 }}>
+              {t('settings.claudeCode')}
+            </p>
+            <CopyField
+              value={`claude mcp add --transport http bee ${mcpUrl} --header "Authorization: Bearer <token>"`}
             />
-            <button className="btn primary" type="submit" disabled={busy || !name.trim()}>
-              {t('settings.createToken')}
-            </button>
-          </form>
-          {secret && (
-            <div className="secret" role="status">
-              <p>{t('settings.tokenCreated')}</p>
-              <CopyField value={secret} />
-            </div>
-          )}
-          {tokens && tokens.length === 0 && <p className="lead">{t('settings.tokensEmpty')}</p>}
-          <ul className="rows">
-            {tokens?.map((k) => (
-              <li key={k.id}>
-                <div>
-                  <b>{k.name}</b>
-                  <span>
-                    <code>{k.prefix}…</code> · {t('settings.created', { when: ago(k.createdAt) })} · {used(k.lastUsedAt)}
-                  </span>
-                </div>
-                <button
-                  className="btn"
-                  onClick={async () => {
-                    await api.deleteToken(k.id).then(() => toast(t('settings.revoked')), (e) => toast(errMsg(e)));
-                    load();
-                  }}
-                >
-                  {t('settings.revoke')}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+          </section>
+
+          <section>
+            <h2>{t('settings.appsTitle')}</h2>
+            {apps && apps.length === 0 && <p className="lead">{t('settings.appsEmpty')}</p>}
+            <ul className="rows">
+              {apps?.map((a) => (
+                <li key={a.id}>
+                  <div>
+                    <b>{a.name}</b>
+                    <span>
+                      {t('settings.connected', { when: ago(a.createdAt) })} · {used(a.lastUsedAt)}
+                    </span>
+                  </div>
+                  <button
+                    className="btn"
+                    onClick={async () => {
+                      await api.revokeApp(a.id).then(
+                        () => toast(t('settings.revoked')),
+                        (e) => toast(errMsg(e)),
+                      );
+                      load();
+                    }}
+                  >
+                    {t('settings.revoke')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section>
+            <h2>{t('settings.tokensTitle')}</h2>
+            <p className="lead">{t('settings.tokensLead')}</p>
+            <form className="token-form" onSubmit={create}>
+              <input
+                className="field-in"
+                aria-label={t('settings.tokenName')}
+                placeholder={t('settings.tokenNamePlaceholder')}
+                value={name}
+                maxLength={100}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <button className="btn primary" type="submit" disabled={busy || !name.trim()}>
+                {t('settings.createToken')}
+              </button>
+            </form>
+            {secret && (
+              <div className="secret" role="status">
+                <p>{t('settings.tokenCreated')}</p>
+                <CopyField value={secret} />
+              </div>
+            )}
+            {tokens && tokens.length === 0 && <p className="lead">{t('settings.tokensEmpty')}</p>}
+            <ul className="rows">
+              {tokens?.map((k) => (
+                <li key={k.id}>
+                  <div>
+                    <b>{k.name}</b>
+                    <span>
+                      <code>{k.prefix}…</code> · {t('settings.created', { when: ago(k.createdAt) })}{' '}
+                      · {used(k.lastUsedAt)}
+                    </span>
+                  </div>
+                  <button
+                    className="btn"
+                    onClick={async () => {
+                      await api.deleteToken(k.id).then(
+                        () => toast(t('settings.revoked')),
+                        (e) => toast(errMsg(e)),
+                      );
+                      load();
+                    }}
+                  >
+                    {t('settings.revoke')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
     </main>
   );
