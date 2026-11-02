@@ -9,6 +9,10 @@ Claude and other MCP clients can read and edit your documents.
 
 A hosted instance runs at [bee.zippyzoo.dev](https://bee.zippyzoo.dev).
 
+Bee is built with [Claude Code](https://claude.com/claude-code): most of the code
+was written by Claude, with a human directing, reviewing and testing it. Commits
+that Claude wrote carry a `Co-Authored-By: Claude` trailer.
+
 ## Self-hosting
 
 You need Docker with Compose v2 (Docker Desktop, OrbStack, or Docker Engine on

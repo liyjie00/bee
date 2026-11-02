@@ -8,6 +8,9 @@ Claude 等 MCP 客户端可以读取和编辑你的文档。
 
 官方托管实例：[bee.zippyzoo.dev](https://bee.zippyzoo.dev)。
 
+Bee 是用 [Claude Code](https://claude.com/claude-code) 开发的：大部分代码由 Claude 编写，
+由人来指导方向、审查和测试。Claude 参与编写的提交都带有 `Co-Authored-By: Claude` 署名。
+
 ## 自托管
 
 需要 Docker 和 Compose v2（Docker Desktop、OrbStack，或 Linux 上的 Docker Engine）。
