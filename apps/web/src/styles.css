@@ -507,7 +507,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .ai-fine{font-size:11.5px;color:var(--fg-3);line-height:1.5;margin:0}
 .ai-keyform input[type=password]{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:0}
 /* Ask AI button: a soft honey shimmer with a twinkle */
-.ai-btn .i{color:var(--honey);animation:ai-twinkle 2.4s ease-in-out infinite;filter:drop-shadow(0 0 0 transparent)}
+.ai-btn .i{width:21px;height:21px;color:var(--honey);animation:ai-twinkle 2.4s ease-in-out infinite;filter:drop-shadow(0 0 0 transparent)}
 .ai-btn:hover .i,.ai-btn.on .i{animation-duration:1.2s}
 @keyframes ai-twinkle{
   0%,100%{transform:scale(1) rotate(0);opacity:.85;filter:drop-shadow(0 0 0 transparent)}
