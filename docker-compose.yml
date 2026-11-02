@@ -68,13 +68,11 @@ services:
       BEE_PUBLIC_URL: ${BEE_PUBLIC_URL:-http://localhost:7070}
 
   proxy:
-    image: caddy:2-alpine
+    build: { context: ., dockerfile: deploy/Dockerfile.proxy }
     restart: unless-stopped
     depends_on: [api, collab, web]
     ports:
       - '${BEE_PORT:-7070}:7070'
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
 
 volumes:
   pgdata:
