@@ -1,6 +1,6 @@
 #!/bin/zsh
-# Daily backup of the Bee stack on the Mac mini: database dump, uploads and .env,
-# kept locally and copied to the NAS. Run by launchd (deploy/com.yjl.bee-backup.plist).
+# Daily backup of a Bee stack on a macOS server: database dump, uploads and .env,
+# kept locally and copied to the NAS. Run by launchd (deploy/bee-backup.plist).
 # Settings (env or ~/.config/bee-backup.env): BEE_DIR (live checkout, default ~/Documents/bee),
 #              BEE_BACKUP_DIR (local copies, default ~/Documents/bee-backups/daily),
 #              BEE_NAS_URL (SMB share, e.g. smb://nas.local/BeeBackups; its password

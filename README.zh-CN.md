@@ -132,7 +132,8 @@ pnpm dev
 bee.zippyzoo.dev 在一台 Mac mini 上运行同一份 `docker-compose.yml`，前面是 Cloudflare Tunnel。
 `deploy/sync.sh` 通过 SSH 把已提交的 `main` 部署过去：先在本地跑类型检查和测试，传输
 `git archive HEAD`，首次部署时生成带新密钥的 `.env`，重新构建并等待 `/api/health` 正常。
-可以用 `BEE_DEPLOY_HOST` / `BEE_DEPLOY_DIR` 指向其他机器。
+要部署到你自己的服务器，把 `deploy/deploy.env.example` 复制为 `deploy/deploy.env`（不会提交），
+填上你的 SSH 主机名和公网地址。
 
 ## 许可证
 

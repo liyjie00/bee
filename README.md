@@ -141,7 +141,8 @@ bee.zippyzoo.dev runs this same `docker-compose.yml` on a Mac mini behind a
 Cloudflare Tunnel. `deploy/sync.sh` deploys committed `main` there over SSH: it
 runs typecheck and tests locally, ships `git archive HEAD`, creates `.env` with
 fresh secrets on first deploy, rebuilds the stack and waits for
-`/api/health`. Point it elsewhere with `BEE_DEPLOY_HOST` / `BEE_DEPLOY_DIR`.
+`/api/health`. To use it for your own server, copy `deploy/deploy.env.example`
+to `deploy/deploy.env` (not committed) and fill in your SSH host and public URL.
 
 ## License
 

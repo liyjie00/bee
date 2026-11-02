@@ -121,7 +121,7 @@ export interface ShareLinkDTO {
   guestComments: boolean;
   expiresAt: string | null;
   createdAt: string;
-  /** absolute URL, e.g. https://bee.zippyzoo.dev/s/<token> */
+  /** absolute URL, e.g. https://docs.example.com/s/<token> */
   url: string;
 }
 

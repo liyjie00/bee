@@ -1,15 +1,19 @@
 #!/bin/zsh
-# Deploy committed main to the Mac mini and (re)start the docker-compose stack
-# on port 7070 there (Cloudflare Tunnel routes bee.zippyzoo.dev -> localhost:7070).
+# Deploy committed main to a server over SSH and (re)start the docker-compose stack
+# there on port 7070 (put TLS or a tunnel such as Cloudflare Tunnel in front of it).
 #   deploy/sync.sh                    run the test gate here, then deploy
 #   deploy/sync.sh --skip-gate REASON deploy without running tests
-# Environment: BEE_DEPLOY_HOST (ssh host, default mac-mini),
-#              BEE_DEPLOY_DIR (remote checkout, default ~/Documents/bee).
+# Settings, from the environment or deploy/deploy.env (not committed, see deploy.env.example):
+#   BEE_DEPLOY_HOST   ssh host (required)
+#   BEE_DEPLOY_URL    public origin, written to BEE_PUBLIC_URL in the server's .env on first deploy (required)
+#   BEE_DEPLOY_DIR    remote checkout relative to the ssh user's home (default Documents/bee)
 # Data (Postgres volume, uploads) lives in docker volumes on the mini and is never synced.
 set -euo pipefail
 
 REPO="${0:A:h:h}"
-HOST="${BEE_DEPLOY_HOST:-mac-mini}"
+[[ -f "$REPO/deploy/deploy.env" ]] && source "$REPO/deploy/deploy.env"
+HOST="${BEE_DEPLOY_HOST:?set BEE_DEPLOY_HOST (ssh host) in the environment or deploy/deploy.env}"
+PUBLIC_URL="${BEE_DEPLOY_URL:?set BEE_DEPLOY_URL (e.g. https://docs.example.com) in the environment or deploy/deploy.env}"
 REMOTE="${BEE_DEPLOY_DIR:-Documents/bee}"
 GATE=1
 case "${1:-}" in
@@ -49,14 +53,14 @@ git -C "$REPO" archive --format=tar HEAD | "${SSH[@]}" "$HOST" "set -e
   rm -rf $REMOTE.old && mv $REMOTE $REMOTE.old && mv $REMOTE.new $REMOTE && rm -rf $REMOTE.old"
 
 echo "== build and start on $HOST"
-"${SSH[@]}" "$HOST" "REMOTE=$REMOTE SHA=$SHA zsh -l -s" <<'EOS'
+"${SSH[@]}" "$HOST" "REMOTE=$REMOTE SHA=$SHA PUBLIC_URL=${(q)PUBLIC_URL} zsh -l -s" <<'EOS'
 set -euo pipefail
 export PATH="$HOME/.orbstack/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 cd "$HOME/$REMOTE"
 if [[ ! -f .env ]]; then
   sed -e "s/^SESSION_SECRET=.*/SESSION_SECRET=$(openssl rand -hex 32)/" \
       -e "s/^COLLAB_SECRET=.*/COLLAB_SECRET=$(openssl rand -hex 24)/" \
-      -e "s|^BEE_PUBLIC_URL=.*|BEE_PUBLIC_URL=https://bee.zippyzoo.dev|" \
+      -e "s|^BEE_PUBLIC_URL=.*|BEE_PUBLIC_URL=$PUBLIC_URL|" \
       -e "s|^DATABASE_URL=.*|DATABASE_URL=|" .env.example > .env
   echo "ALLOWED_ORIGINS=http://localhost:7070" >> .env
   POSTGRES_PASSWORD=$(openssl rand -hex 16)
