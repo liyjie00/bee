@@ -29,6 +29,12 @@ export type DocFont = (typeof DOC_FONTS)[number];
 export interface UserPrefs {
   docFontSize?: DocFontSize;
   docFont?: DocFont;
+  /** UI language, also used for emails and browser notifications */
+  lang?: 'zh-CN' | 'en';
+  /** email digests of notifications (default on) */
+  emailNotifications?: boolean;
+  /** kinds that neither email nor push (they still show in the inbox) */
+  mutedNotifications?: NotificationKind[];
 }
 
 /** Minimal user info shown next to comments, versions, members. */
@@ -209,4 +215,45 @@ export interface ConnectedAppDTO {
   name: string;
   createdAt: string;
   lastUsedAt: string | null;
+}
+
+export const NOTIFICATION_KINDS = ['mention', 'reply', 'share', 'access_request'] as const;
+export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
+
+export interface AccessRequestDTO {
+  id: string;
+  documentId: string;
+  user: UserRef & { email: string };
+  role: GrantableRole;
+  message: string | null;
+  status: 'pending' | 'granted' | 'declined';
+  grantedRole: GrantableRole | null;
+  createdAt: string;
+}
+
+export interface NotificationDTO {
+  id: string;
+  kind: NotificationKind;
+  /** for guests: id '' and the guest's nickname */
+  actor: UserRef | null;
+  document: { id: string; title: string; type: DocumentType } | null;
+  folder: { id: string; name: string } | null;
+  threadId: string | null;
+  /** comment text (mention, reply) or the granted role (share) */
+  detail: string | null;
+  /** access_request: the request, with its current status */
+  request: AccessRequestDTO | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface TemplateDTO {
+  id: string;
+  workspaceId: string;
+  title: string;
+  markdown: string;
+  createdBy: UserRef | null;
+  /** the caller may delete it (its creator, or a workspace admin) */
+  canDelete: boolean;
+  createdAt: string;
 }

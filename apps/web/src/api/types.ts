@@ -24,6 +24,12 @@ import type {
   ShareResolveResponse,
   TrashResponse,
   UploadResponse,
+  NotificationsResponse,
+  NotificationDTO,
+  TemplateDTO,
+  AccessRequestDTO,
+  LinkPreviewResponse,
+  UserRef,
 } from '@bee/shared';
 
 /** A version's full content, for diff and preview. `content` is ProseMirror JSON. */
@@ -102,4 +108,31 @@ export interface BeeApi {
   deleteToken(id: string): Promise<void>;
   connectedApps(): Promise<ConnectedAppDTO[]>;
   revokeApp(id: string): Promise<void>;
+
+  starred(workspaceId: string): Promise<DocumentDTO[]>;
+  setStar(docId: string, starred: boolean): Promise<void>;
+  duplicateDocument(docId: string): Promise<DocumentDTO>;
+  /** Markdown export with the title as the first heading */
+  exportMarkdown(docId: string): Promise<Blob>;
+  editMarkdown(docId: string, markdown: string): Promise<void>;
+  linkPreview(docId: string, blockId?: string | null): Promise<LinkPreviewResponse>;
+
+  mentionable(docId: string, q: string): Promise<(UserRef & { email: string })[]>;
+  notifications(opts?: { unread?: boolean; before?: string }): Promise<NotificationsResponse>;
+  unreadCount(): Promise<number>;
+  markRead(ids: string[] | 'all'): Promise<number>;
+  delivery(): Promise<{ email: boolean; push: boolean; vapidPublicKey: string | null }>;
+  savePush(sub: PushSubscriptionJSON): Promise<void>;
+  removePush(endpoint: string): Promise<void>;
+  testPush(): Promise<void>;
+
+  requestAccess(docId: string, role: GrantableRole, message?: string): Promise<AccessRequestDTO>;
+  myAccessRequest(docId: string): Promise<AccessRequestDTO | null>;
+  handleAccessRequest(id: string, action: { action: 'grant'; role: GrantableRole } | { action: 'decline' }): Promise<AccessRequestDTO>;
+
+  templates(workspaceId: string): Promise<TemplateDTO[]>;
+  saveTemplate(docId: string, title?: string): Promise<TemplateDTO>;
+  deleteTemplate(id: string): Promise<void>;
 }
+
+export type { NotificationDTO, TemplateDTO, AccessRequestDTO };

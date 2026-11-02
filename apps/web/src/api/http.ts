@@ -14,6 +14,9 @@ import type {
   BlockLinkResponse,
   ConnectedAppsResponse,
   TokensResponse,
+  AccessRequestDTO,
+  TemplateDTO,
+  UserRef,
 } from './types';
 
 export class HttpError extends Error {
@@ -191,5 +194,51 @@ export const api: BeeApi = {
   connectedApps: async () => (await req<ConnectedAppsResponse>('GET', '/connected-apps')).apps,
   revokeApp: async (id) => {
     await req('DELETE', `/connected-apps/${id}`);
+  },
+
+  starred: async (ws) => (await req<RecentResponse>('GET', `/workspaces/${ws}/starred`)).documents,
+  setStar: async (id, on) => {
+    await req(on ? 'PUT' : 'DELETE', `/documents/${id}/star`);
+  },
+  duplicateDocument: async (id) => (await req<DocumentResponse>('POST', `/documents/${id}/duplicate`)).document,
+  exportMarkdown: async (id) => (await send('GET', `/documents/${id}/export.md`)).blob(),
+  editMarkdown: async (id, markdown) => {
+    await req('POST', `/documents/${id}/markdown`, { mode: 'replace', markdown });
+  },
+  linkPreview: (id, block) => req('GET', `/documents/${id}/link-preview${block ? `?block=${enc(block)}` : ''}`),
+
+  mentionable: async (id, q) =>
+    (await req<{ users: (UserRef & { email: string })[] }>('GET', `/documents/${id}/mentionable?q=${enc(q)}`)).users,
+  notifications: (o = {}) => {
+    const q = new URLSearchParams();
+    if (o.unread) q.set('unread', '1');
+    if (o.before) q.set('before', o.before);
+    return req('GET', `/notifications?${q}`);
+  },
+  unreadCount: async () => (await req<{ unread: number }>('GET', '/notifications/unread')).unread,
+  markRead: async (ids) =>
+    (await req<{ unread: number }>('POST', '/notifications/read', ids === 'all' ? { all: true } : { ids })).unread,
+  delivery: () => req('GET', '/notifications/delivery'),
+  savePush: async (sub) => {
+    await req('POST', '/push-subscriptions', sub);
+  },
+  removePush: async (endpoint) => {
+    await req('POST', '/push-subscriptions/remove', { endpoint });
+  },
+  testPush: async () => {
+    await req('POST', '/push-subscriptions/test');
+  },
+
+  requestAccess: async (id, role, message) =>
+    (await req<{ request: AccessRequestDTO }>('POST', `/documents/${id}/access-requests`, { role, message })).request,
+  myAccessRequest: async (id) =>
+    (await req<{ request: AccessRequestDTO | null }>('GET', `/documents/${id}/access-requests/mine`)).request,
+  handleAccessRequest: async (id, action) =>
+    (await req<{ request: AccessRequestDTO }>('POST', `/access-requests/${id}`, action)).request,
+
+  templates: async (ws) => (await req<{ templates: TemplateDTO[] }>('GET', `/workspaces/${ws}/templates`)).templates,
+  saveTemplate: async (id, title) => (await req<{ template: TemplateDTO }>('POST', `/documents/${id}/template`, { title })).template,
+  deleteTemplate: async (id) => {
+    await req('DELETE', `/templates/${id}`);
   },
 };

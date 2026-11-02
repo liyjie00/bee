@@ -7,7 +7,7 @@ import { docAccess, requireDocRole, type DocRow } from '../lib/access.js';
 import { logActivity } from '../lib/activity.js';
 import { CollabClient } from '../lib/collab.js';
 import { deleteAll, describeBoard, diagramElements } from '../lib/diagram.js';
-import { deriveCaches, markdownToYUpdate, yUpdateToMarkdown } from '../lib/content.js';
+import { deriveCaches, markdownToYUpdate, sectionOf, yUpdateToMarkdown } from '../lib/content.js';
 import { badRequest, forbidden, notFound } from '../lib/errors.js';
 import { documentDTO, loadUserRefs, refOr } from '../lib/dto.js';
 import { idParams, parse } from '../lib/validate.js';
@@ -442,6 +442,22 @@ export async function documentRoutes(app: FastifyInstance) {
       shapes: added.filter((e) => e.type !== 'text' && e.type !== 'arrow').length,
       arrows: added.filter((e) => e.type === 'arrow').length,
     };
+  });
+
+  // Title (and section heading, for block links) shown when a Bee link is pasted into a doc.
+  app.get('/documents/:id/link-preview', async (req) => {
+    const { id } = parse(idParams, req.params);
+    const { block } = parse(z.object({ block: z.string().min(1).max(64).optional() }), req.query);
+    const a = await docAccess(db, {
+      userId: req.user?.id ?? null,
+      documentId: id,
+      shareToken: req.shareToken,
+    });
+    const section =
+      block && a.doc.ydocState && a.doc.blockIds.includes(block)
+        ? sectionOf(a.doc.ydocState, block)
+        : null;
+    return { documentId: id, title: a.doc.title, type: a.doc.type, section };
   });
 
   app.get('/documents/:id/blocks/:blockId', async (req) => {

@@ -21,6 +21,13 @@ export interface Config {
   aiKeysSecret: string;
   /** max Ask AI requests per user per minute */
   aiRateLimit: number;
+  /** e.g. smtps://user:pass@smtp.example.com:465 ; email notifications are off without it */
+  smtpUrl: string | null;
+  /** From header of notification emails */
+  mailFrom: string;
+  /** Web Push (VAPID) keys; browser notifications are off without them */
+  vapidPublicKey: string | null;
+  vapidPrivateKey: string | null;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -49,5 +56,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       .filter(Boolean),
     aiKeysSecret: env.AI_KEYS_SECRET ?? `${need('SESSION_SECRET', 'dev-session-secret')}:ai-keys`,
     aiRateLimit: Number(env.AI_RATE_LIMIT ?? 20),
+    smtpUrl: env.SMTP_URL || null,
+    mailFrom: env.MAIL_FROM || 'Bee <notifications@localhost>',
+    vapidPublicKey: env.VAPID_PUBLIC_KEY || null,
+    vapidPrivateKey: env.VAPID_PRIVATE_KEY || null,
   };
 }

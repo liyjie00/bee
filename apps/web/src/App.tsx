@@ -7,6 +7,7 @@ import { HistoryPage } from './pages/HistoryPage';
 import { LoginPage } from './pages/LoginPage';
 import { SharePage } from './pages/SharePage';
 import { SettingsPage } from './pages/SettingsPage';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { SessionProvider } from './state/session';
 import { ToastProvider } from './state/toast';
 import { I18nProvider } from './i18n';
@@ -32,6 +33,7 @@ export function App() {
                 <Route path="/d/:docId" element={<DocPage />} />
                 <Route path="/d/:docId/history" element={<HistoryPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

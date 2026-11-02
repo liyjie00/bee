@@ -17,6 +17,7 @@ import type { BeeUser } from './collab.js';
 import { IdleCollaborationCaret } from './caret-idle.js';
 import { TableSheet } from './table-sheet.js';
 import { TableResize, TableScrollCenter } from './table-resize.js';
+import { BeeLinks, type LinkHost } from './links.js';
 
 export interface BuildOptions {
   ydoc?: Y.Doc;
@@ -32,6 +33,8 @@ export interface BuildOptions {
   cursorIdleMs?: number;
   /** Public link token: appended to uploaded image URLs, since <img> requests cannot send the header. */
   shareToken?: string;
+  /** link popover callbacks (editable editors) */
+  links?: LinkHost;
 }
 
 /** Adds `?share=` to Bee upload URLs so anonymous viewers of a public link can load them. */
@@ -100,6 +103,7 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
     CommentHighlights.configure({ onClick: opts.onCommentClick ?? null }),
     TableSheet.configure({ headers: opts.editable }),
     TableScrollCenter,
+    BeeLinks.configure({ host: opts.links ?? null, editable: opts.editable }),
   ];
   if (opts.placeholder) {
     extensions.push(

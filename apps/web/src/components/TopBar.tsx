@@ -4,7 +4,7 @@ import { useShell } from './Shell';
 import { Icon } from './Icon';
 import { useTheme } from '../lib/theme';
 import { useI18n } from '../i18n';
-import { useMenu, type MenuItem } from './Menu';
+import { useMenu, type MenuEntry } from './Menu';
 
 export interface Crumb {
   label: string;
@@ -12,7 +12,7 @@ export interface Crumb {
 }
 
 /** phoneMenu: page actions that move into the ⋯ menu on phones (their own buttons carry .hide-phone). */
-export function TopBar({ crumbs, children, phoneMenu = [] }: { crumbs: Crumb[]; children?: ReactNode; phoneMenu?: MenuItem[] }) {
+export function TopBar({ crumbs, children, phoneMenu = [] }: { crumbs: Crumb[]; children?: ReactNode; phoneMenu?: MenuEntry[] }) {
   const { openSidebar } = useShell();
   const [theme, toggleTheme] = useTheme();
   const { t, lang, setLang } = useI18n();
@@ -66,6 +66,7 @@ export function TopBar({ crumbs, children, phoneMenu = [] }: { crumbs: Crumb[]; 
         onClick={(e) =>
           menu.open(e, [
             ...phoneMenu,
+            ...(phoneMenu.length ? (['-'] as const) : []),
             { label: t('lang.label') + ' · ' + t('lang.switch'), icon: 'globe', onSelect: switchLang },
             { label: theme === 'dark' ? t('theme.toLight') : t('theme.toDark'), icon: theme === 'dark' ? 'sun' : 'moon', onSelect: toggleTheme },
           ])

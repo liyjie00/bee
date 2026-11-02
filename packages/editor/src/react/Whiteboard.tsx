@@ -26,6 +26,12 @@ export interface WhiteboardHandle {
   getView(): WhiteboardView | null;
   /** Zooms to the whole drawing now, without touching the saved range. */
   fitAll(): void;
+  /** The drawing as an image; null when there is nothing to export. */
+  exportImage(type: 'png' | 'jpeg', opts?: { background?: boolean; onlySelected?: boolean }): Promise<Blob | null>;
+  /** The drawing as an .excalidraw file (JSON), for offline copies or excalidraw.com. */
+  exportScene(): string;
+  /** Adds the drawing in an .excalidraw file to this board (undoable). */
+  importScene(file: Blob): Promise<void>;
 }
 
 /** Shows `view` (scene units) centred in the canvas, as large as fits. */
@@ -147,9 +153,49 @@ function Board({ ydoc, provider, user, editable, embedded, fitContent, view, onH
       fitAll: () => {
         if (apiRef.current) fitAll(apiRef.current);
       },
+      exportImage: async (type, opts = {}) => {
+        const a = apiRef.current;
+        const m = mod ?? (await loadExcalidraw());
+        if (!a) return null;
+        const appState = a.getAppState();
+        let elements = a.getSceneElements();
+        if (opts.onlySelected) {
+          const ids = appState.selectedElementIds;
+          const picked = elements.filter((el: SceneElement) => ids[el.id]);
+          if (picked.length) elements = picked;
+        }
+        if (!elements.length) return null;
+        return m.exportToBlob({
+          elements,
+          files: a.getFiles(),
+          mimeType: type === 'png' ? 'image/png' : 'image/jpeg',
+          // JPEG has no transparency: it always gets the background.
+          appState: { ...appState, exportBackground: type === 'jpeg' || opts.background !== false, exportScale: 2 },
+          exportPadding: 24,
+        });
+      },
+      exportScene: () => {
+        const a = apiRef.current;
+        if (!a || !mod) return '';
+        return mod.serializeAsJSON(a.getSceneElements(), a.getAppState(), a.getFiles(), 'local');
+      },
+      importScene: async (file) => {
+        const a = apiRef.current;
+        const m = mod ?? (await loadExcalidraw());
+        if (!a) return;
+        const scene = await m.loadFromBlob(file, null, null);
+        const incoming = scene.elements.filter((el: SceneElement) => !el.isDeleted);
+        const ids = new Set(incoming.map((el: SceneElement) => el.id));
+        a.addFiles(Object.values(scene.files ?? {}));
+        a.updateScene({
+          elements: [...a.getSceneElementsIncludingDeleted().filter((el: SceneElement) => !ids.has(el.id)), ...incoming],
+          captureUpdate: m.CaptureUpdateAction.IMMEDIATELY,
+        });
+        requestAnimationFrame(() => apiRef.current && fitAll(apiRef.current));
+      },
     });
     return () => onHandle?.(null);
-  }, [onHandle]);
+  }, [onHandle, mod]);
   const t = useMessages();
   const theme = useTheme(themeProp);
 

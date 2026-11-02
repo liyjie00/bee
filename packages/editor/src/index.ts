@@ -1,5 +1,5 @@
 export { BeeEditor, type BeeEditorProps } from './react/BeeEditor.js';
-export { BeeWhiteboard, type BeeWhiteboardProps, WHITEBOARD_ELEMENTS, WHITEBOARD_FILES } from './react/Whiteboard.js';
+export { BeeWhiteboard, type BeeWhiteboardProps, type WhiteboardHandle, WHITEBOARD_ELEMENTS, WHITEBOARD_FILES } from './react/Whiteboard.js';
 export { BeeVersionPreview, type BeeVersionPreviewProps, restoreVersion } from './react/VersionPreview.js';
 export { buildExtensions, type BuildOptions } from './react/extensions.js';
 export { IdleCollaborationCaret, CursorActivity, CURSOR_IDLE_MS } from './react/caret-idle.js';
@@ -17,3 +17,4 @@ export { SheetDocContext, SheetTable } from './react/sheet/SheetView.js';
 export { schemaExtensions, BLOCK_ID_ATTR, BLOCK_TYPES } from './schema/index.js';
 export type { Editor } from '@tiptap/react';
 export { useTheme, type Theme } from './react/theme.js';
+export { openLinkEditor, beeDocUrl, type LinkTarget } from './react/links.js';

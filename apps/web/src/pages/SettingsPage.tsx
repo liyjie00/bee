@@ -7,7 +7,9 @@ import { TopBar } from '../components/TopBar';
 import { applyDocPrefs } from '../lib/docPrefs';
 import { useSession } from '../state/session';
 import { copyText, errMsg, useToast } from '../state/toast';
-import { useAgo, useT } from '../i18n';
+import { useAgo, useT, type MessageKey } from '../i18n';
+import { NOTIFICATION_KINDS, type NotificationKind } from '@bee/shared';
+import { currentSubscription, disablePush, enablePush, pushSupported } from '../lib/push';
 
 function CopyField({ value }: { value: string }) {
   const t = useT();
@@ -86,6 +88,116 @@ function ReadingSection() {
   );
 }
 
+const KIND_LABEL: Record<NotificationKind, MessageKey> = {
+  mention: 'settings.notif.mention',
+  reply: 'settings.notif.reply',
+  share: 'settings.notif.share',
+  access_request: 'settings.notif.request',
+};
+
+/** Browser (Web Push) notifications for this browser, email (coming soon), and which events notify. */
+function NotificationsSection() {
+  const t = useT();
+  const toast = useToast();
+  const { session, setSession } = useSession();
+  const prefs = session?.user.prefs ?? {};
+  const muted = new Set(prefs.mutedNotifications ?? []);
+  const [server, setServer] = useState<{ push: boolean; vapidPublicKey: string | null } | null>(null);
+  const [on, setOn] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const supported = pushSupported();
+  const denied = supported && Notification.permission === 'denied';
+
+  useEffect(() => {
+    api.delivery().then(setServer, () => setServer({ push: false, vapidPublicKey: null }));
+    currentSubscription().then((s) => setOn(!!s), () => setOn(false));
+  }, []);
+
+  const toggleKind = async (k: NotificationKind) => {
+    const next = new Set(muted);
+    if (next.has(k)) next.delete(k);
+    else next.add(k);
+    try {
+      setSession(await api.updateMe({ prefs: { mutedNotifications: [...next] } }));
+    } catch (e) {
+      toast(errMsg(e));
+    }
+  };
+  const enable = async () => {
+    if (!server?.vapidPublicKey) return;
+    setBusy(true);
+    try {
+      if (await enablePush(server.vapidPublicKey)) setOn(true);
+      else toast(t('settings.notif.denied'));
+    } catch (e) {
+      toast(errMsg(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const disable = async () => {
+    setBusy(true);
+    await disablePush().catch(() => {});
+    setOn(false);
+    setBusy(false);
+  };
+
+  const pushHint = !supported
+    ? t('settings.notif.unsupported')
+    : !server?.push
+      ? t('settings.notif.serverOff')
+      : denied
+        ? t('settings.notif.blocked')
+        : on
+          ? t('settings.notif.onHint')
+          : t('settings.notif.offHint');
+  return (
+    <section>
+      <h2>{t('settings.notif.title')}</h2>
+      <p className="lead">{t('settings.notif.lead')}</p>
+      <div className="notif-pref">
+        <div>
+          <b>{t('settings.notif.browser')}</b>
+          <small>{pushHint}</small>
+        </div>
+        {supported && server?.push && !denied && on === false && (
+          <button className="btn primary" disabled={busy} onClick={enable}>
+            {t('settings.notif.enable')}
+          </button>
+        )}
+        {on && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn" disabled={busy} onClick={() => api.testPush().catch((e) => toast(errMsg(e)))}>
+              {t('settings.notif.test')}
+            </button>
+            <button className="btn" disabled={busy} onClick={disable}>
+              {t('settings.notif.disable')}
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="notif-pref is-soon">
+        <div>
+          <b>
+            {t('settings.notif.email')} <span className="soon">{t('settings.notif.soon')}</span>
+          </b>
+          <small>{t('settings.notif.emailHint', { email: session?.user.email ?? '' })}</small>
+        </div>
+        <button className="switch" role="switch" aria-checked={false} aria-label={t('settings.notif.email')} disabled />
+      </div>
+      <div className="notif-kinds">
+        <span className="lbl">{t('settings.notif.kinds')}</span>
+        {NOTIFICATION_KINDS.map((k) => (
+          <label key={k}>
+            <input type="checkbox" checked={!muted.has(k)} onChange={() => toggleKind(k)} />
+            {t(KIND_LABEL[k])}
+          </label>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /** Account settings: document text, connecting Claude (MCP), connected OAuth apps and personal API tokens. */
 export function SettingsPage() {
   const t = useT();
@@ -132,6 +244,7 @@ export function SettingsPage() {
           <h1>{t('settings.title')}</h1>
 
           <ReadingSection />
+          <NotificationsSection />
 
           <section>
             <h2>{t('settings.claudeTitle')}</h2>

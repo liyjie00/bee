@@ -1,9 +1,16 @@
 import type { FastifyInstance } from 'fastify';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { documentViews, documents, users, workspaceMembers, workspaces } from '@bee/db';
+import {
+  documentStars,
+  documentViews,
+  documents,
+  users,
+  workspaceMembers,
+  workspaces,
+} from '@bee/db';
 import { WORKSPACE_ROLES, workspaceRoleAtLeast, type WorkspaceMemberDTO } from '@bee/shared';
-import { requireMember, workspaceView } from '../lib/access.js';
+import { docAccess, requireMember, workspaceView } from '../lib/access.js';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors.js';
 import { documentDTOs, folderDTO, userRef, workspaceDTO } from '../lib/dto.js';
 import { snippet } from '../lib/content.js';
@@ -207,6 +214,41 @@ export async function workspaceRoutes(app: FastifyInstance) {
       .slice(0, 30)
       .map(([docId]) => readable.get(docId)!);
     return { documents: await documentDTOs(db, docs) };
+  });
+
+  app.get('/workspaces/:id/starred', async (req) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    const view = await workspaceView(db, id, user.id);
+    const readable = new Map(view.documents.map((d) => [d.id, d]));
+    const stars = await db
+      .select({ documentId: documentStars.documentId })
+      .from(documentStars)
+      .where(eq(documentStars.userId, user.id))
+      .orderBy(desc(documentStars.createdAt))
+      .limit(200);
+    const docs = stars.map((s) => readable.get(s.documentId)).filter((d) => !!d);
+    return { documents: await documentDTOs(db, docs) };
+  });
+
+  // Starring needs read access; unstarring always works.
+  app.put('/documents/:id/star', async (req) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    await docAccess(db, { userId: user.id, documentId: id });
+    await db
+      .insert(documentStars)
+      .values({ userId: user.id, documentId: id })
+      .onConflictDoNothing();
+    return { ok: true };
+  });
+  app.delete('/documents/:id/star', async (req) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    await db
+      .delete(documentStars)
+      .where(and(eq(documentStars.userId, user.id), eq(documentStars.documentId, id)));
+    return { ok: true };
   });
 
   app.get('/workspaces/:id/shared-with-me', async (req) => {

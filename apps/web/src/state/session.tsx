@@ -89,6 +89,11 @@ export function TreeProvider({ workspaceId, children }: { workspaceId: string; c
   return <TreeContext.Provider value={value}>{children}</TreeContext.Provider>;
 }
 
+/** null outside the signed-in shell (share pages). */
+export function useTreeOrNull(): TreeCtx | null {
+  return useContext(TreeContext);
+}
+
 export function useTree(): TreeCtx {
   const c = useContext(TreeContext);
   if (!c) throw new Error('TreeProvider missing');

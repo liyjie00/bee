@@ -8,6 +8,7 @@ import { WhiteboardPicker } from '../components/WhiteboardPicker';
 import { errMsg, useToast } from '../state/toast';
 import { useSession, useTree } from '../state/session';
 import { DocView } from './DocView';
+import { RequestAccess } from '../components/RequestAccess';
 import { useT } from '../i18n';
 
 export function DocPage() {
@@ -29,22 +30,27 @@ export function DocPage() {
   // Content starts loading in parallel with the metadata, and before the editor's effects run
   // (child effects run first), so the editor picks it up as its snapshot.
   useMemo(() => prefetchDoc(docId), [docId]);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     setDoc(null);
     setError(null);
     api.getDocument(docId).then(setDoc, (e) =>
       setError({ status: e instanceof HttpError ? e.status : 0, message: e instanceof Error ? e.message : String(e) }),
     );
-  }, [docId]);
+  }, [docId, attempt]);
 
   if (error)
     return (
       <main className="main">
         <TopBar crumbs={[{ label: t('kind.doc') }]} />
-        <div className="empty">
-          <h2>{error.status === 404 || error.status === 403 ? t('doc.noAccess') : t('doc.loadFailed')}</h2>
-          <p style={{ margin: 0 }}>{error.status === 404 || error.status === 403 ? t('doc.noAccessHint') : error.message}</p>
-        </div>
+        {error.status === 404 || error.status === 403 ? (
+          <RequestAccess docId={docId} onGranted={() => setAttempt((n) => n + 1)} />
+        ) : (
+          <div className="empty">
+            <h2>{t('doc.loadFailed')}</h2>
+            <p style={{ margin: 0 }}>{error.message}</p>
+          </div>
+        )}
       </main>
     );
   // The tree already has this document's metadata: render from it while the fetch refreshes it.

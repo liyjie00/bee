@@ -14,6 +14,9 @@ import type {
   BlockLinkDTO,
   CommentAnchor,
   CommentDTO,
+  AccessRequestDTO,
+  NotificationDTO,
+  TemplateDTO,
   CommentThreadDTO,
   ConnectedAppDTO,
   DocumentDTO,
@@ -106,6 +109,8 @@ export interface TrashResponse {
 export interface RecentResponse {
   documents: DocumentDTO[];
 }
+/** GET /api/workspaces/:id/starred → { documents } (newest star first) ; PUT|DELETE /api/documents/:id/star → Ok */
+export type StarredResponse = RecentResponse;
 /** GET /api/workspaces/:id/shared-with-me */
 export type SharedWithMeResponse = RecentResponse;
 
@@ -186,6 +191,14 @@ export interface MarkdownEditResponse extends MarkdownResponse {
   removed: number;
   inserted: number;
   occurrences?: number;
+}
+/** GET /api/documents/:id/link-preview?block= → LinkPreviewResponse (read access) */
+export interface LinkPreviewResponse {
+  documentId: string;
+  title: string;
+  type: DocumentType;
+  /** heading the block sits under, when `block` is given */
+  section: string | null;
 }
 /** GET /api/documents/:id/blocks/:blockId → BlockLinkDTO */
 export type BlockLinkResponse = BlockLinkDTO;
@@ -374,3 +387,47 @@ export interface UploadResponse {
  * PUT  /api/internal/collab/documents/:id/markdown text/markdown → 204 (optional)
  * POST /api/internal/collab/documents/:id/versions octet-stream, header x-author-ids → 201
  */
+
+// ---------- mentions and notifications ----------
+/** GET /api/documents/:id/mentionable?q= → people who can read the document (for @mentions) */
+export interface MentionableResponse {
+  users: (UserRef & { email: string })[];
+}
+/** GET /api/notifications?unread=1&before=<iso> → newest first, 50 per page */
+export interface NotificationsResponse {
+  notifications: NotificationDTO[];
+  unread: number;
+}
+/** GET /api/notifications/unread → { unread } */
+/** POST /api/notifications/read { ids } | { all: true } → { unread } */
+export interface ReadNotificationsBody {
+  ids?: string[];
+  all?: boolean;
+}
+
+// ---------- templates ----------
+/** GET /api/workspaces/:id/templates → { templates } */
+export interface TemplatesResponse {
+  templates: TemplateDTO[];
+}
+/** POST /api/documents/:id/template { title? } → { template } (docs; read access) ; DELETE /api/templates/:id → Ok */
+export interface TemplateResponse {
+  template: TemplateDTO;
+}
+
+// ---------- access requests ----------
+/**
+ * POST /api/documents/:id/access-requests { role, message? } → { request } (signed in, no read access
+ * yet; 409 already_has_access). Editors and the owner get an access_request notification.
+ * GET /api/documents/:id/access-requests/mine → { request: AccessRequestDTO | null }
+ * POST /api/access-requests/:id { action: 'grant', role } | { action: 'decline' } → { request } (editors)
+ */
+export interface CreateAccessRequestBody {
+  role: GrantableRole;
+  message?: string;
+}
+export interface AccessRequestResponse {
+  request: AccessRequestDTO | null;
+}
+export type HandleAccessRequestBody =
+  { action: 'grant'; role: GrantableRole } | { action: 'decline' };
