@@ -81,6 +81,7 @@ export function documentDTO(d: DocMeta, role: Role, refs: Map<string, UserRef>):
     id: d.id,
     workspaceId: d.workspaceId,
     folderId: d.folderId,
+    parentDocumentId: d.parentDocumentId,
     type: d.type,
     title: d.title,
     icon: d.icon,

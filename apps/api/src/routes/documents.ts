@@ -13,7 +13,10 @@ import { requireUser } from './auth.js';
 import { requireCreateIn } from './folders.js';
 
 const createBody = z.object({
-  workspaceId: z.uuid(),
+  /** optional when parentDocumentId is given (taken from the parent) */
+  workspaceId: z.uuid().optional(),
+  /** embed in another document (e.g. a whiteboard inside a doc) */
+  parentDocumentId: z.uuid().optional(),
   folderId: z.uuid().nullable().optional(),
   title: z.string().max(500).optional(),
   type: z.enum(['doc', 'whiteboard', 'sheet']).optional(),
@@ -55,6 +58,7 @@ export async function insertDocument(
     type: DocumentType;
     state?: Uint8Array | null;
     icon?: string | null;
+    parentDocumentId?: string | null;
   },
 ): Promise<DocRow> {
   const caches = v.state && v.type === 'doc' ? deriveCaches(v.state) : null;
@@ -67,6 +71,7 @@ export async function insertDocument(
       title: v.title,
       type: v.type,
       icon: v.icon ?? null,
+      parentDocumentId: v.parentDocumentId ?? null,
       sort: await nextDocSort(db, v.workspaceId, v.folderId),
       ydocState: v.state ? Buffer.from(v.state) : null,
       markdownCache: caches?.markdown ?? null,
@@ -90,21 +95,35 @@ export async function documentRoutes(app: FastifyInstance) {
   app.post('/documents', async (req, reply) => {
     const user = requireUser(req);
     const body = parse(createBody, req.body);
-    const folderId = body.folderId ?? null;
     const type = body.type ?? 'doc';
-    await requireCreateIn(db, body.workspaceId, folderId, user.id);
+    let workspaceId = body.workspaceId;
+    let folderId = body.folderId ?? null;
+    if (body.parentDocumentId) {
+      const parent = await requireDocRole(
+        db,
+        { userId: user.id, documentId: body.parentDocumentId, shareToken: req.shareToken },
+        can.edit,
+        'You cannot edit the parent document',
+      );
+      workspaceId = parent.doc.workspaceId;
+      folderId = parent.doc.folderId;
+    } else {
+      if (!workspaceId) throw badRequest('workspaceId is required', 'validation');
+      await requireCreateIn(db, workspaceId, folderId, user.id);
+    }
     if (body.markdown !== undefined && type !== 'doc')
       throw badRequest('Markdown import is only for docs');
     const state = body.markdown !== undefined ? markdownToYUpdate(body.markdown) : null;
     const title =
       body.title ?? (body.markdown ? titleFromMarkdown(body.markdown) : undefined) ?? '';
     const doc = await insertDocument(db, {
-      workspaceId: body.workspaceId,
+      workspaceId,
       folderId,
       ownerId: user.id,
       title,
       type,
       state,
+      parentDocumentId: body.parentDocumentId ?? null,
     });
     await logActivity(db, {
       workspaceId: doc.workspaceId,

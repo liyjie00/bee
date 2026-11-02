@@ -3,6 +3,7 @@ import { documents, folders, permissions, shareLinks, workspaceMembers, type Db 
 import {
   can,
   effectiveRole,
+  maxRole,
   type ChainNode,
   type Grant,
   type LinkRole,
@@ -26,6 +27,7 @@ export const docMeta = {
   icon: documents.icon,
   sort: documents.sort,
   ownerId: documents.ownerId,
+  parentDocumentId: documents.parentDocumentId,
   lastEditedById: documents.lastEditedById,
   createdAt: documents.createdAt,
   updatedAt: documents.updatedAt,
@@ -142,6 +144,8 @@ export async function docAccess(
     documentId: string;
     shareToken?: string | null;
     includeDeleted?: boolean;
+    /** internal: recursion guard for embedded documents */
+    depth?: number;
   },
 ): Promise<DocAccess> {
   const rows = await db.select().from(documents).where(eq(documents.id, opts.documentId)).limit(1);
@@ -167,13 +171,28 @@ export async function docAccess(
       grants: (grants.get(f.id) ?? []).map(toGrant),
     })),
   ];
-  const role = effectiveRole({
+  let role = effectiveRole({
     userId: opts.userId,
     workspaceId: doc.workspaceId,
     workspaceRole,
     chain: nodes,
     linkRole: doc.deletedAt ? null : linkRoleFor(link, opts.userId),
   });
+  // Embedded content (e.g. a whiteboard in a doc) also gets the parent document's access,
+  // including access through the parent's share link.
+  if (doc.parentDocumentId && (opts.depth ?? 0) < 8 && !doc.deletedAt) {
+    try {
+      const parent = await docAccess(db, {
+        userId: opts.userId,
+        documentId: doc.parentDocumentId,
+        shareToken: opts.shareToken,
+        depth: (opts.depth ?? 0) + 1,
+      });
+      role = maxRole(role, parent.role);
+    } catch {
+      /* no access through the parent */
+    }
+  }
   if (!can.read(role)) {
     if (!opts.userId) throw unauthorized();
     throw notFound('Document not found');
@@ -310,6 +329,7 @@ export async function workspaceView(
   }
   const visibleDocs: (DocMeta & { role: Role })[] = [];
   for (const d of allDocs) {
+    if (d.parentDocumentId) continue; // embedded content is not listed on its own
     if (!opts.deleted && inTrash(d.folderId)) continue;
     const role = roleIn([
       { type: 'document', id: d.id, ownerId: d.ownerId, grants: grants.get(d.id) ?? [] },

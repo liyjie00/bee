@@ -125,7 +125,10 @@ export interface FolderResponse {
 // ---------- documents ----------
 /** POST /api/documents → { document } */
 export interface CreateDocumentBody {
-  workspaceId: string;
+  /** optional when parentDocumentId is set */
+  workspaceId?: string;
+  /** embed in another document, e.g. a whiteboard inside a doc (needs edit on the parent) */
+  parentDocumentId?: string;
   folderId?: string | null;
   title?: string;
   type?: DocumentType;

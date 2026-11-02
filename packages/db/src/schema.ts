@@ -123,6 +123,11 @@ export const documents = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     folderId: uuid('folder_id').references(() => folders.id, { onDelete: 'set null' }),
+    /**
+     * Set for content embedded in another document (e.g. a whiteboard inside a doc):
+     * it inherits the parent's access and is hidden from the folder tree.
+     */
+    parentDocumentId: uuid('parent_document_id'),
     type: text('type').$type<DocumentType>().notNull().default('doc'),
     title: text('title').notNull().default(''),
     icon: text('icon'),
@@ -149,6 +154,12 @@ export const documents = pgTable(
   },
   (t) => [
     index('documents_ws_folder_idx').on(t.workspaceId, t.folderId),
+    index('documents_parent_idx').on(t.parentDocumentId),
+    foreignKey({
+      columns: [t.parentDocumentId],
+      foreignColumns: [t.id],
+      name: 'documents_parent_fk',
+    }).onDelete('cascade'),
     index('documents_search_idx').using(
       'gin',
       sql`to_tsvector('simple', coalesce(${t.title}, '') || ' ' || coalesce(${t.textCache}, ''))`,

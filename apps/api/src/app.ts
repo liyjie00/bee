@@ -87,21 +87,17 @@ export async function buildApp(opts: {
     }
     const e = err as { statusCode?: number; code?: string; message?: string };
     if (e.statusCode === 429) {
-      return reply
-        .status(429)
-        .send({
-          error: { code: 'rate_limited', message: 'Too many attempts, try again in a minute' },
-        });
+      return reply.status(429).send({
+        error: { code: 'rate_limited', message: 'Too many attempts, try again in a minute' },
+      });
     }
     if (e.statusCode && e.statusCode < 500) {
-      return reply
-        .status(e.statusCode)
-        .send({
-          error: {
-            code: (e.code ?? 'bad_request').toLowerCase(),
-            message: e.message ?? 'Bad request',
-          },
-        });
+      return reply.status(e.statusCode).send({
+        error: {
+          code: (e.code ?? 'bad_request').toLowerCase(),
+          message: e.message ?? 'Bad request',
+        },
+      });
     }
     req.log.error(err);
     return reply

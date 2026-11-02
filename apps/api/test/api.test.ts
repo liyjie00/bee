@@ -210,6 +210,45 @@ describe('share links', () => {
   });
 });
 
+describe('embedded documents', () => {
+  it('a whiteboard inside a doc inherits the parent access and share link', async () => {
+    const owner = await signup(app, 'embedowner');
+    const other = await signup(app, 'embedother');
+    const doc = (
+      await owner.c.post('/api/documents', { workspaceId: owner.workspace.id, title: 'Host' })
+    ).json.document;
+    const wb = (
+      await owner.c.post('/api/documents', { parentDocumentId: doc.id, type: 'whiteboard' })
+    ).json.document;
+    expect(wb.parentDocumentId).toBe(doc.id);
+    expect(
+      (await owner.c.get(`/api/workspaces/${owner.workspace.id}/tree`)).json.documents,
+    ).toHaveLength(1);
+
+    expect((await other.c.get(`/api/documents/${wb.id}`)).status).toBe(404);
+    expect(
+      (await other.c.post('/api/documents', { parentDocumentId: doc.id, type: 'whiteboard' }))
+        .status,
+    ).toBe(404);
+    await owner.c.post(`/api/documents/${doc.id}/grants`, {
+      email: 'embedother@example.com',
+      role: 'viewer',
+    });
+    expect((await other.c.get(`/api/documents/${wb.id}`)).json.document.role).toBe('viewer');
+
+    const link = (
+      await owner.c.post(`/api/documents/${doc.id}/links`, { role: 'viewer', public: true })
+    ).json.link;
+    const r = await app.inject({
+      method: 'POST',
+      url: '/api/internal/collab/auth',
+      payload: { documentId: wb.id, shareToken: link.token },
+      headers: SECRET,
+    });
+    expect(r.json()).toMatchObject({ role: 'viewer', readOnly: true, documentType: 'whiteboard' });
+  });
+});
+
 describe('comments', () => {
   it('threads, replies, resolve, permissions', async () => {
     const owner = await signup(app, 'cowner');

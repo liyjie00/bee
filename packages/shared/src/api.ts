@@ -57,6 +57,8 @@ export interface DocumentDTO {
   id: string;
   workspaceId: string;
   folderId: string | null;
+  /** set for content embedded in another document (inherits its access, not in the tree) */
+  parentDocumentId: string | null;
   type: DocumentType;
   title: string;
   icon: string | null;
