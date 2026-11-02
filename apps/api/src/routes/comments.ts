@@ -151,7 +151,7 @@ export async function commentRoutes(app: FastifyInstance) {
       throw forbidden('You cannot comment on this document');
     }
     if (userId) return { a, cols: { authorId: userId }, actorId: userId, label: '' };
-    // Anonymous: only a public link with guest comments gets them this far.
+    // Anonymous: only a link that lets guests comment gets them this far.
     const link = await validShareLink(db, req.shareToken);
     if (!guestsMayComment(link)) throw unauthorized('Sign in to comment');
     if (!name) throw badRequest('Enter a name to comment', 'guest_name_required');

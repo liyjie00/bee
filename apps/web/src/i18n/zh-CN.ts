@@ -207,7 +207,7 @@ export const zhCN: Record<MessageKey, string> = {
   'share.private': '仅受邀成员',
   'share.privateHint': '只有上面列出的人能打开',
   'share.link': '知道链接的人',
-  'share.linkHint': '登录后即可打开，权限见下方',
+  'share.linkHint': '无需登录即可打开，权限见下方（未登录的人最多能评论，评论时填个昵称）',
   'share.public': '公开发布',
   'share.publicHint': '任何人无需登录即可只读查看，可被分享和引用',
   'share.linkRole': '链接权限',

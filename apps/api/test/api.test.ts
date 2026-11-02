@@ -192,7 +192,7 @@ describe('documents, folders and permissions', () => {
 });
 
 describe('share links', () => {
-  it('public links allow anonymous view, private links need sign-in', async () => {
+  it('links open without sign-in; sharing off says no access', async () => {
     const owner = await signup(app, 'linkowner');
     const doc = (
       await owner.c.post('/api/documents', { workspaceId: owner.workspace.id, title: 'Public' })
@@ -226,7 +226,10 @@ describe('share links', () => {
       await owner.c.post(`/api/documents/${doc.id}/links`, { role: 'viewer', public: false })
     ).json.link;
     expect(priv.token).toBe(link.token);
-    expect((await anon.get(`/api/share/${priv.token}`)).status).toBe(400);
+    // "Anyone with the link" opens without signing in too.
+    const r2 = await anon.get(`/api/share/${priv.token}`);
+    expect(r2.status).toBe(200);
+    expect(r2.json.role).toBe('viewer');
     expect((await carol.c.get(`/api/share/${priv.token}`)).status).toBe(200);
 
     // Turning sharing off: the link says "no access" (with the document to request it on),
@@ -268,6 +271,28 @@ describe('guest comments', () => {
       { 'x-share-token': link.token, 'x-guest-key': 'guest-key-three-0123456789' },
     );
     expect(res.status).toBe(401);
+  });
+
+  it('"anyone with the link can comment" lets signed-out visitors comment', async () => {
+    const owner = await signup(app, 'guestowner3');
+    const doc = (
+      await owner.c.post('/api/documents', { workspaceId: owner.workspace.id, title: 'Link' })
+    ).json.document;
+    const link = (
+      await owner.c.post(`/api/documents/${doc.id}/links`, { role: 'commenter', public: false })
+    ).json.link;
+    const anon = client(app);
+    expect((await anon.get(`/api/share/${link.token}`)).json.role).toBe('commenter');
+    const res = await anon.post(
+      `/api/documents/${doc.id}/threads`,
+      { anchor: null, body: 'Hi', guestName: 'Ann' },
+      { 'x-share-token': link.token, 'x-guest-key': 'guest-key-four-0123456789' },
+    );
+    expect(res.status).toBe(201);
+
+    // An editor link still gives signed-out visitors no more than commenting.
+    await owner.c.patch(`/api/links/${link.id}`, { role: 'editor' });
+    expect((await anon.get(`/api/share/${link.token}`)).json.role).toBe('commenter');
   });
 
   it('public links with guest comments let anonymous visitors comment under a nickname', async () => {

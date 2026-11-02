@@ -205,7 +205,7 @@ export const en = {
   'share.private': 'Invited only',
   'share.privateHint': 'Only the people listed above can open it',
   'share.link': 'Anyone with the link',
-  'share.linkHint': 'Anyone signed in can open it, with the role below',
+  'share.linkHint': 'Anyone can open it without signing in, with the role below (signed-out visitors can at most comment, under a nickname)',
   'share.public': 'Publish to web',
   'share.publicHint': 'Anyone can read it without signing in; it can be shared and linked',
   'share.linkRole': 'Link permission',

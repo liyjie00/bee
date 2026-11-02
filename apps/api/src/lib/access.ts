@@ -124,21 +124,23 @@ export async function validShareLink(
 }
 
 /**
- * Role a share link gives. Anonymous visitors are capped at viewer, or commenter on
- * public links with guest comments on (they never edit without an identity);
- * private links need a signed-in user.
+ * Role a share link gives. Anyone with the link may open it without signing in;
+ * anonymous visitors never edit without an identity, so they are capped at commenter
+ * (see guestsMayComment), else viewer.
  */
 export function linkRoleFor(link: ShareLinkRow | null, userId: string | null): LinkRole | null {
   if (!link) return null;
-  if (!userId) {
-    if (!link.public) return null;
-    return guestsMayComment(link) ? 'commenter' : 'viewer';
-  }
+  if (!userId) return guestsMayComment(link) ? 'commenter' : 'viewer';
   return link.role;
 }
 
+/**
+ * Whether anonymous visitors may comment (with a nickname) through this link: an
+ * "anyone with the link" link whose role allows comments, or a published (public)
+ * link with guest comments turned on.
+ */
 export function guestsMayComment(link: ShareLinkRow | null): boolean {
-  return !!link && link.public && link.guestComments && can.comment(link.role);
+  return !!link && can.comment(link.role) && (!link.public || link.guestComments);
 }
 
 /** Embed marker the host's Markdown keeps while it still contains the embed. */
