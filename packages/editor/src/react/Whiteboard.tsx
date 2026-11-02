@@ -4,6 +4,7 @@ import type { HocuspocusProvider } from '@hocuspocus/provider';
 import { useCollabConnection, type BeeUser, type CollabStatus } from './collab.js';
 import { useTheme, type Theme } from './theme.js';
 import { MessagesContext, resolveMessages, useMessages, type Locale, type Messages } from './i18n.js';
+import { WhiteboardConnectors } from './WhiteboardConnectors.js';
 
 type ExcalidrawModule = typeof import('@excalidraw/excalidraw');
 type ExcalidrawAPI = Parameters<NonNullable<import('@excalidraw/excalidraw/types').ExcalidrawProps['excalidrawAPI']>>[0];
@@ -39,6 +40,7 @@ interface BoardProps {
 function Board({ ydoc, provider, user, editable, embedded, fitContent, locale, theme: themeProp }: BoardProps) {
   const [mod, setMod] = useState<ExcalidrawModule | null>(null);
   const apiRef = useRef<ExcalidrawAPI | null>(null);
+  const [api, setApi] = useState<ExcalidrawAPI | null>(null);
   const t = useMessages();
   const theme = useTheme(themeProp);
 
@@ -119,9 +121,11 @@ function Board({ ydoc, provider, user, editable, embedded, fitContent, locale, t
   const Excalidraw = mod.Excalidraw as unknown as ComponentType<Record<string, unknown>>;
 
   return (
+    <>
     <Excalidraw
       excalidrawAPI={(api: ExcalidrawAPI) => {
         apiRef.current = api;
+        setApi(api);
         applyRemote();
         if (fitContent)
           requestAnimationFrame(() => {
@@ -145,6 +149,8 @@ function Board({ ydoc, provider, user, editable, embedded, fitContent, locale, t
       langCode={locale === 'zh-CN' ? 'zh-CN' : 'en'}
       UIOptions={embedded ? { canvasActions: { loadScene: false, saveToActiveFile: false, export: false } } : undefined}
     />
+    {editable && api && <WhiteboardConnectors api={api} mod={mod} />}
+    </>
   );
 }
 

@@ -3,6 +3,7 @@ FROM node:24-bookworm-slim AS build
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc tsconfig.base.json ./
+COPY patches patches
 COPY packages/editor/package.json packages/editor/
 COPY apps/collab/package.json apps/collab/
 RUN pnpm install --frozen-lockfile --filter @bee/collab...
