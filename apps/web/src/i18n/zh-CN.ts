@@ -98,6 +98,7 @@ export const zhCN: Record<MessageKey, string> = {
   'doc.noAccess': '文档不存在，或者你没有访问权限',
   'doc.noAccessHint': '请联系文档所有者邀请你，或确认链接是否正确。',
   'doc.title': '标题',
+  'doc.inTrash': '该文档在回收站中，恢复后才能编辑。',
   'doc.history': '版本历史',
   'doc.comments': '评论',
   'doc.share': '分享',

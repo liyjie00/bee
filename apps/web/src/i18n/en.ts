@@ -96,6 +96,7 @@ export const en = {
   'doc.noAccess': 'This document does not exist, or you do not have access',
   'doc.noAccessHint': 'Ask the owner to invite you, or check that the link is correct.',
   'doc.title': 'Title',
+  'doc.inTrash': 'This document is in the trash. Restore it to edit.',
   'doc.history': 'Version history',
   'doc.comments': 'Comments',
   'doc.share': 'Share',

@@ -273,6 +273,9 @@ importers:
       '@bee/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@excalidraw/excalidraw':
+        specifier: ^0.18.1
+        version: 0.18.1(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tiptap/core':
         specifier: 3.32.2
         version: 3.32.2(@tiptap/pm@3.32.2)
@@ -282,6 +285,9 @@ importers:
       diff:
         specifier: 8.0.2
         version: 8.0.2
+      mermaid:
+        specifier: ^12.2.0
+        version: 12.2.0
       react:
         specifier: 18.3.1
         version: 18.3.1

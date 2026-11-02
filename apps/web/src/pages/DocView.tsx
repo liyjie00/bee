@@ -170,7 +170,28 @@ export function DocView({
           )}
         </TopBar>
 
-        {isBoard ? (
+        {doc.deletedAt && (
+          <div className="hbanner">
+            <Icon name="trash" />
+            <span>{t('doc.inTrash')}</span>
+            <span className="spacer" />
+            {can.manage(doc.role) && (
+              <button
+                className="btn primary"
+                onClick={() => api.restoreDocument(doc.id).then(() => location.reload(), (e) => toast(errMsg(e)))}
+              >
+                <Icon name="restore" />
+                {t('tree.restore')}
+              </button>
+            )}
+          </div>
+        )}
+        {status === 'denied' ? (
+          <div className="empty">
+            <h2>{t('doc.noAccess')}</h2>
+            <p style={{ margin: 0 }}>{t('doc.noAccessHint')}</p>
+          </div>
+        ) : isBoard ? (
           <section className="view" style={{ overflow: 'hidden', position: 'relative' }}>
             <div className="wb-host">
               <BeeWhiteboard key={doc.id} documentId={doc.id} collabUrl={collabUrl()} shareToken={shareToken} user={user} editable={editable} locale={lang} onStatus={setStatus} />
