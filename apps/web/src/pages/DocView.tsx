@@ -194,11 +194,15 @@ export function DocView({
   const canAi = !!me;
   const showAi = ai && canAi;
   const showPanel = panel && !isBoard && !showAi;
+  const openThreads = threads.filter((th) => !th.resolved).length;
 
   return (
     <>
       <main className="main">
-        <TopBar crumbs={crumbs}>
+        <TopBar
+          crumbs={crumbs}
+          phoneMenu={!shareToken && !isBoard ? [{ label: t('doc.history'), icon: 'clock', onSelect: () => nav(`/d/${doc.id}/history`) }] : []}
+        >
           <span className="saved hide-sm" title={status}>
             <i style={{ background: status === 'synced' ? '#3fa34d' : status === 'disconnected' ? 'var(--del-ink)' : 'var(--honey)' }} />
             {t(`status.${status}`)}
@@ -210,7 +214,7 @@ export function DocView({
             {me && <Avatar name={me.name} color={me.color} />}
           </div>
           {!shareToken && !isBoard && (
-            <button className="ico" aria-label={t('doc.history')} title={t('doc.history')} onClick={() => nav(`/d/${doc.id}/history`)}>
+            <button className="ico hide-phone" aria-label={t('doc.history')} title={t('doc.history')} onClick={() => nav(`/d/${doc.id}/history`)}>
               <Icon name="clock" />
             </button>
           )}
@@ -222,6 +226,7 @@ export function DocView({
           {!isBoard && (
             <button className={'ico' + (showPanel ? ' on' : '')} aria-label={t('doc.comments')} title={t('doc.comments')} onClick={() => (showPanel ? setPanel(false) : openComments())}>
               <Icon name="chat" />
+              {openThreads > 0 && <span className="ico-badge">{openThreads}</span>}
             </button>
           )}
           {shareToken && !me && (
@@ -364,6 +369,13 @@ export function DocView({
           onResolve={resolve}
           onDelete={deleteComment}
           onClose={() => setPanel(false)}
+          onShowInDoc={(id) => {
+            setActiveId(id);
+            setPanel(false);
+            requestAnimationFrame(() =>
+              document.querySelector(`.prose [data-comment-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
+            );
+          }}
           onActivityTab={() => api.activity(doc.id).then(setActivity, () => setActivity([]))}
         />
       )}

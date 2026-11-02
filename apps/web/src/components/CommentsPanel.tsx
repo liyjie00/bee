@@ -47,6 +47,7 @@ export function CommentsPanel({
   onResolve,
   onDelete,
   onClose,
+  onShowInDoc,
   onActivityTab,
 }: {
   me: UserDTO | null;
@@ -64,6 +65,8 @@ export function CommentsPanel({
   onResolve(threadId: string, resolved: boolean): Promise<void>;
   onDelete(commentId: string): Promise<void>;
   onClose(): void;
+  /** Phones: the panel covers the page, so a thread's quote offers a way back to its text. */
+  onShowInDoc?(threadId: string): void;
   onActivityTab(): void;
 }) {
   const t = useT();
@@ -160,6 +163,17 @@ export function CommentsPanel({
                 </div>
               )}
               {th.anchor?.quote && <div className="quote">{th.anchor.quote}</div>}
+              {th.anchor?.quote && onShowInDoc && (
+                <button
+                  className="show-in-doc phone-only"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShowInDoc(th.id);
+                  }}
+                >
+                  {t('comments.showInDoc')}
+                </button>
+              )}
               {th.comments.map((c) => (
                 <div className="cm" key={c.id}>
                   <Avatar sm name={c.author.name} color={c.author.color} />

@@ -29,6 +29,9 @@ function writeLocalView(documentId: string | null, v: WhiteboardViewRange | null
   }
 }
 
+/** Touch screens: a one-finger drag on an embedded board should scroll the document, not pan the board. */
+const coarsePointer = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
 const ALIGN_ICONS: Record<WhiteboardAlign, string> = { left: '⇤', center: '↔', right: '⇥' };
 
 /** Embedded whiteboard: a live view of a separate whiteboard document. */
@@ -48,6 +51,7 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
   // Size while dragging the resize handle; written to the node on release.
   const [draft, setDraft] = useState<{ width: number; height: number } | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [touch] = useState(coarsePointer);
   // Read once: later pans and zooms only go to storage, so they never re-place the board.
   const [localView, setLocalView] = useState(() => readLocalView(documentId));
   const width = draft?.width ?? Math.min(100, Math.max(MIN_WIDTH, Number(node.attrs.width) || 100));
@@ -246,6 +250,11 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
           />
         ) : (
           <div className="bee-whiteboard-loading">{t.whiteboardMissing}</div>
+        )}
+        {documentId && touch && !fullscreen && (
+          <button type="button" className="bee-embed-shield" onClick={() => setFullscreen(true)}>
+            <span>{t.whiteboardTapToOpen}</span>
+          </button>
         )}
       </div>
       {editable && (

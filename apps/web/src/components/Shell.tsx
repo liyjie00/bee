@@ -35,7 +35,7 @@ export function Shell() {
       <Ctx.Provider value={{ openSidebar: () => setSideOpen(true) }}>
         <div className="app">
           <Sidebar open={sideOpen} onClose={() => setSideOpen(false)} onSearch={() => setSearch(true)} />
-          {sideOpen && <div style={{ position: 'fixed', inset: 0, zIndex: 34 }} onClick={() => setSideOpen(false)} />}
+          {sideOpen && <div className="drawer-scrim" onClick={() => setSideOpen(false)} />}
           <Outlet />
         </div>
         {search && <SearchDialog workspaceId={workspace.id} onClose={() => setSearch(false)} />}

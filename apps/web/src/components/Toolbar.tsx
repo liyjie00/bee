@@ -1,7 +1,8 @@
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/core';
 import { Icon, type IconName } from './Icon';
 import { useT } from '../i18n';
+import { PHONE_QUERY, useKeyboardInset, useMediaQuery } from '../lib/media';
 
 /* Commands come from the extensions @bee/editor registers (StarterKit, task list, table, image). */
 type Fn = (...args: never[]) => Chain;
@@ -13,6 +14,7 @@ interface Chain {
   toggleTaskList: Fn; toggleBulletList: Fn; toggleCodeBlock: Fn;
   setImage(a: { src: string; alt?: string }): Chain;
   insertTable(a: { rows: number; cols: number; withHeaderRow: boolean }): Chain;
+  undo: Fn; redo: Fn;
 }
 
 const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
@@ -27,6 +29,34 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
       editor.off('transaction', rerender);
     };
   }, [editor]);
+
+  // Phones: the toolbar docks on top of the on-screen keyboard while the text is being edited.
+  const phone = useMediaQuery(PHONE_QUERY);
+  const bar = useRef<HTMLDivElement>(null);
+  const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    if (!editor || !phone) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const focus = () => {
+      clearTimeout(timer);
+      setEditing(true);
+    };
+    // A tap on the bar (the style picker) briefly takes focus from the editor: keep the bar up.
+    const blur = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => setEditing(editor.isFocused || !!bar.current?.contains(document.activeElement)), 150);
+    };
+    setEditing(editor.isFocused);
+    editor.on('focus', focus);
+    editor.on('blur', blur);
+    return () => {
+      clearTimeout(timer);
+      editor.off('focus', focus);
+      editor.off('blur', blur);
+    };
+  }, [editor, phone]);
+  const docked = phone && editing;
+  const keyboard = useKeyboardInset(docked);
 
   const run = (fn: (c: Chain) => Chain) => {
     if (!editor) return;
@@ -64,8 +94,29 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
     input.click();
   };
 
+  if (phone && !editing) return null;
+  const svg = (d: string) => (
+    <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
+      <path d={d} />
+    </svg>
+  );
+
   return (
-    <div className="toolbar" role="toolbar" aria-label={t('toolbar.label')}>
+    <div
+      ref={bar}
+      className={'toolbar' + (docked ? ' docked' : '')}
+      style={docked ? { bottom: keyboard } : undefined}
+      role="toolbar"
+      aria-label={t('toolbar.label')}
+      onBlur={docked ? () => setTimeout(() => setEditing(!!editor?.isFocused || !!bar.current?.contains(document.activeElement)), 150) : undefined}
+    >
+      {docked && (
+        <>
+          {btn(t('toolbar.undo'), false, () => run((c) => c.undo()), svg('M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11'))}
+          {btn(t('toolbar.redo'), false, () => run((c) => c.redo()), svg('m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13'))}
+          <span className="sep" />
+        </>
+      )}
       <select
         aria-label={t('toolbar.style')}
         value={style}
@@ -98,6 +149,11 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
       <span className="hint hide-sm" title={t('toolbar.hint')}>
         {t('toolbar.hint')}
       </span>
+      {docked && (
+        <button className="ico done" title={t('toolbar.done')} aria-label={t('toolbar.done')} onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.commands.blur()}>
+          {svg('m6 9 6 6 6-6')}
+        </button>
+      )}
     </div>
   );
 }

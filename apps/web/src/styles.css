@@ -83,6 +83,10 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .ico{white-space:nowrap;padding:6px;border-radius:7px;color:var(--fg-2);display:inline-grid;place-items:center}
 .ico:hover,.ico.on{background:var(--sunk);color:var(--fg)}
 .menu-btn{display:none}
+.phone-only,.narrow-only{display:none!important}
+.ico{position:relative}
+.ico-badge{position:absolute;top:0;right:-2px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--honey);color:#2a1c00;font-size:10px;font-weight:700;line-height:15px;text-align:center;display:none}
+.drawer-scrim{position:fixed;inset:0;z-index:34;background:rgba(15,18,14,.32)}
 
 .view{flex:1;overflow:auto;min-height:0;container-type:inline-size}
 .view[hidden]{display:none!important}
@@ -192,6 +196,7 @@ article.page .bee-prose{--bee-table-bleed:calc(max(0px,(100cqw - 1140px) / 2) + 
 .cm-connector{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:31;overflow:visible}
 .cm-connector path{fill:none;stroke:var(--honey);stroke-width:1;opacity:.55}
 .cm-connector circle{fill:var(--honey);opacity:.7}
+.show-in-doc{align-self:flex-start;font-size:12.5px;color:var(--honey-ink);padding:2px 0;margin-top:-6px}
 .quote{font-size:12.5px;color:var(--fg-2);border-left:3px solid var(--honey);padding-left:8px;line-height:1.45}
 .cm{display:flex;gap:8px}
 .cm .who{font-size:12.5px;font-weight:500}.cm .who time{color:var(--fg-3);font-weight:400;margin-left:6px;font-size:11.5px}
@@ -250,6 +255,7 @@ article.page .bee-prose{--bee-table-bleed:calc(max(0px,(100cqw - 1140px) / 2) + 
 ins{background:var(--ins);color:var(--ins-ink);text-decoration:none;border-radius:3px;padding:0 2px}
 del{background:var(--del);color:var(--del-ink);border-radius:3px;padding:0 2px}
 .vlist{border-left:1px solid var(--line);background:var(--bg);overflow:auto;padding:12px}
+.vlist .toggle{text-align:left}
 .vday{font-size:11px;letter-spacing:.08em;color:var(--fg-3);font-weight:700;padding:12px 6px 6px}
 .ver{display:flex;gap:10px;width:100%;text-align:left;padding:8px;border-radius:8px;align-items:flex-start}
 .ver:hover{background:var(--sunk)}
@@ -339,12 +345,58 @@ del{background:var(--del);color:var(--del-ink);border-radius:3px;padding:0 2px}
   .crumb b{min-width:0}
   /* tighter header so the title keeps some room next to the doc actions */
   .top{gap:4px;padding:0 10px}
+  .narrow-only{display:inline-grid!important}
   .hist{grid-template-columns:minmax(0,1fr)} .vlist{display:none}
+  .vlist.open{display:block;position:fixed;top:0;right:0;bottom:0;width:min(320px,100%);z-index:30;box-shadow:var(--shadow);padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
   .folder{padding:20px 16px 80px}
   .props{display:none}
   .slash{left:16px!important;width:calc(100% - 32px)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ---------- phones ---------- */
+@media (max-width:640px){
+  .hide-phone{display:none!important}
+  .phone-only{display:inline-grid!important}
+  .ico-badge{display:block}
+  .top{gap:2px;padding:0 6px 0 8px;padding-top:env(safe-area-inset-top,0px);height:calc(52px + env(safe-area-inset-top,0px))}
+  .top .ico{padding:8px}
+  .top .btn.primary{padding:7px 9px}
+  .crumb{flex:1 1 auto}
+  .crumb b{font-size:15px}
+  .side{width:min(300px,86vw)}
+  .side .nav a,.side .nav button,.side .tree a,.side .tree button{padding:9px 8px}
+  /* reading size on phones; also keeps iOS from zooming into the editor on focus */
+  .prose{font-size:max(16px,var(--doc-font-size,13.5px))}
+  /* tables may use the page's side padding; wider ones scroll sideways */
+  article.page .bee-prose{--bee-table-bleed:16px}
+  .doc-title,.doc-title-in{font-size:26px}
+  .doc-meta{margin-bottom:20px}
+  /* both side panels take the whole screen */
+  .panel,.ai-panel{left:0;width:100%!important;border-left:0;padding-top:env(safe-area-inset-top,0px)}
+  .cm-connector{display:none}
+  .ptabs{padding:6px 8px 0}
+  .ptabs .x{padding:8px}
+  .pbody{padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+  .cm .cm-del{padding:6px}
+  .reply{padding:8px 10px}
+  /* formatting bar docked on top of the on-screen keyboard while editing */
+  .toolbar.docked{position:fixed;left:0;right:0;top:auto;z-index:40;border-bottom:0;border-top:1px solid var(--line);padding:4px 6px calc(4px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+  .toolbar.docked .ico{padding:9px 10px;font-size:15px}
+  .toolbar.docked .hint{display:none}
+  .toolbar.docked .done{margin-left:auto;position:sticky;right:-6px;background:var(--surface)}
+  .modal{border-radius:14px}
+  .scrim{padding:12px}
+  .mb,.mh,.mf{padding-left:14px;padding-right:14px}
+  .invite{flex-wrap:wrap}
+  .fhead h1{font-size:26px}
+  .cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .thumb{height:92px}
+  .ctx button{padding:10px 12px}
+  .search-pop{padding:12px}
+  .hbanner{font-size:12.5px;padding:8px 12px}
+  .hbanner > svg.i:first-child{display:none}
+  .vlist.open{width:100%}
+}
 
 /* ---------- app additions (beyond the static mockup) ---------- */
 a{color:inherit}
@@ -525,3 +577,8 @@ body.resizing{cursor:col-resize;user-select:none}
   55%{transform:scale(1.05) rotate(4deg);opacity:1;filter:drop-shadow(0 0 2px var(--honey))}
 }
 @media (prefers-reduced-motion:reduce){.ai-btn .i{animation:none}}
+
+/* iOS zooms the page into any text field under 16px; phones get 16px fields */
+@media (max-width:640px){
+  input:not([type=checkbox]):not([type=radio]):not(.doc-title-in),textarea,select{font-size:16px}
+}

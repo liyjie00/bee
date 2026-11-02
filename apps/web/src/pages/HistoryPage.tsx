@@ -59,6 +59,8 @@ export function HistoryPage() {
   const kindText = (k: VersionDTO['kind']) => t(KIND_KEY[k]);
   const [doc, setDoc] = useState<DocumentDTO | null>(null);
   const [versions, setVersions] = useState<VersionDTO[] | null>(null);
+  // Narrow screens: the version list is an overlay opened from the top bar.
+  const [listOpen, setListOpen] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
   const [contents, setContents] = useState<Record<string, VersionContent>>({});
   const [current, setCurrent] = useState<VersionContent | null>(null);
@@ -155,6 +157,9 @@ export function HistoryPage() {
   return (
     <main className="main">
       <TopBar crumbs={crumbs}>
+        <button className={'ico narrow-only' + (listOpen ? ' on' : '')} aria-label={t('history.list')} title={t('history.list')} onClick={() => setListOpen((o) => !o)}>
+          <Icon name="list" />
+        </button>
         <button className="ico on" aria-label={t('history.close')} title={t('history.back')} onClick={() => nav(`/d/${docId}`)}>
           <Icon name="clock" />
         </button>
@@ -196,7 +201,7 @@ export function HistoryPage() {
                 <div className="prose">{blocks ? <Rendered blocks={blocks} /> : selVer ? <p className="ph">{t('app.loading')}</p> : null}</div>
               </article>
             </div>
-            <aside className="vlist" aria-label={t('history.list')}>
+            <aside className={'vlist' + (listOpen ? ' open' : '')} aria-label={t('history.list')}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 6px' }}>
                 <b style={{ fontSize: 14 }}>{t('history.title')}</b>
                 <span className="spacer" />
@@ -206,6 +211,9 @@ export function HistoryPage() {
                     {t('history.nameCurrent')}
                   </button>
                 )}
+                <button className="ico narrow-only" aria-label={t('common.close')} onClick={() => setListOpen(false)}>
+                  <Icon name="x" />
+                </button>
               </div>
               <button className="toggle" style={{ padding: '8px 6px 0', fontSize: 12 }} onClick={() => setHighlight((h) => !h)} aria-pressed={highlight}>
                 <span className={'sw' + (highlight ? ' on' : '')} />
@@ -220,7 +228,10 @@ export function HistoryPage() {
                 return (
                   <Fragment key={v.id}>
                     {showDay && <div className="vday">{day}</div>}
-                    <button className={'ver' + (v.kind === 'manual' ? ' named' : '') + (v.id === sel ? ' on' : '')} onClick={() => setSel(v.id)}>
+                    <button className={'ver' + (v.kind === 'manual' ? ' named' : '') + (v.id === sel ? ' on' : '')} onClick={() => {
+                        setSel(v.id);
+                        setListOpen(false);
+                      }}>
                       <span className="dot" />
                       <span>
                         <b>{v.label ?? kindText(v.kind)}</b>

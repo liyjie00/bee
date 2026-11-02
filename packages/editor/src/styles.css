@@ -1119,3 +1119,52 @@
 .bee-table-toolbar .bee-swatch-fg[data-swatch='green'] { color: #2b9a66; }
 .bee-table-toolbar .bee-swatch-fg[data-swatch='blue'] { color: #3b7dd8; }
 .bee-table-toolbar .bee-swatch-fg[data-swatch='purple'] { color: #8e4ec6; }
+
+/* touch screens: embedded boards are previews; a tap opens them full screen */
+.bee-embed-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0 12px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--f-body, system-ui, sans-serif);
+}
+.bee-embed-shield span {
+  font-size: 12px;
+  color: var(--be-fg-2);
+  background: var(--be-surface);
+  border: 1px solid var(--be-line);
+  border-radius: 20px;
+  padding: 4px 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 640px) {
+  /* row numbers sit in the page's side padding instead of past the screen edge */
+  .bee-prose.bee-sheet-headers .tableWrapper {
+    margin-left: calc(-1 * var(--bee-table-bleed, 0px));
+    padding-left: max(34px, var(--bee-table-bleed, 0px));
+  }
+  .bee-embed-whiteboard:not(.is-fullscreen) .bee-embed-body {
+    max-height: 60svh;
+  }
+  /* layout controls (align, saved range, resize) are for larger screens */
+  .bee-embed-whiteboard .bee-embed-icon:not(.bee-embed-fit):not(.bee-embed-fullscreen),
+  .bee-embed-resize {
+    display: none !important;
+  }
+  .bee-embed-whiteboard.is-fullscreen {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bee-embed-whiteboard.is-fullscreen .bee-embed-icon {
+    width: 36px;
+    height: 32px;
+  }
+}
