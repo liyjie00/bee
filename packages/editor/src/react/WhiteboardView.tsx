@@ -89,7 +89,7 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
     >
       <div className="bee-embed-header" contentEditable={false}>
         <span className="bee-embed-title">{title}</span>
-        {linked && editable && <span className="bee-embed-hint">{t.linkedWhiteboardHint}</span>}
+        {editable && <span className="bee-embed-hint">{t.linkedWhiteboardHint}</span>}
         <span className="bee-embed-tools">
           {editable && (
             <>
@@ -133,7 +133,8 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
             collabUrl={ctx.collabUrl}
             shareToken={ctx.shareToken}
             user={ctx.user}
-            editable={ctx.editable && !linked}
+            // Read-only in documents (pan and zoom only); edits happen on the whiteboard page.
+            editable={false}
             locale={ctx.locale}
             theme={ctx.theme}
             embedded
