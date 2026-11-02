@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { Fragment } from '@tiptap/pm/model';
+import { TextSelection } from '@tiptap/pm/state';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -46,12 +47,21 @@ export const Columns = Node.create({
     return {
       insertColumns:
         (count) =>
-        ({ commands }) => {
+        ({ commands, tr }) => {
           const n = Math.min(4, Math.max(2, Math.round(count)));
-          return commands.insertContent({
+          const ok = commands.insertContent({
             type: this.name,
             content: Array.from({ length: n }, () => ({ type: 'column', content: [{ type: 'paragraph' }] })),
           });
+          if (!ok) return false;
+          // The caret ends up in the last column; start typing in the first one instead.
+          const { $from } = tr.selection;
+          for (let d = $from.depth; d > 0; d--) {
+            if ($from.node(d).type.name !== this.name) continue;
+            tr.setSelection(TextSelection.create(tr.doc, $from.before(d) + 3));
+            break;
+          }
+          return true;
         },
       unsetColumns:
         () =>
