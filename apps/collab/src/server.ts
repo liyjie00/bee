@@ -15,6 +15,8 @@ export interface ConnectionContext {
 interface VersionState {
   dirty: boolean;
   authors: Set<string>;
+  /** Editors since the last successful store. */
+  storeAuthors: Set<string>;
   lastSnapshotAt: number;
 }
 
@@ -69,7 +71,7 @@ export function createCollabServer(config: CollabConfig, api = new ApiClient(con
   const versionState = (name: string): VersionState => {
     let state = versions.get(name);
     if (!state) {
-      state = { dirty: false, authors: new Set(), lastSnapshotAt: Date.now() };
+      state = { dirty: false, authors: new Set(), storeAuthors: new Set(), lastSnapshotAt: Date.now() };
       versions.set(name, state);
     }
     return state;
@@ -156,11 +158,22 @@ export function createCollabServer(config: CollabConfig, api = new ApiClient(con
       if (!connection) return;
       const state = versionState(documentName);
       state.dirty = true;
-      if (context?.userId) state.authors.add(context.userId);
+      if (context?.userId) {
+        state.authors.add(context.userId);
+        state.storeAuthors.add(context.userId);
+      }
     },
 
     async onStoreDocument({ documentName, document, clientsCount }) {
-      await api.storeState(documentName, Y.encodeStateAsUpdate(document));
+      const state = versionState(documentName);
+      const authors = [...state.storeAuthors];
+      state.storeAuthors = new Set();
+      try {
+        await api.storeState(documentName, Y.encodeStateAsUpdate(document), authors);
+      } catch (err) {
+        for (const a of authors) state.storeAuthors.add(a);
+        throw err;
+      }
       if (hasRichText(document)) {
         try {
           await api.storeMarkdown(documentName, yDocToMarkdown(document, RICH_TEXT_FIELD));

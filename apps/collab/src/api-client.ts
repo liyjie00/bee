@@ -50,10 +50,11 @@ export class ApiClient {
     return buf.byteLength > 0 ? buf : null;
   }
 
-  async storeState(documentId: string, state: Uint8Array): Promise<void> {
+  /** `authorIds`: users who edited since the previous store (drives lastEditedBy / activity). */
+  async storeState(documentId: string, state: Uint8Array, authorIds: string[] = []): Promise<void> {
     await this.request(`/documents/${encodeURIComponent(documentId)}/state`, {
       method: 'PUT',
-      headers: { 'content-type': 'application/octet-stream' },
+      headers: { 'content-type': 'application/octet-stream', 'x-author-ids': authorIds.join(',') },
       body: state,
     });
   }

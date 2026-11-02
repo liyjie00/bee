@@ -12,6 +12,7 @@ const SECRET = 'test-secret';
 /** In-memory stand-in for apps/api's /api/internal/collab endpoints. */
 class FakeApi {
   states = new Map<string, Uint8Array>();
+  storeAuthors = new Map<string, string[]>();
   markdown = new Map<string, string>();
   versions: { documentId: string; snapshot: Uint8Array; authorIds: string[] }[] = [];
   /** token -> { userId, role } */
@@ -46,7 +47,11 @@ class FakeApi {
           res.writeHead(200, { 'content-type': 'application/octet-stream' });
           return res.end(Buffer.from(state));
         }
-        if (kind === 'state' && req.method === 'PUT') this.states.set(id, new Uint8Array(body));
+        if (kind === 'state' && req.method === 'PUT') {
+          this.states.set(id, new Uint8Array(body));
+          const header = String(req.headers['x-author-ids'] ?? '');
+          if (header) this.storeAuthors.set(id, [...(this.storeAuthors.get(id) ?? []), ...header.split(',')]);
+        }
         else if (kind === 'markdown') this.markdown.set(id, body.toString());
         else if (kind === 'versions') {
           const header = String(req.headers['x-author-ids'] ?? '');
@@ -146,6 +151,7 @@ describe('collab server', () => {
 
     await waitFor(() => (api.markdown.get('doc1') ?? '').includes('from a'));
     expect(yUpdateToMarkdown(api.states.get('doc1')!)).toBe('# Hello\n\nfrom a\n');
+    expect(api.storeAuthors.get('doc1')).toEqual(['user-a']);
   });
 
   it('keeps viewers and commenters read-only', async () => {
