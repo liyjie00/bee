@@ -29,14 +29,19 @@ describe('CursorActivity', () => {
     expect(activity.isIdle(1, 1000)).toBe(false);
   });
 
-  it('treats unknown and forgotten clients as not idle', () => {
+  it('treats unknown clients as not idle', () => {
+    const activity = new CursorActivity(() => 100);
+    expect(activity.isIdle(7, 10)).toBe(false);
+  });
+
+  it('keeps a client idle when it reappears with the same cursor', () => {
     let now = 0;
     const activity = new CursorActivity(() => now);
-    expect(activity.isIdle(7, 10)).toBe(false);
-    activity.observe(7, null);
-    now = 100;
-    activity.forget(7);
-    expect(activity.isIdle(7, 10)).toBe(false);
+    activity.observe(1, { anchor: 1, head: 1 });
+    now = 2000;
+    // e.g. the client timed out of awareness and its next heartbeat re-added it.
+    activity.observe(1, { anchor: 1, head: 1 });
+    expect(activity.isIdle(1, 1000)).toBe(true);
   });
 });
 
