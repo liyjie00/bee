@@ -1,10 +1,11 @@
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
+import type * as Y from 'yjs';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { NodeSelection } from '@tiptap/pm/state';
 import { CellSelection } from '@tiptap/pm/tables';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from 'react';
 import { buildExtensions } from './extensions.js';
-import { presentUsers, useCollabConnection, type BeeUser, type CollabConnection, type CollabStatus } from './collab.js';
+import { presentUsers, useCollabConnection, type BeeUser, type CollabConnection, type CollabStatus, type LoadSnapshot } from './collab.js';
 import { createAnchor, type CommentAnchor, type CommentHighlight } from './comments.js';
 import { blockAtCoords, blockLink, scrollToBlock } from './blocks.js';
 import { insertImages, type UploadImage } from './image-upload.js';
@@ -20,6 +21,8 @@ export interface BeeEditorProps {
   collabUrl: string;
   /** Token of a public share link; omitted for signed-in access via cookie. */
   shareToken?: string;
+  /** Stored Yjs state fetched over HTTP, rendered before the collab sync completes. */
+  loadSnapshot?: LoadSnapshot;
   user: BeeUser;
   /** owner / editor */
   editable: boolean;
@@ -66,13 +69,18 @@ export interface BeeEditorProps {
 export function BeeEditor(props: BeeEditorProps) {
   const statusRef = useRef(props.onStatus);
   statusRef.current = props.onStatus;
-  const [synced, setSynced] = useState(false);
-  const onStatus = useCallback((s: CollabStatus) => {
-    if (s === 'synced') setSynced(true);
+  // Tracked per Y.Doc: a connection's first events can arrive before the render that shows it.
+  const [syncedDoc, setSyncedDoc] = useState<Y.Doc | null>(null);
+  const [snapshotDoc, setSnapshotDoc] = useState<Y.Doc | null>(null);
+  const onStatus = useCallback((s: CollabStatus, ydoc: Y.Doc) => {
+    if (s === 'synced') setSyncedDoc(ydoc);
     statusRef.current?.(s);
   }, []);
-  const conn = useCollabConnection(props.documentId, props.collabUrl, props.shareToken, onStatus);
-  useEffect(() => setSynced(false), [conn]);
+  const conn = useCollabConnection(props.documentId, props.collabUrl, props.shareToken, onStatus, props.loadSnapshot, setSnapshotDoc);
+  const synced = !!conn && syncedDoc === conn.ydoc;
+  // Content is real once either the HTTP snapshot or the first sync has arrived; until then the
+  // document would look empty, so it is neither shown as such nor editable.
+  const ready = synced || (!!conn && snapshotDoc === conn.ydoc);
 
   const messages = useMemo(() => resolveMessages(props.locale, props.messages), [props.locale, props.messages]);
   return (
@@ -83,6 +91,7 @@ export function BeeEditor(props: BeeEditorProps) {
           key={`${conn.ydoc.guid}:${props.editable}`}
           conn={conn}
           synced={synced}
+          ready={ready}
           messages={messages}
         />
       ) : (
@@ -95,11 +104,12 @@ export function BeeEditor(props: BeeEditorProps) {
 interface InnerProps extends Omit<BeeEditorProps, 'messages'> {
   conn: CollabConnection;
   synced: boolean;
+  ready: boolean;
   messages: Messages;
 }
 
 function EditorInner(props: InnerProps) {
-  const { conn, synced, messages: t, editable, canComment } = props;
+  const { conn, synced, ready, messages: t, editable, canComment } = props;
   const latest = useRef(props);
   latest.current = props;
   const fileInput = useRef<HTMLInputElement>(null);
@@ -157,7 +167,7 @@ function EditorInner(props: InnerProps) {
 
   const editor = useEditor({
     extensions,
-    editable,
+    editable: editable && ready,
     immediatelyRender: false,
     editorProps: { attributes: { class: 'bee-prose', spellcheck: 'true' } },
   });
@@ -167,6 +177,10 @@ function EditorInner(props: InnerProps) {
     if (editor) latest.current.onReady?.(editor);
   }, [editor]);
 
+  useEffect(() => {
+    if (editor && !editor.isDestroyed && editor.isEditable !== (editable && ready)) editor.setEditable(editable && ready);
+  }, [editor, editable, ready]);
+
   // Keep the caret label in sync with the user.
   useEffect(() => {
     if (editor && !editor.isDestroyed) editor.commands.updateUser?.(props.user);
@@ -174,7 +188,7 @@ function EditorInner(props: InnerProps) {
 
   useEffect(() => {
     if (editor && !editor.isDestroyed) editor.commands.setComments(props.comments ?? [], props.activeCommentId ?? null);
-  }, [editor, props.comments, props.activeCommentId, synced]);
+  }, [editor, props.comments, props.activeCommentId, ready, synced]);
 
   // Presence list.
   useEffect(() => {
@@ -221,7 +235,7 @@ function EditorInner(props: InnerProps) {
 
   return (
     <BeeEditorContext.Provider value={ctx}>
-      <div className={`bee-editor ${props.className ?? ''}`}>
+      <div className={`bee-editor${ready ? '' : ' is-loading'} ${props.className ?? ''}`} aria-busy={!ready}>
         {editor && <SelectionBubble editor={editor} editable={editable} canComment={canComment} messages={t} onComment={props.onCreateComment} />}
         {editor && editable && <TableToolbar editor={editor} messages={t} />}
         {editor && <BlockLinkButton editor={editor} messages={t} documentId={props.documentId} shareToken={props.shareToken} onCopy={props.onCopyBlockLink} />}

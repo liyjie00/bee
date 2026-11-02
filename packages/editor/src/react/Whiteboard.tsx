@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import * as Y from 'yjs';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
-import { useCollabConnection, type BeeUser, type CollabStatus } from './collab.js';
+import { useCollabConnection, type BeeUser, type CollabStatus, type LoadSnapshot } from './collab.js';
 import { useTheme, type Theme } from './theme.js';
 import { MessagesContext, resolveMessages, useMessages, type Locale, type Messages } from './i18n.js';
 import { WhiteboardConnectors } from './WhiteboardConnectors.js';
@@ -227,6 +227,8 @@ export interface BeeWhiteboardProps {
   documentId: string;
   collabUrl: string;
   shareToken?: string;
+  /** Stored Yjs state fetched over HTTP, rendered before the collab sync completes. */
+  loadSnapshot?: LoadSnapshot;
   user: BeeUser;
   editable: boolean;
   embedded?: boolean;
@@ -243,12 +245,19 @@ export interface BeeWhiteboardProps {
 }
 
 /** A whiteboard document (its own Y.Doc), full page or embedded in a rich-text document. */
-export function BeeWhiteboard({ documentId, collabUrl, shareToken, user, editable, embedded, fitContent, view, onHandle, locale, theme, messages, onStatus }: BeeWhiteboardProps) {
+export function BeeWhiteboard({ documentId, collabUrl, shareToken, loadSnapshot, user, editable, embedded, fitContent, view, onHandle, locale, theme, messages, onStatus }: BeeWhiteboardProps) {
   const [synced, setSynced] = useState(false);
-  const conn = useCollabConnection(documentId, collabUrl, shareToken, (s) => {
-    if (s === 'synced') setSynced(true);
-    onStatus?.(s);
-  });
+  const conn = useCollabConnection(
+    documentId,
+    collabUrl,
+    shareToken,
+    (s) => {
+      if (s === 'synced') setSynced(true);
+      onStatus?.(s);
+    },
+    loadSnapshot,
+    () => setSynced(true),
+  );
   const t = resolveMessages(locale, messages);
   return (
     <MessagesContext.Provider value={t}>

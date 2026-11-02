@@ -29,6 +29,30 @@
 .bee-editor.is-loading {
   min-height: 200px;
 }
+/* Before the snapshot or first sync the document is empty, not blank: show skeleton lines
+   instead of an empty doc with its placeholder. */
+.bee-editor.is-loading .bee-editor-content {
+  visibility: hidden;
+}
+.bee-editor.is-loading::before {
+  content: '';
+  position: absolute;
+  inset: 6px 0 auto 0;
+  height: 132px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--be-sunk) 0 14px,
+    transparent 14px 30px
+  );
+  border-radius: 4px;
+  opacity: 0.8;
+  animation: bee-loading-pulse 1.2s ease-in-out infinite alternate;
+  animation-delay: 150ms;
+}
+@keyframes bee-loading-pulse {
+  from { opacity: 0.35; }
+  to { opacity: 0.8; }
+}
 
 /* ---------- prose ---------- */
 .bee-prose {
