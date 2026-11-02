@@ -67,6 +67,13 @@ describe('markdown', () => {
     ]);
   });
 
+  it('round-trips all six heading levels', () => {
+    const md = [1, 2, 3, 4, 5, 6].map((l) => `${'#'.repeat(l)} Level ${l}`).join('\n\n');
+    const json = markdownToJSON(md);
+    expect(json.content!.map((n) => n.attrs?.level)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(yUpdateToMarkdown(markdownToYUpdate(md)).trim()).toBe(md);
+  });
+
   it('round-trips through Yjs', () => {
     const update = markdownToYUpdate(SAMPLE);
     const md = yUpdateToMarkdown(update);

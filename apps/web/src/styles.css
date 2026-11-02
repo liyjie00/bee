@@ -370,6 +370,9 @@ input,textarea,select{font:inherit;color:var(--fg)}
 .prose .ProseMirror > *{position:relative}
 .prose h1{font-size:1.8em;margin:32px 0 10px;font-weight:700}
 .prose h3{font-size:1.13em;margin:24px 0 6px;font-weight:700}
+.prose h4{font-size:1.04em;margin:22px 0 6px;font-weight:700}
+.prose h5{font-size:1em;margin:20px 0 4px;font-weight:700}
+.prose h6{font-size:.92em;margin:18px 0 4px;font-weight:700;color:var(--fg-2);text-transform:uppercase;letter-spacing:.04em}
 .prose ul,.prose ol{padding-left:24px;margin:0 0 14px}
 .prose blockquote{margin:0 0 14px;border-left:3px solid var(--line-strong);padding-left:14px;color:var(--fg-2)}
 .prose pre{margin:18px 0;padding:14px 16px;font-family:var(--f-mono);font-size:13px;line-height:1.65;overflow-x:auto;background:var(--sunk);border:1px solid var(--line);border-radius:10px}

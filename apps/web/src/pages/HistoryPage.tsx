@@ -24,6 +24,9 @@ function Rendered({ blocks }: { blocks: DiffBlock[] }) {
         if (b.kind === 'h1') return <h1 key={i}>{inner}</h1>;
         if (b.kind === 'h2') return <h2 key={i}>{inner}</h2>;
         if (b.kind === 'h3') return <h3 key={i}>{inner}</h3>;
+        if (b.kind === 'h4') return <h4 key={i}>{inner}</h4>;
+        if (b.kind === 'h5') return <h5 key={i}>{inner}</h5>;
+        if (b.kind === 'h6') return <h6 key={i}>{inner}</h6>;
         if (b.kind === 'hr') return <hr key={i} />;
         if (b.kind === 'code') return <pre key={i}><code>{inner}</code></pre>;
         if (b.kind === 'quote') return <blockquote key={i}>{inner}</blockquote>;

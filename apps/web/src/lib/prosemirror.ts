@@ -9,7 +9,7 @@ interface PMNode {
 }
 
 export interface Block {
-  kind: 'p' | 'h1' | 'h2' | 'h3' | 'li' | 'task' | 'code' | 'quote' | 'embed' | 'hr';
+  kind: 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'li' | 'task' | 'code' | 'quote' | 'embed' | 'hr';
   text: string;
   checked?: boolean;
   blockId?: string;
@@ -59,7 +59,7 @@ export function toBlocks(doc: unknown): Block[] {
       }
       case 'heading': {
         const lv = Number(n.attrs?.level ?? 2);
-        out.push({ kind: lv <= 1 ? 'h1' : lv === 2 ? 'h2' : 'h3', text: inline(n), blockId });
+        out.push({ kind: `h${Math.min(Math.max(lv, 1), 6)}` as Block['kind'], text: inline(n), blockId });
         return;
       }
       case 'codeBlock':
