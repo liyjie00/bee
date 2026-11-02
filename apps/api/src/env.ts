@@ -59,7 +59,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       .split(',')
       .map((s) => s.trim().replace(/\/$/, ''))
       .filter(Boolean),
-    aiKeysSecret: env.AI_KEYS_SECRET ?? `${need('SESSION_SECRET', 'dev-session-secret')}:ai-keys`,
+    aiKeysSecret: env.AI_KEYS_SECRET || `${need('SESSION_SECRET', 'dev-session-secret')}:ai-keys`,
     aiRateLimit: Number(env.AI_RATE_LIMIT ?? 20),
     smtpUrl: env.SMTP_URL || null,
     mailFrom: env.MAIL_FROM || 'Bee <notifications@localhost>',
