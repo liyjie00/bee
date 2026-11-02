@@ -106,6 +106,7 @@ export const zhCN: Record<MessageKey, string> = {
   'doc.title': '标题',
   'doc.inTrash': '该文档在回收站中，恢复后才能编辑。',
   'doc.history': '版本历史',
+  'doc.outline': '大纲',
   'doc.comments': '评论',
   'doc.share': '分享',
   'doc.online': '在线成员',

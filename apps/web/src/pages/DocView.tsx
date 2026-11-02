@@ -7,6 +7,7 @@ import type { ActivityDTO, CommentAnchor, CommentThreadDTO, DocumentDTO, UserDTO
 import { AskAiPanel } from '../components/AskAiPanel';
 import { CommentConnector } from '../components/CommentConnector';
 import { CommentsPanel, type Draft, type GuestIdentity } from '../components/CommentsPanel';
+import { DocOutline } from '../components/DocOutline';
 import { Icon } from '../components/Icon';
 import { Avatar } from '../components/Menu';
 import { ShareDialog, accessOf, type Access } from '../components/ShareDialog';
@@ -59,6 +60,7 @@ export function DocView({
   const { t, lang } = useI18n();
   const ago = useAgo();
   const editorRef = useRef<Editor | null>(null);
+  const viewRef = useRef<HTMLElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [status, setStatus] = useState<Status>('connecting');
   const [presence, setPresence] = useState<Presence[]>([]);
@@ -270,7 +272,9 @@ export function DocView({
             </div>
           </section>
         ) : (
-          <section className="view">
+          <div className="doc-stage">
+          {editor && <DocOutline editor={editor} viewRef={viewRef} />}
+          <section className="view" ref={viewRef}>
             {editable && <Toolbar editor={editor} onUploadImage={(f) => api.upload(doc.id, f).then((r) => r.url)} />}
             <article className="page">
               {editable ? (
@@ -351,6 +355,7 @@ export function DocView({
               </div>
             </article>
           </section>
+          </div>
         )}
       </main>
       {showPanel && (
