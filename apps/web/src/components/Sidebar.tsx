@@ -354,11 +354,11 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       </button>
       <div className="side-create">
         <button title={t('tree.newDoc')} onClick={() => rootCreate.create('doc')}>
-          <Icon name="doc" className="t-doc" />
+          <Icon name="plus" />
           <span>{t('nav.createDoc')}</span>
         </button>
         <button title={t('tree.newBoard')} onClick={() => rootCreate.create('whiteboard')}>
-          <Icon name="board" className="t-board" />
+          <Icon name="plus" />
           <span>{t('nav.createBoard')}</span>
         </button>
         <button

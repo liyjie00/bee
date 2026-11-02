@@ -49,9 +49,9 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .side-create{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px;margin:0 12px 10px}
 .side-create button{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:13px;font-weight:500;white-space:nowrap;min-width:0}
 .side-create span{overflow:hidden;text-overflow:ellipsis}
+.side-create svg.i{margin-right:-2px;stroke-width:2}
 .side-create button:hover{border-color:var(--line-strong)}
 .side-create .more{padding:6px 7px;color:var(--fg-3)}
-svg.i.t-doc{color:var(--honey-ink)}
 /* whiteboards: a filled blue tile, so they read apart from outline doc icons at a glance */
 svg.i.t-board{color:#fff;background:var(--p1);border-radius:4px;padding:2px;stroke-width:2.1}
 .nav .total{margin-left:auto;font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums}
