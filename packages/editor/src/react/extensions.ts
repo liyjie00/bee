@@ -55,11 +55,25 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
           }),
       });
     }
-    if (ext.name === 'image' && opts.shareToken) {
+    if (ext.name === 'image') {
+      // Editors drag a corner to resize (width/height are stored on the node, aspect ratio kept).
+      const image = ext.configure({
+        inline: false,
+        allowBase64: false,
+        resize: opts.editable
+          ? { enabled: true, directions: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], minWidth: 48, minHeight: 24, alwaysPreserveAspectRatio: true }
+          : false,
+      });
       const token = opts.shareToken;
-      return ext.extend({
-        renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
-          return ['img', { ...HTMLAttributes, src: withShareToken(String(HTMLAttributes.src ?? ''), token) }];
+      if (!token) return image;
+      // On the attribute, so both the plain <img> and the resizable node view get the token.
+      return image.extend({
+        addAttributes(this: { parent?: () => Record<string, object> }) {
+          const parent = this.parent?.() ?? {};
+          return {
+            ...parent,
+            src: { ...parent.src, renderHTML: (attrs: Record<string, unknown>) => ({ src: withShareToken(String(attrs.src ?? ''), token) }) },
+          };
         },
       });
     }

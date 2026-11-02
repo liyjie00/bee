@@ -153,9 +153,43 @@
   display: block;
   margin: 18px 0;
 }
-.bee-prose img.ProseMirror-selectednode {
+.bee-prose img.ProseMirror-selectednode,
+.bee-prose [data-resize-container].ProseMirror-selectednode img {
   outline: 2px solid var(--be-honey);
   outline-offset: 2px;
+}
+/* resizable images (editors): corner handles on hover / selection */
+.bee-prose [data-resize-container][data-node='image'] {
+  margin: 18px 0;
+  max-width: 100%;
+}
+.bee-prose [data-resize-container][data-node='image'] [data-resize-wrapper] {
+  max-width: 100%;
+}
+.bee-prose [data-resize-container][data-node='image'] img {
+  margin: 0;
+}
+.bee-prose [data-resize-handle] {
+  width: 12px;
+  height: 12px;
+  margin: -5px;
+  border: 2px solid var(--be-honey);
+  border-radius: 3px;
+  background: var(--be-surface, #fff);
+  opacity: 0;
+  z-index: 2;
+}
+.bee-prose [data-resize-container]:hover [data-resize-handle],
+.bee-prose [data-resize-container].ProseMirror-selectednode [data-resize-handle] {
+  opacity: 1;
+}
+.bee-prose [data-resize-handle='top-left'],
+.bee-prose [data-resize-handle='bottom-right'] {
+  cursor: nwse-resize;
+}
+.bee-prose [data-resize-handle='top-right'],
+.bee-prose [data-resize-handle='bottom-left'] {
+  cursor: nesw-resize;
 }
 
 /* task lists */
