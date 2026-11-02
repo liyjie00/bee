@@ -16,6 +16,9 @@ export interface SlashHost {
   createWhiteboard: () => void;
   canLinkWhiteboard: () => boolean;
   linkWhiteboard: () => void;
+  /** Ids of blocks to badge "New" and list first. */
+  newItems: () => readonly string[];
+  onUsed: (id: string) => void;
 }
 
 export interface SlashItem {
@@ -24,6 +27,7 @@ export interface SlashItem {
   hint: string;
   icon: string;
   keywords: string;
+  isNew?: boolean;
   run: (editor: Editor, range: Range) => void;
 }
 
@@ -66,7 +70,14 @@ function buildItems(host: SlashHost, editor: Editor): SlashItem[] {
       : null,
     { id: 'divider', title: t.divider, hint: t.dividerHint, icon: '—', keywords: 'divider hr rule line 分割线', run: (e, r) => chain(e, r).setHorizontalRule().run() },
   ];
-  return items.filter((i): i is SlashItem => i !== null);
+  return promoteNew(items.filter((i): i is SlashItem => i !== null), host.newItems());
+}
+
+/** Marks the new blocks and moves them to the top of the menu. */
+export function promoteNew(items: SlashItem[], newIds: readonly string[]): SlashItem[] {
+  if (!newIds.length) return items;
+  const marked = items.map((i) => (newIds.includes(i.id) ? { ...i, isNew: true } : i));
+  return [...marked.filter((i) => i.isNew), ...marked.filter((i) => !i.isNew)];
 }
 
 export function filterSlashItems(items: SlashItem[], query: string): SlashItem[] {
@@ -129,6 +140,7 @@ const SlashMenuList = forwardRef<MenuHandle, MenuProps>(function SlashMenuList({
             {item.title}
             <small>{item.hint}</small>
           </span>
+          {item.isNew && <span className="bee-slash-new">{messages.slashNew}</span>}
         </button>
       ))}
     </div>
@@ -201,7 +213,10 @@ export const SlashCommand = Extension.create<{ host: SlashHost | null }>({
           return $from.parent.type.name !== 'codeBlock';
         },
         items: ({ query, editor }) => filterSlashItems(buildItems(host, editor), query),
-        command: ({ editor, range, props }) => props.run(editor, range),
+        command: ({ editor, range, props }) => {
+          host.onUsed(props.id);
+          props.run(editor, range);
+        },
         render: () => {
           let renderer: ReactRenderer<MenuHandle, MenuProps> | null = null;
           const wrap = (props: SuggestionProps<SlashItem, SlashItem>): MenuProps => ({ ...props, messages: host.messages() });

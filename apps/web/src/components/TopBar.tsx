@@ -7,6 +7,7 @@ import { useI18n } from '../i18n';
 import { useMenu, type MenuEntry } from './Menu';
 import { BugReportDialog } from './BugReportDialog';
 import { useSession } from '../state/session';
+import { WhatsNewButton } from './WhatsNew';
 
 export interface Crumb {
   label: string;
@@ -48,6 +49,7 @@ export function TopBar({ crumbs, children, phoneMenu = [] }: { crumbs: Crumb[]; 
       </nav>
       <div className="spacer" />
       {children}
+      {session && <WhatsNewButton />}
       <button
         className="ico mono hide-phone"
         style={{ fontSize: '0.75rem', fontFamily: 'var(--f-body)' }}

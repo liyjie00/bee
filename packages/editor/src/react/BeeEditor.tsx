@@ -69,6 +69,10 @@ export interface BeeEditorProps {
   resolveLink?: (url: URL) => Promise<string | null>;
   /** Opens a Bee link inside the app; return false to open it in a new tab. */
   onOpenLink?: (href: string) => boolean;
+  /** Slash-menu block ids to badge "New" and list first. */
+  newSlashItems?: readonly string[];
+  /** Called with a slash-menu block's id when the user inserts it. */
+  onSlashItemUsed?: (id: string) => void;
   /** Hide collaborators' carets after this many ms without movement (default 10 minutes). */
   cursorIdleMs?: number;
   className?: string;
@@ -127,6 +131,8 @@ function EditorInner(props: InnerProps) {
   const slash = useMemo<SlashHost>(
     () => ({
       messages: () => latest.current.messages,
+      newItems: () => latest.current.newSlashItems ?? [],
+      onUsed: (id) => latest.current.onSlashItemUsed?.(id),
       canPickImage: () => !!latest.current.uploadImage,
       pickImage: () => fileInput.current?.click(),
       canCreateWhiteboard: () => !!latest.current.createWhiteboard,

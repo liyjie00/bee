@@ -1206,6 +1206,19 @@ body.bee-table-grabbing * {
   font-size: 0.75rem;
   font-weight: 600;
 }
+.bee-slash-text {
+  flex: 1;
+  min-width: 0;
+}
+.bee-slash-new {
+  flex: none;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--ins-ink, #1e6b2a);
+  background: var(--ins, #dcf3dd);
+  border-radius: 62.4375rem;
+  padding: 0 0.4375rem;
+}
 .bee-slash-text small {
   display: block;
   color: var(--fg-3, #7b8375);

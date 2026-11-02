@@ -11,7 +11,7 @@ export { insertImages, type UploadImage } from './react/image-upload.js';
 export { builtinMessages, resolveMessages, type Locale, type Messages } from './react/i18n.js';
 export { TableSheet } from './react/table-sheet.js';
 export { Sheet, columnName, columnIndex, isFormula, type Grid } from './react/formula.js';
-export { filterSlashItems, placeMenu } from './react/SlashMenu.js';
+export { filterSlashItems, placeMenu, promoteNew } from './react/SlashMenu.js';
 export { insertNewSheet, convertTableToSheet } from './react/sheet/commands.js';
 export { SheetDocContext, SheetTable } from './react/sheet/SheetView.js';
 export { schemaExtensions, BLOCK_ID_ATTR, BLOCK_TYPES } from './schema/index.js';

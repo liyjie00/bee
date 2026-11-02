@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BeeLogo } from '../components/Logo';
 import { useI18n, type MessageKey } from '../i18n';
+import { copyText } from '../state/toast';
 
 const LOGIN = '/login';
 const REGISTER = '/login?mode=register';
@@ -8,14 +10,18 @@ const CONTACT = 'contactus@bee.zippyzoo.dev';
 const SOURCE = 'https://github.com/liyjie00/bee';
 
 /** Stroke icons for the feature cards (24×24). */
-const FEATURES: { title: MessageKey; body: MessageKey; d: string }[] = [
+const FEATURES: { title: MessageKey; body: MessageKey; d: string; isNew?: boolean }[] = [
   { title: 'land.f1', body: 'land.f1d', d: 'M4 6h16v12H4zM7 15V9l2.5 3L12 9v6M15 12l2 3 2-3M17 9v6' },
   { title: 'land.f2', body: 'land.f2d', d: 'M12 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0M3 19c0-3 3-5 6-5s6 2 6 5M19.5 9a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0M15 14.5c3 0 5.5 1.5 5.5 4' },
   { title: 'land.f3', body: 'land.f3d', d: 'M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4M12 8v4l3 2' },
   { title: 'land.f4', body: 'land.f4d', d: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5' },
   { title: 'land.f5', body: 'land.f5d', d: 'M3 7h7l2 2h9v10H3z' },
-  { title: 'land.f6', body: 'land.f6d', d: 'M3 4h18v16H3zM3 10h18M3 15h18M9 4v16M15 4v16' },
+  { title: 'land.f6', body: 'land.f6d', d: 'M4 18c3-6 5-9 8-9s3 5 8-3M4 4h4v4H4zM16 16h4v4h-4z' },
+  { title: 'land.f7', body: 'land.f7d', d: 'M3 4h18v16H3zM3 10h18M3 15h18M9 4v16M15 4v16', isNew: true },
+  { title: 'land.f8', body: 'land.f8d', d: 'M5 5h9M5 5l6 7-6 7h9M15 13l5 6M20 13l-5 6', isNew: true },
 ];
+
+const MCP_CAN: MessageKey[] = ['land.mcpCan1', 'land.mcpCan2', 'land.mcpCan3', 'land.mcpCan4'];
 
 function Check() {
   return (
@@ -39,7 +45,7 @@ export function LandingPage() {
           <nav className="land-nav hide-phone" aria-label={t('land.nav')}>
             <a href="#features">{t('land.navFeatures')}</a>
             <a href="#share">{t('land.navShare')}</a>
-            <a href="#ai">{t('land.navAi')}</a>
+            <a href="#mcp">{t('land.navAi')}</a>
           </nav>
           <div className="spacer" />
           <button className="land-lang hide-phone" onClick={switchLang} aria-label={t('lang.label')}>
@@ -56,7 +62,11 @@ export function LandingPage() {
 
       <section id="top" className="land-wrap land-hero">
         <div className="land-hero-text">
-          <span className="land-eyebrow">{t('land.eyebrow')}</span>
+          <a className="land-news" href="#mcp">
+            <span>{t('land.newPill')}</span>
+            {t('land.newPillText')}
+            <span aria-hidden="true">→</span>
+          </a>
           <h1>
             {t('land.title1')}
             <br />
@@ -138,6 +148,7 @@ export function LandingPage() {
         <div className="land-feats">
           {FEATURES.map((f) => (
             <div key={f.title} className="land-feat">
+              {f.isNew && <span className="land-new">{t('land.badgeNew')}</span>}
               <span className="land-ic">
                 <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
                   <path d={f.d} />
@@ -150,7 +161,9 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="share" className="land-band">
+      <McpSection />
+
+      <section id="share" className="land-sec">
         <div className="land-wrap land-split">
           <div className="land-split-text">
             <h2>{t('land.shareTitle')}</h2>
@@ -251,5 +264,72 @@ export function LandingPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+/** MCP: what an agent can do in Bee, how to connect one, and a picture of it editing a doc. */
+function McpSection() {
+  const { t } = useI18n();
+  const [copied, setCopied] = useState(false);
+  const url = `${window.location.origin}/mcp`;
+  const copy = async () => {
+    if (await copyText(url)) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
+  };
+  return (
+    <section id="mcp" className="land-band">
+      <div className="land-wrap land-split">
+        <div className="land-split-text">
+          <span className="land-eyebrow">{t('land.mcpTag')}</span>
+          <h2>{t('land.mcpTitle')}</h2>
+          <p>{t('land.mcpSub')}</p>
+          <ol className="land-steps">
+            <li>
+              <span>{t('land.mcpStep1')}</span>
+              <span className="land-copy">
+                <code className="mono">{url}</code>
+                <button onClick={copy}>{copied ? t('land.mcpCopied') : t('land.mcpCopy')}</button>
+              </span>
+            </li>
+            <li>{t('land.mcpStep2')}</li>
+            <li>{t('land.mcpStep3')}</li>
+          </ol>
+          <ul className="land-chips">
+            {MCP_CAN.map((k) => (
+              <li key={k}>{t(k)}</li>
+            ))}
+          </ul>
+          <p className="land-fine">{t('land.mcpFine')}</p>
+        </div>
+        <div className="land-agent" aria-hidden="true">
+          <div className="land-chat">
+            <div className="land-ask">{t('land.mcpAsk')}</div>
+            <span className="land-call mono">Bee · {t('land.mcpCall1')}</span>
+            <span className="land-call mono">Bee · {t('land.mcpCall2')}</span>
+            <span className="land-call mono hot">Bee · {t('land.mcpCall3')}</span>
+            <div className="land-answer">
+              <span className="land-ai">AI</span>
+              <div>{t('land.mcpAnswer')}</div>
+            </div>
+          </div>
+          <div className="land-agent-doc">
+            <div className="land-saved">
+              <i />
+              {t('land.mcpDocMeta')}
+            </div>
+            <b>{t('land.demoMilestones').replace(/^#+\s*/, '')}</b>
+            <div className="land-task">
+              <span className="box on" />
+              {t('land.demoM1')}
+              <span className="mono">11/08</span>
+            </div>
+            <div className="land-add">{t('land.mcpAdd1')}</div>
+            <div className="land-add">{t('land.mcpAdd2')}</div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

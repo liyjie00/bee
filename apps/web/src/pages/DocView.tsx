@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BeeEditor, BeeWhiteboard, beeDocUrl, blockLink, type BeeUser, type LinkTarget, type CollabStatus, type Editor, type WhiteboardHandle } from '@bee/editor';
+import { BeeEditor, BeeWhiteboard, beeDocUrl, blockLink, builtinMessages, insertNewSheet, type BeeUser, type LinkTarget, type CollabStatus, type Editor, type WhiteboardHandle } from '@bee/editor';
 import { can, parseBlockFragment } from '@bee/shared';
 import { api, guestName, HttpError } from '../api/http';
 import type { ActivityDTO, CommentAnchor, CommentThreadDTO, DocumentDTO, UserDTO } from '../api/types';
@@ -20,6 +20,7 @@ import { collabUrl } from '../lib/collab';
 import { useLists } from '../state/lists';
 import { fileName, pendingBoardImports, pickFile, saveBlob } from '../lib/download';
 import { useSession, useTreeOrNull } from '../state/session';
+import { newSlashItems, slashItemUsed } from '../lib/whatsNew';
 
 type Status = CollabStatus;
 type Presence = BeeUser;
@@ -84,6 +85,7 @@ export function DocView({
   const [access, setAccess] = useState<Access>('private');
   const [title, setTitle] = useState(doc.title);
   const [words, setWords] = useState(0);
+  const [empty, setEmpty] = useState(false);
   const lists = useLists();
   const docMenu = useMenu();
   const { workspace } = useSession();
@@ -215,7 +217,10 @@ export function DocView({
   // Word count follows the editor content.
   useEffect(() => {
     if (!editor) return;
-    const count = () => setWords(countWords(editor.state.doc.textContent));
+    const count = () => {
+      setWords(countWords(editor.state.doc.textContent));
+      setEmpty(editor.isEmpty);
+    };
     count();
     editor.on('update', count);
     return () => {
@@ -570,6 +575,8 @@ export function DocView({
                   onOpenLink={onOpenLink}
                   createWhiteboard={editable ? onCreateWhiteboard : undefined}
                   pickWhiteboard={editable ? onPickWhiteboard : undefined}
+                  newSlashItems={newSlashItems()}
+                  onSlashItemUsed={slashItemUsed}
                   whiteboardTitle={whiteboardTitle}
                   onOpenWhiteboard={(id: string) => nav(shareToken ? `/s/${shareToken}/d/${id}` : `/d/${id}`)}
                   onReady={(ed: Editor) => {
@@ -579,6 +586,9 @@ export function DocView({
                   onStatus={setStatus}
                   onPresence={setPresence}
                 />
+                {editable && member && editor && empty && status === 'synced' && (
+                  <EmptyDocHint editor={editor} onCreateWhiteboard={onCreateWhiteboard} onPickWhiteboard={onPickWhiteboard} />
+                )}
               </div>
             </article>
           </section>
@@ -625,4 +635,76 @@ export function countWords(text: string): number {
   const cjk = text.match(/[㐀-鿿豈-﫿]/g)?.length ?? 0;
   const rest = text.replace(/[㐀-鿿豈-﫿]/g, ' ').trim();
   return cjk + (rest ? rest.split(/\s+/).length : 0);
+}
+
+const AGENT_TIP_KEY = 'bee-tip-agent-hidden';
+
+/** Shown under the title of an empty doc: blocks to start from, and a tip about MCP agents. */
+function EmptyDocHint({
+  editor,
+  onCreateWhiteboard,
+  onPickWhiteboard,
+}: {
+  editor: Editor;
+  onCreateWhiteboard?: () => Promise<{ documentId: string }>;
+  onPickWhiteboard?: () => Promise<{ documentId: string } | null>;
+}) {
+  const { t, lang } = useI18n();
+  const [tip, setTip] = useState(() => {
+    try {
+      return !localStorage.getItem(AGENT_TIP_KEY);
+    } catch {
+      return true;
+    }
+  });
+  const hideTip = () => {
+    setTip(false);
+    try {
+      localStorage.setItem(AGENT_TIP_KEY, '1');
+    } catch {
+      /* private mode */
+    }
+  };
+  const board = async (linked: boolean) => {
+    const r = linked ? await onPickWhiteboard?.() : await onCreateWhiteboard?.();
+    if (r && !editor.isDestroyed) editor.chain().focus('start').insertWhiteboard({ documentId: r.documentId, linked }).run();
+  };
+  return (
+    <div className="empty-hint">
+      <div className="empty-chips">
+        <span>{t('doc.emptyTry')}</span>
+        <button
+          onClick={() => {
+            editor.commands.focus('start');
+            insertNewSheet(editor, builtinMessages[lang].sheetBaseName);
+          }}
+        >
+          <Icon name="sheet" />
+          {t('doc.emptySheet')}
+        </button>
+        {onCreateWhiteboard && (
+          <button onClick={() => board(false)}>
+            <Icon name="board" />
+            {t('doc.emptyBoard')}
+          </button>
+        )}
+        {onPickWhiteboard && (
+          <button onClick={() => board(true)}>
+            <Icon name="link" />
+            {t('doc.emptyLinkBoard')}
+          </button>
+        )}
+      </div>
+      {tip && (
+        <div className="empty-tip">
+          <b>{t('doc.tip')}</b>
+          <span>{t('doc.agentTip')}</span>
+          <Link to="/settings/agents">{t('doc.agentTipLink')}</Link>
+          <button className="ico" aria-label={t('doc.tipHide')} title={t('doc.tipHide')} onClick={hideTip}>
+            <Icon name="x" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }

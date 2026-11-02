@@ -45,6 +45,7 @@ const zhCN = {
   // slash menu
   slashHeading: '插入块',
   slashEmpty: '没有匹配的块',
+  slashNew: '新',
   text: '正文',
   textHint: '普通段落',
   heading1: '标题 1',
@@ -205,6 +206,7 @@ const en: Messages = {
   mermaidEmpty: 'Type Mermaid source above, e.g. graph TD; A-->B',
   slashHeading: 'Insert block',
   slashEmpty: 'No matching blocks',
+  slashNew: 'New',
   text: 'Text',
   textHint: 'Plain paragraph',
   heading1: 'Heading 1',

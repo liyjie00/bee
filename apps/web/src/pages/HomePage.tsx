@@ -10,6 +10,7 @@ import { useAgo, useT, type MessageKey } from '../i18n';
 import { prefetchProps } from '../lib/doc-cache';
 import { useLists } from '../state/lists';
 import { useSession, useTree } from '../state/session';
+import { useWhatsNew } from '../lib/whatsNew';
 import { Thumb } from './FolderPage';
 import { notificationPath, RequestActions, VERB } from './NotificationsPage';
 
@@ -100,6 +101,8 @@ export function HomePage() {
               </span>
             </button>
           </div>
+
+          <WhatsNewCards />
 
           <section className="home-sec">
             <div className="home-h">
@@ -204,5 +207,46 @@ export function HomePage() {
       {importAt && <ContextMenu {...importAt} onClose={() => setImportAt(null)} items={importItems} />}
       {dialog}
     </main>
+  );
+}
+
+const WHATS_NEW_MAX = 3;
+
+/** Recently released features, each closable; the rest are in the top bar's changelog. */
+function WhatsNewCards() {
+  const t = useT();
+  const wn = useWhatsNew();
+  const cards = wn.cards.slice(0, WHATS_NEW_MAX);
+  if (!cards.length) return null;
+  return (
+    <section className="home-sec" aria-label={t('wn.title')}>
+      <div className="home-h">
+        <h2>{t('wn.title')}</h2>
+        <span className="home-sub hide-phone">{t('wn.recent')}</span>
+        <button className="home-link" onClick={() => wn.setOpen(true)}>
+          {t('wn.changelog')}
+        </button>
+        <button className="home-quiet" onClick={wn.dismissAll}>
+          {t('wn.hideAll')}
+        </button>
+      </div>
+      <div className="wn-cards">
+        {cards.map((f) => (
+          <div key={f.id} className="wn-card">
+            <span className="wn-tag">{f.id === 'mcp' ? 'MCP' : t('wn.new')}</span>
+            <h3>{t(f.title)}</h3>
+            <p>{t(f.body)}</p>
+            {f.cta && (
+              <Link className="wn-try" to={f.cta.to}>
+                {t(f.cta.label)} →
+              </Link>
+            )}
+            <button className="ico wn-x" aria-label={t('wn.dismiss')} title={t('wn.dismiss')} onClick={() => wn.dismiss(f.id)}>
+              <Icon name="x" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
