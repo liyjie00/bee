@@ -1,5 +1,7 @@
 # Bee
 
+English | [简体中文](README.zh-CN.md)
+
 Open-source, self-hostable collaborative documents (Quip-style): real-time
 editing, Markdown, version history, inline comments, folder tree, whiteboards,
 and private / member / public-link sharing. Bee is also a remote MCP server, so
