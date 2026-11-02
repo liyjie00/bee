@@ -47,7 +47,8 @@ export function scrollToBlock(editor: Editor, blockId: string): boolean {
 
 /**
  * The block under a viewport point: the innermost node with a block id, except that a paragraph
- * directly inside a list item resolves to the list item.
+ * directly inside a list item resolves to the list item, and anything inside a table resolves to
+ * the table (one link, shown at its header row). Spreadsheets have their own link button.
  */
 export function blockAtCoords(view: EditorView, x: number, y: number): { blockId: string; dom: HTMLElement } | null {
   const hit = view.posAtCoords({ left: x, top: y });
@@ -68,7 +69,9 @@ export function blockAtCoords(view: EditorView, x: number, y: number): { blockId
       parentHasId: d > 1 && !!$pos.node(d - 1).attrs[BLOCK_ID_ATTR],
     });
   }
-  for (const c of candidates) {
+  if (candidates.some((c) => c.type === 'sheet')) return null;
+  const table = candidates.findLast((c) => c.type === 'table' && typeof c.id === 'string' && c.id);
+  for (const c of table ? [table] : candidates) {
     if (typeof c.id !== 'string' || !c.id) continue;
     if (c.type === 'paragraph' && c.parentHasId) continue;
     const dom = view.nodeDOM(c.pos);
