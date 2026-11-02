@@ -7,6 +7,7 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { common, createLowlight } from 'lowlight';
 import { BlockId } from './block-id.js';
 import { Whiteboard } from './whiteboard.js';
+import { TaskListShortcuts } from './task-shortcuts.js';
 
 export { BlockId, BLOCK_TYPES, BLOCK_ID_ATTR, newBlockId } from './block-id.js';
 export { Whiteboard } from './whiteboard.js';
@@ -33,6 +34,7 @@ export function schemaExtensions({ collaborative = true }: SchemaOptions = {}): 
     }),
     TaskList,
     TaskItem.configure({ nested: true }),
+    TaskListShortcuts,
     TableKit.configure({ table: { resizable: true } }),
     Image.configure({ inline: false, allowBase64: false }),
     CodeBlockLowlight.configure({ lowlight, defaultLanguage: null }),

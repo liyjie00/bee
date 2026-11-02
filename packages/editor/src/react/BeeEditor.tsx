@@ -10,6 +10,7 @@ import { insertImages, type UploadImage } from './image-upload.js';
 import { MessagesContext, resolveMessages, type Locale, type Messages } from './i18n.js';
 import { BeeEditorContext, type BeeEditorContextValue } from './context.js';
 import type { SlashHost } from './SlashMenu.js';
+import type { Theme } from './theme.js';
 
 export interface BeeEditorProps {
   documentId: string;
@@ -23,6 +24,8 @@ export interface BeeEditorProps {
   /** owner / editor / commenter */
   canComment: boolean;
   locale?: Locale;
+  /** Theme for embeds (whiteboards, diagrams); defaults to `<html data-theme>`, then the OS. */
+  theme?: Theme;
   messages?: Partial<Messages>;
   placeholder?: string;
   comments?: CommentHighlight[];
@@ -177,9 +180,10 @@ function EditorInner(props: InnerProps) {
       user: props.user,
       editable,
       locale: props.locale ?? 'en',
+      theme: props.theme,
       onOpenWhiteboard: props.onOpenWhiteboard,
     }),
-    [props.documentId, props.collabUrl, props.shareToken, props.user, editable, props.locale, props.onOpenWhiteboard],
+    [props.documentId, props.collabUrl, props.shareToken, props.user, editable, props.locale, props.theme, props.onOpenWhiteboard],
   );
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {

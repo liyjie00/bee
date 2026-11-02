@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ComponentType } from 're
 import * as Y from 'yjs';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
 import { useCollabConnection, type BeeUser, type CollabStatus } from './collab.js';
+import { useTheme, type Theme } from './theme.js';
 import { MessagesContext, resolveMessages, useMessages, type Locale, type Messages } from './i18n.js';
 
 type ExcalidrawModule = typeof import('@excalidraw/excalidraw');
@@ -26,16 +27,18 @@ interface BoardProps {
   /** Compact embed: hides most chrome. */
   embedded?: boolean;
   locale: Locale;
+  theme?: Theme;
 }
 
 /**
  * Excalidraw bound to a Yjs document: every element is stored in Y.Map `elements` keyed by id, and
  * merged by Excalidraw's own version-based reconciliation. Images go to Y.Map `files`.
  */
-function Board({ ydoc, provider, user, editable, embedded, locale }: BoardProps) {
+function Board({ ydoc, provider, user, editable, embedded, locale, theme: themeProp }: BoardProps) {
   const [mod, setMod] = useState<ExcalidrawModule | null>(null);
   const apiRef = useRef<ExcalidrawAPI | null>(null);
   const t = useMessages();
+  const theme = useTheme(themeProp);
 
   useEffect(() => {
     let alive = true;
@@ -112,8 +115,6 @@ function Board({ ydoc, provider, user, editable, embedded, locale }: BoardProps)
 
   if (!mod) return <div className="bee-whiteboard-loading">{t.whiteboardLoading}</div>;
   const Excalidraw = mod.Excalidraw as unknown as ComponentType<Record<string, unknown>>;
-  const forced = document.documentElement.dataset.theme;
-  const dark = forced ? forced === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
 
   return (
     <Excalidraw
@@ -129,7 +130,7 @@ function Board({ ydoc, provider, user, editable, embedded, locale }: BoardProps)
       isCollaborating
       viewModeEnabled={!editable}
       zenModeEnabled={embedded}
-      theme={dark ? 'dark' : 'light'}
+      theme={theme}
       langCode={locale === 'zh-CN' ? 'zh-CN' : 'en'}
       UIOptions={embedded ? { canvasActions: { loadScene: false, saveToActiveFile: false, export: false } } : undefined}
     />
@@ -144,12 +145,14 @@ export interface BeeWhiteboardProps {
   editable: boolean;
   embedded?: boolean;
   locale?: Locale;
+  /** Defaults to `<html data-theme>`, then the OS preference. */
+  theme?: Theme;
   messages?: Partial<Messages>;
   onStatus?: (status: CollabStatus) => void;
 }
 
 /** A whiteboard document (its own Y.Doc), full page or embedded in a rich-text document. */
-export function BeeWhiteboard({ documentId, collabUrl, shareToken, user, editable, embedded, locale, messages, onStatus }: BeeWhiteboardProps) {
+export function BeeWhiteboard({ documentId, collabUrl, shareToken, user, editable, embedded, locale, theme, messages, onStatus }: BeeWhiteboardProps) {
   const [synced, setSynced] = useState(false);
   const conn = useCollabConnection(documentId, collabUrl, shareToken, (s) => {
     if (s === 'synced') setSynced(true);
@@ -160,7 +163,7 @@ export function BeeWhiteboard({ documentId, collabUrl, shareToken, user, editabl
     <MessagesContext.Provider value={t}>
       <div className={`bee-whiteboard${embedded ? ' bee-whiteboard-embedded' : ''}`}>
         {conn && synced ? (
-          <Board ydoc={conn.ydoc} provider={conn.provider} user={user} editable={editable} embedded={embedded} locale={locale ?? 'en'} />
+          <Board ydoc={conn.ydoc} provider={conn.provider} user={user} editable={editable} embedded={embedded} locale={locale ?? 'en'} theme={theme} />
         ) : (
           <div className="bee-whiteboard-loading">{t.whiteboardLoading}</div>
         )}

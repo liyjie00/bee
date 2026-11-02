@@ -192,11 +192,21 @@
 }
 
 /* placeholder */
+.bee-prose p.is-empty,
+.bee-prose p.is-editor-empty:first-child {
+  position: relative;
+}
+/* Absolute + single line so a long placeholder never pushes or overlaps the next block. */
 .bee-prose p.is-empty::before,
 .bee-prose p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  float: left;
-  height: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--be-fg-3);
   pointer-events: none;
 }

@@ -1,16 +1,13 @@
 import { useEffect, useId, useState } from 'react';
 import { useMessages } from './i18n.js';
+import { useBeeEditorContext } from './context.js';
+import { useTheme } from './theme.js';
 
 type MermaidApi = typeof import('mermaid').default;
 let mermaidPromise: Promise<MermaidApi> | null = null;
 
 function loadMermaid(): Promise<MermaidApi> {
-  mermaidPromise ??= import('mermaid').then((m) => {
-    const forced = document.documentElement.dataset.theme;
-    const dark = forced ? forced === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-    m.default.initialize({ startOnLoad: false, securityLevel: 'strict', theme: dark ? 'dark' : 'neutral' });
-    return m.default;
-  });
+  mermaidPromise ??= import('mermaid').then((m) => m.default);
   return mermaidPromise;
 }
 
@@ -18,6 +15,7 @@ function loadMermaid(): Promise<MermaidApi> {
 export function MermaidPreview({ code }: { code: string }) {
   const id = `bee-mermaid-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const t = useMessages();
+  const theme = useTheme(useBeeEditorContext()?.theme);
   const [svg, setSvg] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +30,7 @@ export function MermaidPreview({ code }: { code: string }) {
     const timer = setTimeout(async () => {
       try {
         const mermaid = await loadMermaid();
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: theme === 'dark' ? 'dark' : 'neutral' });
         const result = await mermaid.render(id, source);
         if (!cancelled) {
           setSvg(result.svg);
@@ -47,7 +46,7 @@ export function MermaidPreview({ code }: { code: string }) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [code, id]);
+  }, [code, id, theme]);
 
   if (error) return <div className="bee-mermaid-error">{t.mermaidError}{error.split('\n')[0]}</div>;
   if (!svg) return <div className="bee-mermaid-empty">{t.mermaidEmpty}</div>;

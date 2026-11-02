@@ -11,3 +11,4 @@ export { builtinMessages, resolveMessages, type Locale, type Messages } from './
 export { filterSlashItems } from './react/SlashMenu.js';
 export { schemaExtensions, BLOCK_ID_ATTR, BLOCK_TYPES } from './schema/index.js';
 export type { Editor } from '@tiptap/react';
+export { useTheme, type Theme } from './react/theme.js';

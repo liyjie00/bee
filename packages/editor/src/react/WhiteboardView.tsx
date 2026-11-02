@@ -29,6 +29,7 @@ export function WhiteboardView({ node, selected }: ReactNodeViewProps) {
             user={ctx.user}
             editable={ctx.editable}
             locale={ctx.locale}
+            theme={ctx.theme}
             embedded
           />
         ) : (

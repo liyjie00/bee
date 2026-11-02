@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { BeeUser } from './collab.js';
 import type { Locale } from './i18n.js';
+import type { Theme } from './theme.js';
 
 /** Host-provided services available to node views (rendered inside the editor's React tree). */
 export interface BeeEditorContextValue {
@@ -10,6 +11,7 @@ export interface BeeEditorContextValue {
   user: BeeUser;
   editable: boolean;
   locale: Locale;
+  theme?: Theme;
   onOpenWhiteboard?: (documentId: string) => void;
 }
 
