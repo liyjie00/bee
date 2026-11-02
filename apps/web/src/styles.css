@@ -666,3 +666,20 @@ svg.i.star-on{fill:var(--honey);stroke:var(--honey)}
 .mention-who small{color:var(--fg-3);font-size:11.5px;overflow:hidden;text-overflow:ellipsis}
 .mention-cap{font-size:11px;color:var(--fg-3);padding:2px 8px 4px;letter-spacing:.04em}
 .mention-none{padding:6px 8px;color:var(--fg-3);font-size:12.5px}
+
+/* ---------- menu captions, hints, checkboxes ---------- */
+.ctx-cap{font-size:11px;color:var(--fg-3);padding:5px 10px 2px;letter-spacing:.04em}
+.ctx .ctx-hint{margin-left:auto;padding-left:14px;color:var(--fg-3);font-size:12px}
+.ctx-box{width:15px;height:15px;border:1.5px solid var(--line-strong);border-radius:4px;display:grid;place-items:center;flex:none}
+.ctx-box.on{background:var(--honey);border-color:var(--honey);color:#2a1c00}
+.ctx-box svg.i{stroke-width:2.6}
+
+/* ---------- PDF / print: only the page itself ---------- */
+@media print{
+  html,body,#root{height:auto;overflow:visible;background:#fff}
+  .app{display:block;height:auto}
+  .side,.top,.toolbar,.panel,.drawer-scrim,.outline,.cm-connector,.ai-panel,.bee-bubble,.notice,.hbanner,.doc-meta,.bee-block-link,.toast{display:none!important}
+  .main,.doc-stage,.view{display:block;overflow:visible!important;height:auto!important;min-height:0!important}
+  article.page{max-width:none;padding:0;margin:0}
+  .prose a{color:inherit}
+}

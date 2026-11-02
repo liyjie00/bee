@@ -353,6 +353,21 @@ export const en = {
   'mention.label': "People to mention",
   'mention.caption': "People who can open this doc",
   'mention.none': "Nobody matches. Only people who can open this doc can be mentioned.",
+  'docmenu.more': "More actions",
+  'docmenu.dup': "Duplicate doc",
+  'docmenu.dupBoard': "Duplicate whiteboard",
+  'docmenu.duplicated': "Duplicated as “{name}”",
+  'docmenu.saveTemplate': "Save as template",
+  'docmenu.templateSaved': "Saved “{name}” as a template. Find it under My templates when creating a doc.",
+  'docmenu.export': "Export",
+  'docmenu.pdf': "PDF / Print",
+  'docmenu.exportImage': "Export image",
+  'docmenu.withBackground': "With background",
+  'docmenu.onlySelected': "Only the selection",
+  'docmenu.boardEmpty': "Nothing to export yet",
+  'docmenu.rawFile': "Original file",
+  'docmenu.downloadRaw': "Download original",
+  'docmenu.importRaw': "Import into this board…",
 } as const;
 
 export type MessageKey = keyof typeof en;

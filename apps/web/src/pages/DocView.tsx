@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BeeEditor, BeeWhiteboard, blockLink, type BeeUser, type CollabStatus, type Editor } from '@bee/editor';
+import { BeeEditor, BeeWhiteboard, blockLink, type BeeUser, type CollabStatus, type Editor, type WhiteboardHandle } from '@bee/editor';
 import { can, parseBlockFragment } from '@bee/shared';
 import { api, guestName, HttpError } from '../api/http';
 import type { ActivityDTO, CommentAnchor, CommentThreadDTO, DocumentDTO, UserDTO } from '../api/types';
@@ -9,7 +9,7 @@ import { CommentConnector } from '../components/CommentConnector';
 import { CommentsPanel, type Draft, type GuestIdentity } from '../components/CommentsPanel';
 import { DocOutline } from '../components/DocOutline';
 import { Icon } from '../components/Icon';
-import { Avatar } from '../components/Menu';
+import { Avatar, useMenu, type MenuEntry } from '../components/Menu';
 import { ShareDialog, accessOf, type Access } from '../components/ShareDialog';
 import { TopBar, type Crumb } from '../components/TopBar';
 import { Toolbar } from '../components/Toolbar';
@@ -18,6 +18,8 @@ import { copyText, errMsg, useToast } from '../state/toast';
 import { takeDocState } from '../lib/doc-cache';
 import { collabUrl } from '../lib/collab';
 import { useLists } from '../state/lists';
+import { fileName, pendingBoardImports, pickFile, saveBlob } from '../lib/download';
+import { useSession } from '../state/session';
 
 type Status = CollabStatus;
 type Presence = BeeUser;
@@ -80,6 +82,23 @@ export function DocView({
   const [title, setTitle] = useState(doc.title);
   const [words, setWords] = useState(0);
   const lists = useLists();
+  const docMenu = useMenu();
+  const { workspace } = useSession();
+  const member = !!me && !shareToken && workspace?.id === doc.workspaceId;
+  const boardRef = useRef<WhiteboardHandle | null>(null);
+  const onBoardHandle = useCallback(
+    (h: WhiteboardHandle | null) => {
+      boardRef.current = h;
+      // "New › Import .excalidraw" opened this board with a file to load.
+      const file = h && pendingBoardImports.get(doc.id);
+      if (h && file) {
+        pendingBoardImports.delete(doc.id);
+        h.importScene(file).catch((e) => toast(errMsg(e)));
+      }
+    },
+    [doc.id],
+  );
+  const exportOpts = useRef({ background: true, onlySelected: false });
   const canStar = !!lists && !!me && !shareToken;
   const starred = !!lists?.isStarred(doc.id);
   const toggleStar = () => lists?.setStar({ ...doc, title }, !starred).catch((e) => toast(errMsg(e)));
@@ -211,6 +230,96 @@ export function DocView({
     }
   }
 
+  const run = (fn: () => Promise<void>) => () => {
+    fn().catch((e) => toast(errMsg(e)));
+  };
+  const name = title || t('common.untitled');
+  const moreItems = (): MenuEntry[] => {
+    const own: MenuEntry[] = member
+      ? [
+          {
+            label: isBoard ? t('docmenu.dupBoard') : t('docmenu.dup'),
+            icon: 'copy',
+            onSelect: run(async () => {
+              const d = await api.duplicateDocument(doc.id);
+              toast(t('docmenu.duplicated', { name: d.title }));
+              nav(`/d/${d.id}`);
+            }),
+          },
+          ...(!isBoard
+            ? [
+                {
+                  label: t('docmenu.saveTemplate'),
+                  icon: 'note' as const,
+                  onSelect: run(async () => {
+                    const tp = await api.saveTemplate(doc.id, title || undefined);
+                    toast(t('docmenu.templateSaved', { name: tp.title }));
+                  }),
+                },
+              ]
+            : []),
+          '-',
+        ]
+      : [];
+    if (isBoard) {
+      const image = (type: 'png' | 'jpeg') =>
+        run(async () => {
+          const blob = await boardRef.current?.exportImage(type, exportOpts.current);
+          if (!blob) return toast(t('docmenu.boardEmpty'));
+          saveBlob(blob, fileName(name, type === 'png' ? 'png' : 'jpg'));
+        });
+      return [
+        ...own,
+        { caption: t('docmenu.exportImage') },
+        { label: 'PNG', icon: 'image', hint: '.png', onSelect: image('png') },
+        { label: 'JPG', icon: 'image', hint: '.jpg', onSelect: image('jpeg') },
+        { label: t('docmenu.withBackground'), checked: exportOpts.current.background, onSelect: () => (exportOpts.current.background = !exportOpts.current.background) },
+        { label: t('docmenu.onlySelected'), checked: exportOpts.current.onlySelected, onSelect: () => (exportOpts.current.onlySelected = !exportOpts.current.onlySelected) },
+        '-',
+        { caption: t('docmenu.rawFile') },
+        {
+          label: t('docmenu.downloadRaw'),
+          icon: 'down',
+          hint: '.excalidraw',
+          onSelect: () => {
+            const json = boardRef.current?.exportScene();
+            if (json) saveBlob(new Blob([json], { type: 'application/json' }), fileName(name, 'excalidraw'));
+          },
+        },
+        ...(editable
+          ? [
+              {
+                label: t('docmenu.importRaw'),
+                icon: 'restore' as const,
+                hint: '.excalidraw',
+                onSelect: run(async () => {
+                  const f = await pickFile('.excalidraw,application/json');
+                  if (f) await boardRef.current?.importScene(f);
+                }),
+              },
+            ]
+          : []),
+      ];
+    }
+    return [
+      ...own,
+      { caption: t('docmenu.export') },
+      { label: 'Markdown', icon: 'code', hint: '.md', onSelect: run(async () => saveBlob(await api.exportMarkdown(doc.id), fileName(name, 'md'))) },
+      {
+        label: 'Word',
+        icon: 'doc',
+        hint: '.docx',
+        onSelect: run(async () => {
+          const ed = editorRef.current;
+          if (!ed) return;
+          const { toDocx } = await import('../lib/docx');
+          saveBlob(await toDocx(title, ed.getJSON()), fileName(name, 'docx'));
+        }),
+      },
+      { label: t('docmenu.pdf'), icon: 'doc', hint: '⌘P', onSelect: () => window.print() },
+    ];
+  };
+
   const others = presence.filter((p) => p.id !== user.id);
   // Ask AI needs a Bee account: it runs with the user's own AI account and permissions.
   const canAi = !!me;
@@ -223,7 +332,11 @@ export function DocView({
       <main className="main">
         <TopBar
           crumbs={crumbs}
-          phoneMenu={!shareToken && !isBoard ? [{ label: t('doc.history'), icon: 'clock', onSelect: () => nav(`/d/${doc.id}/history`) }] : []}
+          phoneMenu={[
+            ...(canStar ? [{ label: starred ? t('star.remove') : t('star.add'), icon: 'star' as const, onSelect: toggleStar }] : []),
+            ...(!shareToken && !isBoard ? [{ label: t('doc.history'), icon: 'clock' as const, onSelect: () => nav(`/d/${doc.id}/history`) }] : []),
+            ...(status !== 'denied' ? moreItems() : []),
+          ]}
         >
           <span className="saved hide-sm" title={status}>
             <i style={{ background: status === 'synced' ? '#3fa34d' : status === 'disconnected' ? 'var(--del-ink)' : 'var(--honey)' }} />
@@ -249,6 +362,11 @@ export function DocView({
             <button className={'ico' + (showPanel ? ' on' : '')} aria-label={t('doc.comments')} title={t('doc.comments')} onClick={() => (showPanel ? setPanel(false) : openComments())}>
               <Icon name="chat" />
               {openThreads > 0 && <span className="ico-badge">{openThreads}</span>}
+            </button>
+          )}
+          {status !== 'denied' && (
+            <button className="ico hide-phone" aria-label={t('docmenu.more')} title={t('docmenu.more')} onClick={(e) => docMenu.open(e, moreItems())}>
+              <Icon name="more" />
             </button>
           )}
           {shareToken && !me && (
@@ -288,7 +406,7 @@ export function DocView({
         ) : isBoard ? (
           <section className="view" style={{ overflow: 'hidden', position: 'relative' }}>
             <div className="wb-host">
-              <BeeWhiteboard key={doc.id} documentId={doc.id} collabUrl={collabUrl()} shareToken={shareToken} loadSnapshot={loadSnapshot} user={user} editable={editable} locale={lang} onStatus={setStatus} />
+              <BeeWhiteboard key={doc.id} onHandle={onBoardHandle} documentId={doc.id} collabUrl={collabUrl()} shareToken={shareToken} loadSnapshot={loadSnapshot} user={user} editable={editable} locale={lang} onStatus={setStatus} />
             </div>
           </section>
         ) : (
@@ -420,6 +538,7 @@ export function DocView({
       )}
       {showPanel && !isBoard && <CommentConnector activeId={activeId} />}
       {showAi && <AskAiPanel documentId={doc.id} onClose={() => setAi(false)} />}
+      {docMenu.node}
       {share && <ShareDialog doc={doc} onClose={() => setShare(false)} onChange={setAccess} />}
     </>
   );

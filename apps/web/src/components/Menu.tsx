@@ -5,12 +5,22 @@ export interface MenuItem {
   label: string;
   icon?: IconName;
   danger?: boolean;
+  /** shown greyed out after the label, e.g. a file extension or shortcut */
+  hint?: string;
+  /** a checkbox option: toggles in place without closing the menu */
+  checked?: boolean;
   onSelect(): void;
 }
+/** A small caption above a group of items. */
+export interface MenuCaption {
+  caption: string;
+}
+export type MenuEntry = MenuItem | MenuCaption | '-';
 
 /** Floating context menu at a viewport point. Closes on outside click or Escape. */
-export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: (MenuItem | '-')[]; onClose(): void }) {
+export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: MenuEntry[]; onClose(): void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [checks, setChecks] = useState<Record<number, boolean>>({});
   const [pos, setPos] = useState({ x, y });
   useLayoutEffect(() => {
     const r = ref.current?.getBoundingClientRect();
@@ -29,10 +39,33 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
   }, [onClose]);
   return (
     <div className="ctx" ref={ref} style={{ left: pos.x, top: pos.y }} role="menu">
-      {items.map((it, i) =>
-        it === '-' ? (
-          <hr key={i} />
-        ) : (
+      {items.map((it, i) => {
+        if (it === '-') return <hr key={i} />;
+        if ('caption' in it)
+          return (
+            <div key={i} className="ctx-cap">
+              {it.caption}
+            </div>
+          );
+        if (it.checked !== undefined) {
+          const on = checks[i] ?? it.checked;
+          return (
+            <button
+              key={i}
+              role="menuitemcheckbox"
+              aria-checked={on}
+              className="ctx-check"
+              onClick={() => {
+                setChecks((c) => ({ ...c, [i]: !on }));
+                it.onSelect();
+              }}
+            >
+              <span className={'ctx-box' + (on ? ' on' : '')}>{on && <Icon name="check" size={11} />}</span>
+              {it.label}
+            </button>
+          );
+        }
+        return (
           <button
             key={i}
             role="menuitem"
@@ -44,18 +77,19 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
           >
             {it.icon && <Icon name={it.icon} />}
             {it.label}
+            {it.hint && <small className="ctx-hint">{it.hint}</small>}
           </button>
-        ),
-      )}
+        );
+      })}
     </div>
   );
 }
 
 export function useMenu() {
-  const [menu, setMenu] = useState<{ x: number; y: number; items: (MenuItem | '-')[] } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuEntry[] } | null>(null);
   const open = (
     e: { clientX: number; clientY: number; currentTarget?: EventTarget | null; preventDefault(): void; stopPropagation(): void },
-    items: (MenuItem | '-')[],
+    items: MenuEntry[],
   ) => {
     e.preventDefault();
     e.stopPropagation();
