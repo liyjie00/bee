@@ -402,3 +402,18 @@ export const apiTokens = pgTable(
   },
   (t) => [index('api_tokens_user_idx').on(t.userId), index('api_tokens_grant_idx').on(t.grantId)],
 );
+
+/**
+ * The AI account a user connected for Ask AI: which provider and model to use, and the
+ * provider API keys (from "Sign in with OpenRouter" or pasted by the user), encrypted.
+ */
+export const aiSettings = pgTable('ai_settings', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull(),
+  model: text('model'),
+  /** AES-256-GCM sealed JSON { [provider]: apiKey } */
+  keys: text('keys').notNull(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});

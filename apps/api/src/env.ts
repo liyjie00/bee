@@ -17,6 +17,10 @@ export interface Config {
   guestCommentHourlyLimit: number;
   /** origins accepted for cookie-authenticated mutations (public URL is always included) */
   allowedOrigins: string[];
+  /** encrypts users' AI provider keys at rest (defaults to one derived from SESSION_SECRET) */
+  aiKeysSecret: string;
+  /** max Ask AI requests per user per minute */
+  aiRateLimit: number;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -43,5 +47,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       .split(',')
       .map((s) => s.trim().replace(/\/$/, ''))
       .filter(Boolean),
+    aiKeysSecret: env.AI_KEYS_SECRET ?? `${need('SESSION_SECRET', 'dev-session-secret')}:ai-keys`,
+    aiRateLimit: Number(env.AI_RATE_LIMIT ?? 20),
   };
 }

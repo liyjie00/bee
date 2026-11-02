@@ -4,6 +4,7 @@ import { BeeEditor, BeeWhiteboard, blockLink, type BeeUser, type CollabStatus, t
 import { can, parseBlockFragment } from '@bee/shared';
 import { api, guestName, HttpError } from '../api/http';
 import type { ActivityDTO, CommentAnchor, CommentThreadDTO, DocumentDTO, UserDTO } from '../api/types';
+import { AskAiPanel } from '../components/AskAiPanel';
 import { CommentsPanel, type Draft, type GuestIdentity } from '../components/CommentsPanel';
 import { Icon } from '../components/Icon';
 import { Avatar } from '../components/Menu';
@@ -64,6 +65,11 @@ export function DocView({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [panel, setPanel] = useState(() => innerWidth > 1180);
+  const [ai, setAi] = useState(false);
+  const openComments = () => {
+    setAi(false);
+    setPanel(true);
+  };
   const [share, setShare] = useState(false);
   const [access, setAccess] = useState<Access>('private');
   const [title, setTitle] = useState(doc.title);
@@ -94,6 +100,16 @@ export function DocView({
   };
 
   useEffect(() => setTitle(doc.title), [doc.id, doc.title]);
+  // Back from "Sign in with OpenRouter" without a popup: reopen Ask AI.
+  useEffect(() => {
+    const q = new URLSearchParams(loc.search);
+    const r = q.get('ai');
+    if (!r) return;
+    setAi(true);
+    toast(r === 'connected' ? t('ai.connectedToast') : t('ai.signInFailed'));
+    q.delete('ai');
+    nav({ search: q.toString(), hash: loc.hash }, { replace: true });
+  }, [loc.search]);
   useEffect(() => {
     setThreads([]);
     setActivity(null);
@@ -171,7 +187,10 @@ export function DocView({
   }
 
   const others = presence.filter((p) => p.id !== user.id);
-  const showPanel = panel && !isBoard;
+  // Ask AI needs a Bee account: it runs with the user's own AI account and permissions.
+  const canAi = !!me;
+  const showAi = ai && canAi;
+  const showPanel = panel && !isBoard && !showAi;
 
   return (
     <>
@@ -192,8 +211,13 @@ export function DocView({
               <Icon name="clock" />
             </button>
           )}
+          {canAi && (
+            <button className={'ico' + (showAi ? ' on' : '')} aria-label={t('ai.open')} title={t('ai.open')} onClick={() => setAi((a) => !a)}>
+              <Icon name="spark" />
+            </button>
+          )}
           {!isBoard && (
-            <button className={'ico' + (showPanel ? ' on' : '')} aria-label={t('doc.comments')} title={t('doc.comments')} onClick={() => setPanel((p) => !p)}>
+            <button className={'ico' + (showPanel ? ' on' : '')} aria-label={t('doc.comments')} title={t('doc.comments')} onClick={() => (showPanel ? setPanel(false) : openComments())}>
               <Icon name="chat" />
             </button>
           )}
@@ -290,12 +314,12 @@ export function DocView({
                   activeCommentId={activeId}
                   onCommentClick={(id: string) => {
                     setActiveId(id);
-                    setPanel(true);
+                    openComments();
                   }}
                   onCreateComment={(anchor: CommentAnchor) => {
                     setDraft({ anchor });
                     setActiveId(null);
-                    setPanel(true);
+                    openComments();
                   }}
                   onCopyBlockLink={async (blockId: string) => {
                     const url = shareToken
@@ -339,6 +363,7 @@ export function DocView({
           onActivityTab={() => api.activity(doc.id).then(setActivity, () => setActivity([]))}
         />
       )}
+      {showAi && <AskAiPanel documentId={doc.id} onClose={() => setAi(false)} />}
       {share && <ShareDialog doc={doc} onClose={() => setShare(false)} onChange={setAccess} />}
     </>
   );

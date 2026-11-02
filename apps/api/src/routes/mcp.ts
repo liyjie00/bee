@@ -22,14 +22,14 @@ import { CollabClient } from '../lib/collab.js';
 const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
 const SERVER_INFO = { name: 'bee', title: 'Bee', version: '0.1.0' };
 
-const INSTRUCTIONS = `Bee is a collaborative document editor (folders, Markdown documents, comments).
+export const INSTRUCTIONS = `Bee is a collaborative document editor (folders, Markdown documents, comments).
 - Start with list_documents (or search_documents) to find ids; most tools take a documentId or folderId.
 - read_document returns the live content as Markdown. Prefer edit_document with mode "str_replace" for targeted edits: "find" must match the Markdown exactly once (copy it from read_document). Use "append" to add at the end, "replace" to rewrite everything. Edits show up live for people who have the document open; unchanged paragraphs keep their comments.
 - add_comment with a "quote" pins the comment to that text; without it the comment is about the whole document.
 - Diagrams: draw_diagram draws boxes with text and connecting arrows on a whiteboard (laid out automatically), on an existing board, a new one, or a new board embedded at the end of a document. read_whiteboard describes a board. For a quick diagram inside a document, a \`\`\`mermaid code block via edit_document also renders.
 - Whiteboards cannot be read or edited as Markdown.`;
 
-class ToolError extends Error {}
+export class ToolError extends Error {}
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -38,14 +38,14 @@ interface JsonRpcRequest {
   params?: Record<string, unknown>;
 }
 
-type Ctx = {
+export type Ctx = {
   userId: string;
   call: <T>(method: InjectOptions['method'], url: string, payload?: unknown) => Promise<T>;
   collab: CollabClient;
   publicUrl: string;
 };
 
-interface Tool<S extends z.ZodType = z.ZodType> {
+export interface Tool<S extends z.ZodType = z.ZodType> {
   name: string;
   title: string;
   description: string;
@@ -101,7 +101,7 @@ const commentsText = (threads: CommentThreadDTO[]) =>
         .join('\n\n')
     : 'No comments.';
 
-const TOOLS: Tool[] = [
+export const TOOLS: Tool[] = [
   tool({
     name: 'list_workspaces',
     title: 'List workspaces',
@@ -576,6 +576,35 @@ const toolList = TOOLS.map((t) => {
   };
 });
 
+/**
+ * Calls the regular /api routes in-process with the given credentials (a bearer token, or
+ * the session cookie for Ask AI), turning error responses into ToolErrors.
+ */
+export function injectCaller(app: FastifyInstance, auth: Record<string, string>): Ctx['call'] {
+  return async <T>(method: InjectOptions['method'], url: string, payload?: unknown) => {
+    const res = await app.inject({
+      method,
+      url,
+      headers: {
+        ...auth,
+        ...(payload !== undefined ? { 'content-type': 'application/json' } : {}),
+      },
+      ...(payload !== undefined ? { payload: JSON.stringify(payload) } : {}),
+    });
+    const body = res.body
+      ? (JSON.parse(res.body) as T & { error?: { message?: string } })
+      : ({} as T);
+    if (res.statusCode >= 400) {
+      const message =
+        (body as { error?: { message?: string } }).error?.message ?? `HTTP ${res.statusCode}`;
+      throw new ToolError(
+        res.statusCode === 404 ? `${message} (or you do not have access)` : message,
+      );
+    }
+    return body;
+  };
+}
+
 const rpcError = (id: JsonRpcRequest['id'], code: number, message: string) => ({
   jsonrpc: '2.0' as const,
   id: id ?? null,
@@ -598,28 +627,7 @@ export async function mcpRoutes(app: FastifyInstance) {
       userId: req.user!.id,
       collab,
       publicUrl,
-      call: async <T>(method: InjectOptions['method'], url: string, payload?: unknown) => {
-        const res = await app.inject({
-          method,
-          url,
-          headers: {
-            authorization: req.headers.authorization!,
-            ...(payload !== undefined ? { 'content-type': 'application/json' } : {}),
-          },
-          ...(payload !== undefined ? { payload: JSON.stringify(payload) } : {}),
-        });
-        const body = res.body
-          ? (JSON.parse(res.body) as T & { error?: { message?: string } })
-          : ({} as T);
-        if (res.statusCode >= 400) {
-          const message =
-            (body as { error?: { message?: string } }).error?.message ?? `HTTP ${res.statusCode}`;
-          throw new ToolError(
-            res.statusCode === 404 ? `${message} (or you do not have access)` : message,
-          );
-        }
-        return body;
-      },
+      call: injectCaller(app, { authorization: req.headers.authorization! }),
     };
     switch (msg.method) {
       case 'initialize': {

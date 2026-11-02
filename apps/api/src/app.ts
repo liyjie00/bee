@@ -19,6 +19,7 @@ import { internalRoutes } from './routes/internal.js';
 import { tokenRoutes } from './routes/tokens.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { mcpRoutes } from './routes/mcp.js';
+import { aiRoutes } from './routes/ai.js';
 import { bearerFrom, userForBearer } from './lib/tokens.js';
 import { clientIp } from './lib/ip.js';
 
@@ -189,6 +190,7 @@ export async function buildApp(opts: {
       await api.register(uploadRoutes);
       await api.register(internalRoutes);
       await api.register(tokenRoutes);
+      await api.register(aiRoutes);
     },
     { prefix: '/api' },
   );

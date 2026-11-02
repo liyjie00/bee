@@ -61,7 +61,7 @@ export const guestName = {
   },
 };
 
-async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined && !(body instanceof FormData)) headers['content-type'] = 'application/json';
   if (api.shareToken) {
