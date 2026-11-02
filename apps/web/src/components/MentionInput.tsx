@@ -120,7 +120,7 @@ export function MentionInput({
               onMouseEnter={() => setSel(i)}
               onClick={() => pick(p)}
             >
-              <Avatar sm name={p.name} color={p.color} />
+              <Avatar sm name={p.name} color={p.color} url={p.avatarUrl} />
               <span className="mention-who">
                 <span>{p.name}</span>
                 <small>{p.email}</small>

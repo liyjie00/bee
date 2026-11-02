@@ -230,7 +230,27 @@ function NotificationsSection() {
   );
 }
 
-/** Name, avatar color, language and sign out. */
+/** Center-crops an image to a 256px square, so avatars stay small whatever gets picked. */
+async function squareImage(file: File): Promise<Blob> {
+  const bmp = await createImageBitmap(file);
+  const side = Math.min(bmp.width, bmp.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 256;
+  canvas
+    .getContext('2d')!
+    .drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 256, 256);
+  bmp.close();
+  return new Promise((done, fail) =>
+    // browsers that cannot encode WebP hand back a PNG, which the server accepts too
+    canvas.toBlob(
+      (b) => (b ? done(b) : fail(new Error('Could not read the image'))),
+      'image/webp',
+      0.9,
+    ),
+  );
+}
+
+/** Photo, name, avatar color, language and sign out. */
 function ProfileSection() {
   const { t, lang, setLang } = useI18n();
   const toast = useToast();
@@ -252,6 +272,26 @@ function ProfileSection() {
       setBusy(false);
     }
   }
+  async function uploadPhoto(file: File) {
+    setBusy(true);
+    try {
+      setSession(await api.uploadAvatar(await squareImage(file)));
+    } catch (e) {
+      toast(errMsg(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function removePhoto() {
+    setBusy(true);
+    try {
+      setSession(await api.removeAvatar());
+    } catch (e) {
+      toast(errMsg(e));
+    } finally {
+      setBusy(false);
+    }
+  }
   const saveName = (e: FormEvent) => {
     e.preventDefault();
     if (name.trim() && name.trim() !== user.name) update({ name: name.trim() });
@@ -261,8 +301,35 @@ function ProfileSection() {
     <section>
       <h2>{t('settings.profileTitle')}</h2>
       <p className="lead">{t('settings.profileLead')}</p>
+      <div className="notif-pref avatar-row">
+        <Avatar name={name.trim() || user.name} color={user.color} url={user.avatarUrl} />
+        <div>
+          <b>{t('settings.photo')}</b>
+          <small>{t('settings.photoHint')}</small>
+        </div>
+        <div className="avatar-actions">
+          <label className={'btn' + (busy ? ' disabled' : '')}>
+            {t('settings.photoUpload')}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/gif,image/webp"
+              hidden
+              disabled={busy}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (f) uploadPhoto(f);
+              }}
+            />
+          </label>
+          {user.avatarUrl && (
+            <button className="btn" disabled={busy} onClick={removePhoto}>
+              {t('settings.photoRemove')}
+            </button>
+          )}
+        </div>
+      </div>
       <div className="notif-pref">
-        <Avatar name={name.trim() || user.name} color={user.color} />
         <div>
           <b>{t('settings.color')}</b>
           <small>{t('settings.colorHint')}</small>
@@ -533,7 +600,11 @@ export function SettingsPage() {
               <nav className="settings-nav" aria-label={t('settings.sections')}>
                 {phone && session && (
                   <Link to="/settings/profile" className="settings-me">
-                    <Avatar name={session.user.name} color={session.user.color} />
+                    <Avatar
+                      name={session.user.name}
+                      color={session.user.color}
+                      url={session.user.avatarUrl}
+                    />
                     <span>
                       <b>{session.user.name}</b>
                       <small>{session.user.email}</small>

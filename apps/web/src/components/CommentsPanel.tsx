@@ -89,7 +89,7 @@ export function CommentsPanel({
     me
       ? th.comments.some((c) => c.author.id === me.id || c.body.includes('@' + me.name))
       : th.comments.some((c) => c.guest && c.canDelete);
-  const author = me ? { name: me.name, color: me.color } : guest ? { name: guest.name.trim() || t('comments.guest'), color: undefined } : null;
+  const author = me ? { name: me.name, color: me.color, avatarUrl: me.avatarUrl } : guest ? { name: guest.name.trim() || t('comments.guest'), color: undefined } : null;
   // Guests need a nickname before they can send.
   const ready = !!me || !!guest?.name.trim();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -180,7 +180,7 @@ export function CommentsPanel({
               )}
               {th.comments.map((c) => (
                 <div className="cm" key={c.id}>
-                  <Avatar sm name={c.author.name} color={c.author.color} />
+                  <Avatar sm name={c.author.name} color={c.author.color} url={c.author.avatarUrl} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div className="who">
                       {c.author.name}
@@ -217,7 +217,7 @@ export function CommentsPanel({
             {activity?.length === 0 && <p style={{ color: 'var(--fg-3)' }}>{t('activity.none')}</p>}
             {activity?.map((a) => (
               <div className="ev" key={a.id}>
-                <Avatar sm name={a.actor?.name ?? '?'} color={a.actor?.color} />
+                <Avatar sm name={a.actor?.name ?? '?'} color={a.actor?.color} url={a.actor?.avatarUrl} />
                 <div>
                   <b>{a.actor?.name ?? t('activity.someone')}</b> {VERB[a.kind] ? t(VERB[a.kind]) : a.kind}
                   {a.detail ? ` “${a.detail}”` : ''}
@@ -242,7 +242,7 @@ function DraftCard({
   loadPeople,
 }: {
   loadPeople?: LoadPeople;
-  author: { name: string; color?: string };
+  author: { name: string; color?: string; avatarUrl?: string | null };
   draft: Draft;
   ready: boolean;
   onNeedName(): void;
@@ -267,7 +267,7 @@ function DraftCard({
     <div className="thread draft active">
       {q && <div className="quote">{q.length > 60 ? q.slice(0, 60) + '…' : q}</div>}
       <div className="cm">
-        <Avatar sm name={author.name} color={author.color} />
+        <Avatar sm name={author.name} color={author.color} url={author.avatarUrl} />
         <div className="who">
           {author.name}
           <time>{t('comments.new')}</time>

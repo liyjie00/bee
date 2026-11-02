@@ -110,6 +110,12 @@ export const api: BeeApi = {
   authProviders: () => req('GET', '/auth/providers'),
   setupAccount: (name, password) => req('POST', '/auth/setup', { name, password }),
   updateMe: (patch) => req('PATCH', '/auth/me', patch),
+  uploadAvatar: (image) => {
+    const fd = new FormData();
+    fd.append('file', image, 'avatar');
+    return req('POST', '/auth/me/avatar', fd);
+  },
+  removeAvatar: () => req('DELETE', '/auth/me/avatar'),
   logout: async () => {
     await req('POST', '/auth/logout');
     // This browser's offline copies belong to the user who signed out.

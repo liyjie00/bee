@@ -129,7 +129,7 @@ export function ShareDialog({ doc, onClose, onChange }: { doc: DocumentDTO; onCl
           <div className="mlabel">{t('share.members')}</div>
           <div className="people">
             <div className="person">
-              <Avatar name={doc.owner.name} color={doc.owner.color} />
+              <Avatar name={doc.owner.name} color={doc.owner.color} url={doc.owner.avatarUrl} />
               <div className="nm">
                 {doc.owner.name}
                 {doc.owner.id === session?.user.id ? t('share.you') : ''}
@@ -146,7 +146,7 @@ export function ShareDialog({ doc, onClose, onChange }: { doc: DocumentDTO; onCl
                     <Icon name="globe" size={13} />
                   </span>
                 ) : (
-                  <Avatar name={g.user?.name ?? '?'} color={g.user?.color} />
+                  <Avatar name={g.user?.name ?? '?'} color={g.user?.color} url={g.user?.avatarUrl} />
                 )}
                 <div className="nm">
                   {g.principalType === 'workspace' ? t('share.workspace') : g.user?.name}

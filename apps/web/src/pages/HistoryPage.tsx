@@ -279,7 +279,7 @@ export function HistoryPage() {
                       <span>
                         <b>{verLabel(v)}</b>
                         <small>
-                          {v.authors[0] && <Avatar sm name={v.authors[0].name} color={v.authors[0].color} />}
+                          {v.authors[0] && <Avatar sm name={v.authors[0].name} color={v.authors[0].color} url={v.authors[0].avatarUrl} />}
                           {v.authors.map((a) => a.name).join(', ') || t('history.system')} · {hm(new Date(v.createdAt))}
                           {st && (st.added || st.removed) ? (
                             <span className="stat">

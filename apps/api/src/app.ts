@@ -15,6 +15,7 @@ import { documentRoutes } from './routes/documents.js';
 import { versionRoutes } from './routes/versions.js';
 import { commentRoutes } from './routes/comments.js';
 import { sharingRoutes } from './routes/sharing.js';
+import { avatarRoutes } from './routes/avatars.js';
 import { uploadRoutes } from './routes/uploads.js';
 import { internalRoutes } from './routes/internal.js';
 import { tokenRoutes } from './routes/tokens.js';
@@ -194,6 +195,7 @@ export async function buildApp(opts: {
       await api.register(commentRoutes);
       await api.register(sharingRoutes);
       await api.register(uploadRoutes);
+      await api.register(avatarRoutes);
       await api.register(internalRoutes);
       await api.register(tokenRoutes);
       await api.register(aiRoutes);

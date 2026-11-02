@@ -381,7 +381,7 @@ export function DocView({
             {others.slice(0, 5).map((p, i) => (
               <Avatar key={(p.id ?? '') + i} name={p.name} color={p.color} />
             ))}
-            {me && <Avatar name={me.name} color={me.color} />}
+            {me && <Avatar name={me.name} color={me.color} url={me.avatarUrl} />}
           </div>
           {!shareToken && !isBoard && (
             <button className="ico hide-phone" aria-label={t('doc.history')} title={t('doc.history')} onClick={() => nav(`/d/${doc.id}/history`)}>

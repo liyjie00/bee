@@ -418,7 +418,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       </nav>
       {session && (
         <div className="me">
-          <Avatar name={session.user.name} color={session.user.color} />
+          <Avatar name={session.user.name} color={session.user.color} url={session.user.avatarUrl} />
           <div className="meta" style={{ minWidth: 0, flex: 1 }}>
             <div style={{ color: 'var(--fg)', fontSize: '0.8125rem' }}>{session.user.name}</div>
             <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={session.user.email}>{session.user.email}</div>

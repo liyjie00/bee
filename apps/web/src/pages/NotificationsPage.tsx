@@ -104,7 +104,7 @@ export function NotificationsPage() {
                   onClick={() => open(n)}
                   onKeyDown={(e) => e.key === 'Enter' && e.target === e.currentTarget && open(n)}
                 >
-                  <Avatar name={n.actor?.name ?? '?'} color={n.actor?.color} />
+                  <Avatar name={n.actor?.name ?? '?'} color={n.actor?.color} url={n.actor?.avatarUrl} />
                   <div className="notif-body">
                     <div>
                       <b>{n.actor?.name ?? t('activity.someone')}</b> {t(VERB[n.kind])}{' '}

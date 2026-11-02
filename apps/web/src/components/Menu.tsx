@@ -106,10 +106,31 @@ export function useMenu() {
   return { open, node };
 }
 
-export function Avatar({ name, color, sm }: { name: string; color?: string | null; sm?: boolean }) {
+export function Avatar({
+  name,
+  color,
+  url,
+  sm,
+}: {
+  name: string;
+  color?: string | null;
+  /** Profile picture; falls back to the initial on the color when missing or broken. */
+  url?: string | null;
+  sm?: boolean;
+}) {
+  const [broken, setBroken] = useState<string | null>(null);
+  const img = url && broken !== url;
   return (
-    <span className={'av' + (sm ? ' sm' : '')} style={{ background: color ?? '#5b6b4f' }} title={name}>
-      {[...name][0]?.toUpperCase() ?? '?'}
+    <span
+      className={'av' + (sm ? ' sm' : '') + (img ? ' img' : '')}
+      style={{ background: color ?? '#5b6b4f' }}
+      title={name}
+    >
+      {img ? (
+        <img src={url} alt="" referrerPolicy="no-referrer" onError={() => setBroken(url)} />
+      ) : (
+        ([...name][0]?.toUpperCase() ?? '?')
+      )}
     </span>
   );
 }

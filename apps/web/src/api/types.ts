@@ -49,6 +49,8 @@ export interface BeeApi {
   setupAccount(name: string, password: string): Promise<MeResponse>;
   logout(): Promise<void>;
   updateMe(patch: UpdateMeBody): Promise<MeResponse>;
+  uploadAvatar(image: Blob): Promise<MeResponse>;
+  removeAvatar(): Promise<MeResponse>;
 
   tree(workspaceId: string): Promise<TreeDTO>;
   search(workspaceId: string, q: string): Promise<SearchHit[]>;
