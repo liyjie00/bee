@@ -287,6 +287,25 @@
   pointer-events: none;
 }
 
+/* dragging a table by its corner grip */
+.bee-table-drop-line {
+  position: fixed;
+  z-index: 50;
+  height: 3px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: var(--honey, #e8a317);
+  pointer-events: none;
+}
+.bee-prose table.bee-table-dragging {
+  opacity: 0.45;
+}
+body.bee-table-grabbing,
+body.bee-table-grabbing * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
 /* placeholder */
 .bee-prose p.is-empty,
 .bee-prose p.is-editor-empty:first-child {
@@ -988,6 +1007,22 @@
 .bee-prose .bee-sheet-head-row .bee-sheet-label {
   border-right: 0;
 }
+.bee-prose .bee-sheet-corner {
+  top: -21px;
+  left: -33px;
+  width: 32px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: var(--be-sunk);
+  border: 1px solid var(--be-line);
+  border-right: 0;
+  border-bottom: 0;
+  cursor: grab;
+  touch-action: none;
+}
+.bee-prose .bee-sheet-corner:hover,
 .bee-prose .bee-sheet-label:hover,
 .bee-prose .bee-sheet-label.is-active {
   color: var(--be-fg);
