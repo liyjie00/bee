@@ -331,6 +331,26 @@ export async function documentRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
+  /**
+   * Stored Yjs state, so clients can render a document before their collab sync completes.
+   * It may trail the live collab state by the store debounce; the sync fills in the rest.
+   */
+  app.get('/documents/:id/state', async (req, reply) => {
+    const { id } = parse(idParams, req.params);
+    const a = await docAccess(db, {
+      userId: req.user?.id ?? null,
+      documentId: id,
+      shareToken: req.shareToken,
+      includeDeleted: true,
+    });
+    if (a.doc.deletedAt && !can.manage(a.role)) throw notFound('Document not found');
+    if (!a.doc.ydocState?.length) return reply.status(204).send();
+    return reply
+      .header('content-type', 'application/octet-stream')
+      .header('cache-control', 'private, no-store')
+      .send(a.doc.ydocState);
+  });
+
   app.get('/documents/:id/export.md', async (req, reply) => {
     const { id } = parse(idParams, req.params);
     const a = await docAccess(db, {

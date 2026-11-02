@@ -180,6 +180,14 @@ describe('documents, folders and permissions', () => {
     expect((await c.get(`/api/documents/${doc.id}/blocks/nope`)).json.exists).toBe(false);
     const recent = (await c.get(`/api/workspaces/${workspace.id}/recent`)).json.documents;
     expect(recent[0].id).toBe(doc.id);
+    // Stored Yjs state for rendering before the collab sync: readers only, empty docs are 204.
+    const st = await c.get(`/api/documents/${doc.id}/state`);
+    expect(st.status).toBe(200);
+    expect(st.res.headers['content-type']).toBe('application/octet-stream');
+    expect(st.res.rawPayload.length).toBeGreaterThan(0);
+    expect((await client(app).get(`/api/documents/${doc.id}/state`)).status).toBe(401);
+    const empty = (await c.post('/api/documents', { workspaceId: workspace.id, title: 'Empty' })).json.document;
+    expect((await c.get(`/api/documents/${empty.id}/state`)).status).toBe(204);
   });
 });
 
