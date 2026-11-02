@@ -1203,3 +1203,157 @@ body.bee-table-grabbing * {
     height: 32px;
   }
 }
+
+/* ---------- links: popover and Bee doc links ---------- */
+.bee-doc-link a,
+a .bee-doc-link,
+.bee-doc-link {
+  text-decoration-color: var(--be-honey-line);
+}
+.bee-prose .bee-doc-link::before {
+  content: '';
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.25em;
+  vertical-align: -0.12em;
+  border-radius: 0.25em;
+  background: #e8a317 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M10 9v14M10 16a6 6 0 1 0 6-6' stroke='%232a1c00' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% no-repeat;
+}
+/* Only the first piece of a link split by marks (bold etc.) gets the icon. */
+.bee-prose .bee-doc-link + .bee-doc-link::before,
+.bee-prose .bee-doc-link .bee-doc-link::before {
+  display: none;
+}
+.bee-link-pop {
+  position: fixed;
+  z-index: 60;
+  width: min(380px, calc(100vw - 16px));
+  background: var(--be-surface);
+  color: var(--be-fg);
+  border: 1px solid var(--be-line);
+  border-radius: 10px;
+  box-shadow: var(--be-shadow);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--f-body, system-ui, sans-serif);
+  font-size: 13.5px;
+}
+.bee-link-row {
+  display: flex;
+  gap: 6px;
+}
+.bee-link-row input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: var(--be-surface);
+  border: 1px solid var(--be-honey);
+  border-radius: 7px;
+  padding: 6px 10px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--be-honey-wash);
+}
+.bee-link-ok {
+  border: 1px solid var(--be-honey);
+  background: var(--be-honey);
+  color: #2a1c00;
+  border-radius: 7px;
+  padding: 5px 12px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.bee-link-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bee-link-opt.is-active,
+.bee-link-opt:hover {
+  background: var(--be-sunk);
+}
+.bee-link-opt small {
+  margin-left: auto;
+  color: var(--fg-3, #7b8375);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.bee-link-title,
+.bee-link-url {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bee-link-url {
+  font-family: var(--be-mono);
+  font-size: 12.5px;
+}
+.bee-link-icon {
+  flex: none;
+}
+.bee-link-cap {
+  font-size: 11px;
+  color: var(--fg-3, #7b8375);
+  padding: 2px 10px;
+  letter-spacing: 0.04em;
+}
+.bee-link-none,
+.bee-link-hint {
+  font-size: 12px;
+  color: var(--fg-3, #7b8375);
+  padding: 2px 10px;
+}
+.bee-link-view {
+  flex-direction: row;
+  align-items: center;
+  width: min(440px, calc(100vw - 16px));
+  padding: 6px 6px 6px 10px;
+}
+.bee-link-view a {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--be-honey-ink);
+}
+.bee-link-view button,
+.bee-link-pasted button {
+  border: 1px solid var(--be-line);
+  background: var(--be-surface);
+  color: var(--fg-2, #4a5146);
+  border-radius: 7px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.bee-link-view button.is-danger {
+  color: var(--be-del-ink);
+}
+.bee-link-pasted {
+  width: 200px;
+}
+.bee-link-pasted button {
+  border: 0;
+  text-align: left;
+}
+.bee-link-pasted button.is-active,
+.bee-link-pasted button:hover {
+  background: var(--be-sunk);
+}

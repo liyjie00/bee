@@ -15,3 +15,4 @@ export { filterSlashItems, placeMenu } from './react/SlashMenu.js';
 export { schemaExtensions, BLOCK_ID_ATTR, BLOCK_TYPES } from './schema/index.js';
 export type { Editor } from '@tiptap/react';
 export { useTheme, type Theme } from './react/theme.js';
+export { openLinkEditor, beeDocUrl, type LinkTarget } from './react/links.js';

@@ -13,6 +13,7 @@ import { MessagesContext, resolveMessages, type Locale, type Messages } from './
 import { BeeEditorContext, type BeeEditorContextValue } from './context.js';
 import type { SlashHost } from './SlashMenu.js';
 import { TableToolbar } from './TableToolbar.js';
+import { LinkPopover, openLinkEditor, type LinkHost, type LinkPopoverState, type LinkTarget } from './links.js';
 import type { Theme } from './theme.js';
 
 export interface BeeEditorProps {
@@ -60,6 +61,12 @@ export interface BeeEditorProps {
   onReady?: (editor: Editor) => void;
   onStatus?: (status: CollabStatus) => void;
   onPresence?: (users: BeeUser[]) => void;
+  /** Bee docs to offer in the link popover (empty query: recent ones). */
+  searchDocs?: (q: string) => Promise<LinkTarget[]>;
+  /** Label for a pasted Bee doc link ("Title › Section"); null keeps the URL. */
+  resolveLink?: (url: URL) => Promise<string | null>;
+  /** Opens a Bee link inside the app; return false to open it in a new tab. */
+  onOpenLink?: (href: string) => boolean;
   /** Hide collaborators' carets after this many ms without movement (default 10 minutes). */
   cursorIdleMs?: number;
   className?: string;
@@ -146,9 +153,19 @@ function EditorInner(props: InnerProps) {
     [],
   );
 
+  const [linkState, setLinkState] = useState<LinkPopoverState | null>(null);
+  const links = useMemo<LinkHost>(
+    () => ({
+      open: (st) => setLinkState(st),
+      resolve: (url) => latest.current.resolveLink?.(url) ?? Promise.resolve(null),
+    }),
+    [],
+  );
+
   const extensions = useMemo(
     () =>
       buildExtensions({
+        links,
         ydoc: conn.ydoc,
         provider: conn.provider,
         user: props.user,
@@ -238,6 +255,16 @@ function EditorInner(props: InnerProps) {
       <div className={`bee-editor${ready ? '' : ' is-loading'} ${props.className ?? ''}`} aria-busy={!ready}>
         {editor && <SelectionBubble editor={editor} editable={editable} canComment={canComment} messages={t} onComment={props.onCreateComment} />}
         {editor && editable && <TableToolbar editor={editor} messages={t} />}
+        {editor && editable && (
+          <LinkPopover
+            editor={editor}
+            messages={t}
+            state={linkState}
+            setState={setLinkState}
+            searchDocs={props.searchDocs}
+            onOpenLink={props.onOpenLink}
+          />
+        )}
         {editor && <BlockLinkButton editor={editor} messages={t} documentId={props.documentId} shareToken={props.shareToken} onCopy={props.onCopyBlockLink} />}
         <EditorContent editor={editor} className="bee-editor-content" />
         <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={onFile} />
@@ -261,13 +288,7 @@ function SelectionBubble({
 }) {
   const showComment = canComment && !!onComment;
   const [coarse] = useState(() => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
-  const setLink = () => {
-    const prev = editor.getAttributes('link').href as string | undefined;
-    const href = window.prompt(t.linkPrompt, prev ?? 'https://');
-    if (href === null) return;
-    if (href === '') editor.chain().focus().extendMarkRange('link').unsetLink().run();
-    else editor.chain().focus().extendMarkRange('link').setLink({ href }).run();
-  };
+  const setLink = () => openLinkEditor(editor);
   const btn = (active: boolean, label: string, onClick: () => void, content: React.ReactNode) => (
     <button
       type="button"

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BeeEditor, BeeWhiteboard, blockLink, type BeeUser, type CollabStatus, type Editor, type WhiteboardHandle } from '@bee/editor';
+import { BeeEditor, BeeWhiteboard, beeDocUrl, blockLink, type BeeUser, type LinkTarget, type CollabStatus, type Editor, type WhiteboardHandle } from '@bee/editor';
 import { can, parseBlockFragment } from '@bee/shared';
 import { api, guestName, HttpError } from '../api/http';
 import type { ActivityDTO, CommentAnchor, CommentThreadDTO, DocumentDTO, UserDTO } from '../api/types';
@@ -19,7 +19,7 @@ import { takeDocState } from '../lib/doc-cache';
 import { collabUrl } from '../lib/collab';
 import { useLists } from '../state/lists';
 import { fileName, pendingBoardImports, pickFile, saveBlob } from '../lib/download';
-import { useSession } from '../state/session';
+import { useSession, useTreeOrNull } from '../state/session';
 
 type Status = CollabStatus;
 type Presence = BeeUser;
@@ -99,6 +99,41 @@ export function DocView({
     [doc.id],
   );
   const exportOpts = useRef({ background: true, onlySelected: false });
+  const tree = useTreeOrNull();
+  const searchDocs = useMemo(
+    () =>
+      member && workspace
+        ? async (q: string): Promise<LinkTarget[]> => {
+            const hint = (folderId: string | null) => (folderId ? tree?.folder(folderId)?.name : undefined);
+            const docs = q ? (await api.search(workspace.id, q)).map((r) => r.document) : (lists?.recent ?? []);
+            return docs.filter((d) => d.id !== doc.id).map((d) => ({ id: d.id, title: d.title, hint: hint(d.folderId) }));
+          }
+        : undefined,
+    [member, workspace?.id, doc.id, lists?.recent, tree],
+  );
+  const resolveLink = useCallback(async (url: URL): Promise<string | null> => {
+    const m = /^\/(?:s\/([\w-]+)(?:\/d\/([0-9a-f-]{36}))?|d\/([0-9a-f-]{36}))/i.exec(url.pathname);
+    if (!m) return null;
+    try {
+      let id = m[3] ?? m[2];
+      if (!id && m[1]) id = (await api.resolveShare(m[1])).document.id;
+      if (!id) return null;
+      const p = await api.linkPreview(id, parseBlockFragment(url.hash));
+      const name = p.title || t('common.untitled');
+      return p.section ? `${name} › ${p.section}` : name;
+    } catch {
+      return null; // no access: keep the address, never leak the title
+    }
+  }, [lang]);
+  const onOpenLink = useCallback(
+    (href: string) => {
+      const u = beeDocUrl(href);
+      if (!u || shareToken) return false;
+      nav(u.pathname + u.search + u.hash);
+      return true;
+    },
+    [shareToken],
+  );
   const canStar = !!lists && !!me && !shareToken;
   const starred = !!lists?.isStarred(doc.id);
   const toggleStar = () => lists?.setStar({ ...doc, title }, !starred).catch((e) => toast(errMsg(e)));
@@ -492,6 +527,9 @@ export function DocView({
                     toast((await copyText(url)) ? t('doc.blockLinkCopied') : url);
                   }}
                   uploadImage={(file: File) => api.upload(doc.id, file).then((r) => r.url)}
+                  searchDocs={searchDocs}
+                  resolveLink={member ? resolveLink : undefined}
+                  onOpenLink={onOpenLink}
                   createWhiteboard={editable ? onCreateWhiteboard : undefined}
                   pickWhiteboard={editable ? onPickWhiteboard : undefined}
                   whiteboardTitle={whiteboardTitle}

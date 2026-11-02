@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/core';
+import { openLinkEditor } from '@bee/editor';
 import { Icon, type IconName } from './Icon';
 import { useT } from '../i18n';
 import { PHONE_QUERY, useKeyboardInset, useMediaQuery } from '../lib/media';
@@ -73,14 +74,7 @@ export function Toolbar({ editor, onUploadImage }: { editor: Editor | null; onUp
   );
   const ib = (label: string, icon: IconName, on: boolean, act: () => void) => btn(label, on, act, <Icon name={icon} />);
 
-  const link = () => {
-    if (!editor) return;
-    const prev = editor.getAttributes('link').href as string | undefined;
-    const url = prompt(t('toolbar.linkPrompt'), prev ?? 'https://');
-    if (url === null) return;
-    if (!url) run((c) => c.unsetLink());
-    else run((c) => c.extendMarkRange('link').setLink({ href: url }));
-  };
+  const link = () => editor && openLinkEditor(editor);
   const image = () => {
     const input = document.createElement('input');
     input.type = 'file';
