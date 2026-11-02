@@ -43,11 +43,11 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
 
 ## Done this week
 
-- [x]
+- [x] Shipped [thing]
 
 ## Next week
 
-- [ ]
+- [ ] [task]
 
 ## Risks & blockers
 
@@ -85,7 +85,7 @@ What problem are we solving, and for whom?
 
 ## Open questions
 
-- [ ]
+- [ ] [question]
 `,
   },
   {
@@ -130,7 +130,7 @@ One paragraph on what this project delivers and why.
 
 ### Follow-ups
 
-- [ ]
+- [ ] [follow-up]
 `,
   },
   {

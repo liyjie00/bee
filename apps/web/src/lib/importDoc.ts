@@ -32,6 +32,8 @@ export async function importFile(file: File): Promise<Imported> {
     const { value } = await mammoth.convertToHtml(
       { arrayBuffer: await file.arrayBuffer() },
       {
+        // Word's Title style is the document's title.
+        styleMap: ["p[style-name='Title'] => h1:fresh"],
         convertImage: mammoth.images.imgElement(async (img) => {
           const bytes = await img.readAsArrayBuffer();
           const src = `${IMG_PREFIX}${n++}`;

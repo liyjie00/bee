@@ -30,7 +30,9 @@ export function Shell() {
   }, [keyboard]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      // Inside the doc editor ⌘K adds a link instead.
+      const inEditor = (e.target as HTMLElement | null)?.closest?.('.ProseMirror[contenteditable="true"]');
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !inEditor) {
         e.preventDefault();
         setSearch(true);
       }

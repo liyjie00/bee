@@ -217,9 +217,14 @@ export function LinkPopover({
     };
   }, [editor, state]);
 
+  const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     setCopied(false);
-    if (state?.mode === 'edit') setQ(state.href);
+    if (state?.mode !== 'edit') return;
+    setQ(state.href);
+    // After the click or key that opened it has settled, or the editor keeps focus.
+    const raf = requestAnimationFrame(() => input.current?.focus());
+    return () => cancelAnimationFrame(raf);
   }, [state?.mode, state?.from, state?.href]);
 
   useLayoutEffect(() => {
@@ -373,6 +378,7 @@ export function LinkPopover({
     <div ref={box} className="bee-link-pop" style={style} role="dialog" aria-label={t.link}>
       <div className="bee-link-row">
         <input
+          ref={input}
           autoFocus
           value={q}
           placeholder={searchDocs ? t.linkPlaceholder : t.linkPrompt}

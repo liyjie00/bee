@@ -648,12 +648,12 @@ svg.i.star-on{fill:var(--honey);stroke:var(--honey)}
 /* ---------- star next to the doc title ---------- */
 .doc-title-row{display:flex;align-items:center;gap:6px;margin:0 0 10px}
 .doc-title-row .doc-title,.doc-title-row .doc-title-in{margin:0;min-width:0;flex:1}
-.doc-title-row.has-star{margin-left:-44px}
+.doc-title-row.has-star{margin-left:-8px}
 .doc-star{width:38px;height:38px;flex:none;color:var(--fg-3)}
 .doc-star svg.i{width:22px;height:22px}
 .doc-star.on{color:var(--honey)}
 .doc-star.on svg.i{fill:var(--honey)}
-@media (max-width:900px){.doc-title-row.has-star{margin-left:-6px}.doc-star{width:32px;height:32px}}
+@media (max-width:900px){.doc-star{width:32px;height:32px}}
 @media print{.doc-star{display:none}.doc-title-row.has-star{margin-left:0}}
 
 /* ---------- @mention picker ---------- */
