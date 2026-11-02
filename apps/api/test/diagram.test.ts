@@ -31,7 +31,12 @@ describe('diagramElements', () => {
     expect(ab.startBinding).toMatchObject({ elementId: a!.id });
     expect(ab.endBinding).toMatchObject({ elementId: b!.id });
     expect(a!.boundElements).toContainEqual({ type: 'arrow', id: ab.id });
-    expect(els.find((e) => e.containerId === ab.id)?.text).toBe('go');
+    const go = els.find(
+      (e) => (e.customData as { labelFor?: string } | undefined)?.labelFor === ab.id,
+    )!;
+    expect(go.text).toBe('go');
+    expect(go.containerId).toBeNull();
+    expect(ab.boundElements).toEqual([]);
     // Arrow ends lie between the shapes.
     const pts = ab.points as number[][];
     const end = pts[pts.length - 1]!;
