@@ -13,11 +13,12 @@ import { TopBar, type Crumb } from '../components/TopBar';
 import { Toolbar } from '../components/Toolbar';
 import { useAgo, useI18n } from '../i18n';
 import { copyText, errMsg, useToast } from '../state/toast';
+import { takeDocState } from '../lib/doc-cache';
+import { collabUrl } from '../lib/collab';
 
 type Status = CollabStatus;
 type Presence = BeeUser;
 
-export const collabUrl = () => `${location.origin.replace(/^http/, 'ws')}/collab`;
 const ACCESS_ICON = { private: 'lock', link: 'link', public: 'globe' } as const;
 const guestColor = '#7b8375';
 
@@ -75,6 +76,7 @@ export function DocView({
   const [title, setTitle] = useState(doc.title);
   const [words, setWords] = useState(0);
 
+  const loadSnapshot = useMemo(() => () => takeDocState(doc.id), [doc.id]);
   const editable = can.edit(doc.role);
   // Anonymous visitors get commenter only through a public link with guest comments on.
   const isGuest = !me && !!shareToken;
@@ -258,7 +260,7 @@ export function DocView({
         ) : isBoard ? (
           <section className="view" style={{ overflow: 'hidden', position: 'relative' }}>
             <div className="wb-host">
-              <BeeWhiteboard key={doc.id} documentId={doc.id} collabUrl={collabUrl()} shareToken={shareToken} user={user} editable={editable} locale={lang} onStatus={setStatus} />
+              <BeeWhiteboard key={doc.id} documentId={doc.id} collabUrl={collabUrl()} shareToken={shareToken} loadSnapshot={loadSnapshot} user={user} editable={editable} locale={lang} onStatus={setStatus} />
             </div>
           </section>
         ) : (
@@ -303,6 +305,7 @@ export function DocView({
                   documentId={doc.id}
                   collabUrl={collabUrl()}
                   shareToken={shareToken}
+                  loadSnapshot={loadSnapshot}
                   user={user}
                   editable={editable}
                   canComment={canComment}

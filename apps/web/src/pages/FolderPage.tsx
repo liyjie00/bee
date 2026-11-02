@@ -9,6 +9,7 @@ import { TopBar } from '../components/TopBar';
 import { useSession, useTree } from '../state/session';
 import { errMsg, useToast } from '../state/toast';
 import { useAgo, useT, type MessageKey } from '../i18n';
+import { prefetchProps } from '../lib/doc-cache';
 
 type Kind = 'all' | 'doc' | 'whiteboard';
 type Item = { kind: 'folder'; f: FolderDTO } | { kind: 'doc'; d: DocumentDTO };
@@ -212,7 +213,7 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
               )}
               <div className="cards">
                 {docs.map((it) => (
-                  <button key={it.d.id} className="card" onClick={() => open(it)} onContextMenu={(e) => rowMenu(e, it)}>
+                  <button key={it.d.id} className="card" {...(mode === 'trash' ? {} : prefetchProps(it.d.id))} onClick={() => open(it)} onContextMenu={(e) => rowMenu(e, it)}>
                     <Thumb d={it.d} />
                     <div className="cb">
                       <b>
@@ -243,7 +244,7 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
                 </thead>
                 <tbody>
                   {shown.map((it) => (
-                    <tr key={it.kind === 'folder' ? it.f.id : it.d.id} onClick={() => open(it)} onContextMenu={(e) => rowMenu(e, it)}>
+                    <tr key={it.kind === 'folder' ? it.f.id : it.d.id} {...(it.kind === 'doc' && mode !== 'trash' ? prefetchProps(it.d.id) : {})} onClick={() => open(it)} onContextMenu={(e) => rowMenu(e, it)}>
                       <td>
                         <span className="nm">
                           <Icon name={it.kind === 'folder' ? 'folder' : docIcon(it.d.type)} />

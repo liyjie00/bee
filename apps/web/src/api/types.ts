@@ -61,6 +61,8 @@ export interface BeeApi {
     parentDocumentId?: string;
   }): Promise<DocumentDTO>;
   getDocument(id: string): Promise<DocumentDTO>;
+  /** Stored Yjs state (null when empty), for rendering before the collab sync. */
+  documentState(id: string): Promise<Uint8Array | null>;
   updateDocument(id: string, patch: { title?: string; folderId?: string | null; sort?: number }): Promise<DocumentDTO>;
   deleteDocument(id: string): Promise<void>;
   restoreDocument(id: string): Promise<DocumentDTO>;

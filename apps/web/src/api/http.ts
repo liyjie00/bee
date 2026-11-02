@@ -61,7 +61,7 @@ export const guestName = {
   },
 };
 
-export async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function send(method: string, path: string, body?: unknown): Promise<Response> {
   const headers: Record<string, string> = {};
   if (body !== undefined && !(body instanceof FormData)) headers['content-type'] = 'application/json';
   if (api.shareToken) {
@@ -74,13 +74,18 @@ export async function req<T>(method: string, path: string, body?: unknown): Prom
     headers,
     body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
   });
-  if (res.status === 204) return undefined as T;
-  const data = await res.json().catch(() => null);
   if (!res.ok) {
+    const data = await res.json().catch(() => null);
     const e = (data as { error?: { code?: string; message?: string } } | null)?.error;
     throw new HttpError(res.status, e?.code ?? `http_${res.status}`, e?.message ?? res.statusText);
   }
-  return data as T;
+  return res;
+}
+
+export async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await send(method, path, body);
+  if (res.status === 204) return undefined as T;
+  return (await res.json().catch(() => null)) as T;
 }
 
 const enc = encodeURIComponent;
@@ -117,6 +122,10 @@ export const api: BeeApi = {
 
   createDocument: async (input) => (await req<DocumentResponse>('POST', '/documents', input)).document,
   getDocument: async (id) => (await req<DocumentResponse>('GET', `/documents/${id}`)).document,
+  documentState: async (id) => {
+    const res = await send('GET', `/documents/${id}/state`);
+    return res.status === 204 ? null : new Uint8Array(await res.arrayBuffer());
+  },
   updateDocument: async (id, patch) => (await req<DocumentResponse>('PATCH', `/documents/${id}`, patch)).document,
   deleteDocument: async (id) => {
     await req('DELETE', `/documents/${id}`);

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, HttpError } from '../api/http';
+import { prefetchDoc } from '../lib/doc-cache';
 import type { DocumentDTO } from '../api/types';
 import { TopBar } from '../components/TopBar';
 import { WhiteboardPicker } from '../components/WhiteboardPicker';
@@ -14,7 +15,7 @@ export function DocPage() {
   const { session, workspace } = useSession();
   const tree = useTree();
   const t = useT();
-  const [doc, setDoc] = useState<DocumentDTO | null>(null);
+  const [fetched, setDoc] = useState<DocumentDTO | null>(null);
   const [error, setError] = useState<{ status: number; message: string } | null>(null);
   const toast = useToast();
   const [picking, setPicking] = useState(false);
@@ -25,6 +26,9 @@ export function DocPage() {
     setPicking(false);
   };
 
+  // Content starts loading in parallel with the metadata, and before the editor's effects run
+  // (child effects run first), so the editor picks it up as its snapshot.
+  useMemo(() => prefetchDoc(docId), [docId]);
   useEffect(() => {
     setDoc(null);
     setError(null);
@@ -43,6 +47,8 @@ export function DocPage() {
         </div>
       </main>
     );
+  // The tree already has this document's metadata: render from it while the fetch refreshes it.
+  const doc = fetched ?? (error ? null : (tree.doc(docId) ?? null));
   if (!doc)
     return (
       <main className="main">

@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../api/http';
 import { applyDocPrefs } from '../lib/docPrefs';
+import { preconnectCollab, resetCollabSockets } from '@bee/editor';
+import { collabUrl } from '../lib/collab';
 import type { DocumentDTO, FolderDTO, Session, TreeDTO, WorkspaceDTO } from '../api/types';
 
 interface SessionCtx {
@@ -25,6 +27,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // Signed-out visitors (share links) keep whatever this browser last used.
     if (session) applyDocPrefs(session.user.prefs);
   }, [session]);
+  const userId = session?.user.id;
+  useEffect(() => {
+    if (loading) return;
+    // The collab socket authenticates with its handshake's cookie: a new user needs a new socket.
+    // Opening it now means the first document opened skips the slow WebSocket handshake.
+    resetCollabSockets();
+    if (userId) preconnectCollab(collabUrl());
+  }, [userId, loading]);
   const value = useMemo(
     () => ({ session, loading, setSession, workspace: session?.workspaces[0] ?? null }),
     [session, loading],

@@ -7,6 +7,7 @@ import { useSession, useTree } from '../state/session';
 import { BeeLogo, Icon, docIcon } from './Icon';
 import { Avatar, useMenu, type MenuItem } from './Menu';
 import { useT } from '../i18n';
+import { prefetchProps } from '../lib/doc-cache';
 
 const EXPANDED_KEY = 'bee-tree-open';
 function loadOpen(): Set<string> {
@@ -238,6 +239,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       ) : (
         <NavLink
           to={`/d/${d.id}`}
+          {...prefetchProps(d.id)}
           className={({ isActive }) => (isActive || loc.pathname.startsWith(`/d/${d.id}/`) ? 'on' : '')}
           style={{ paddingLeft: 8 + depth * 18 + 20 }}
           draggable
