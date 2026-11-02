@@ -4,7 +4,7 @@ import { api } from '../api/http';
 import type { DocumentDTO, FolderDTO } from '../api/types';
 import { Icon, docIcon } from '../components/Icon';
 import { useMenu } from '../components/Menu';
-import { NewMenu } from '../components/NewMenu';
+import { NewMenu, useCreate } from '../components/NewMenu';
 import { TopBar } from '../components/TopBar';
 import { useSession, useTree } from '../state/session';
 import { errMsg, useToast } from '../state/toast';
@@ -46,7 +46,7 @@ function Thumb({ d }: { d: DocumentDTO }) {
 }
 
 /** Folder contents (or the workspace root, recent, shared-with-me, trash). */
-export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 'recent' | 'shared' | 'trash' }) {
+export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 'recent' | 'shared' | 'trash' | 'boards' }) {
   const { folderId = null } = useParams();
   const { workspace } = useSession();
   const tree = useTree();
@@ -65,6 +65,7 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
   });
   const [extra, setExtra] = useState<{ documents: DocumentDTO[]; folders: FolderDTO[] } | null>(null);
   const ws = workspace?.id ?? '';
+  const boardCreate = useCreate(null);
 
   useEffect(() => {
     setExtra(null);
@@ -85,13 +86,19 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
     );
 
   const title =
-    mode === 'root' ? t('nav.home') : mode === 'recent' ? t('nav.recent') : mode === 'shared' ? t('nav.shared') : mode === 'trash' ? t('nav.trash') : (folder?.name ?? '');
+    mode === 'root' ? t('nav.home') : mode === 'recent' ? t('nav.recent') : mode === 'shared' ? t('nav.shared') : mode === 'boards' ? t('nav.boards') : mode === 'trash' ? t('nav.trash') : (folder?.name ?? '');
   const items: Item[] = [];
   if (mode === 'folder' || mode === 'root') {
     const fid = mode === 'root' ? null : folderId;
     tree.tree.folders.filter((f) => f.parentId === fid).forEach((f) => items.push({ kind: 'folder', f }));
     tree.tree.documents
       .filter((d) => d.folderId === fid && !d.deletedAt)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .forEach((d) => items.push({ kind: 'doc', d }));
+  } else if (mode === 'boards') {
+    // Every whiteboard in the workspace, wherever it is filed.
+    tree.tree.documents
+      .filter((d) => d.type === 'whiteboard' && !d.deletedAt)
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
       .forEach((d) => items.push({ kind: 'doc', d }));
   } else if (extra) {
@@ -103,6 +110,8 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
   const sub =
     mode === 'trash'
       ? t('folder.trashSummary')
+      : mode === 'boards'
+      ? t('boards.summary', { n: items.length })
       : t('folder.summary', { docs: items.filter((i) => i.kind === 'doc').length, folders: items.filter((i) => i.kind === 'folder').length });
 
   const open = (it: Item) => {
@@ -166,8 +175,15 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
             </div>
             <div className="spacer" />
             {(mode === 'folder' || mode === 'root') && <NewMenu folderId={mode === 'root' ? null : folderId} />}
+            {mode === 'boards' && (
+              <button className="btn primary" onClick={() => boardCreate.create('whiteboard')}>
+                <Icon name="plus" />
+                {t('tree.newBoard')}
+              </button>
+            )}
           </div>
           <div className="fbar">
+            {mode !== 'boards' && (
             <div className="seg" role="group" aria-label={t('folder.filter')}>
               {(['all', 'doc', 'whiteboard'] as Kind[]).map((k) => (
                 <button key={k} className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>
@@ -175,6 +191,7 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
                 </button>
               ))}
             </div>
+            )}
             <div className="spacer" />
             <span style={{ fontSize: 12.5, color: 'var(--fg-3)' }}>{t('folder.sorted')}</span>
             <div className="seg" role="group" aria-label={t('folder.view')}>
@@ -191,8 +208,9 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
             <div className="empty">{t('app.loading')}</div>
           ) : shown.length === 0 ? (
             <div className="empty">
-              <h2>{mode === 'trash' ? t('folder.emptyTrash') : t('folder.empty')}</h2>
+              <h2>{mode === 'trash' ? t('folder.emptyTrash') : mode === 'boards' ? t('boards.empty') : t('folder.empty')}</h2>
               {(mode === 'folder' || mode === 'root') && <p style={{ margin: 0 }}>{t('folder.emptyHint')}</p>}
+              {mode === 'boards' && <p style={{ margin: 0 }}>{t('boards.emptyHint')}</p>}
             </div>
           ) : view === 'grid' ? (
             <>

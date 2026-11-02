@@ -281,6 +281,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         >
           <Icon name={docIcon(d.type)} className={d.type === 'whiteboard' ? 't-board' : undefined} />
           <span className="nm">{d.title || t('common.untitled')}</span>
+          {d.type === 'whiteboard' && <span className="kind-tag">{t('kind.whiteboard')}</span>}
         </NavLink>
       )}
       <button className="more" aria-label={t('common.moreFor', { name: d.title || t('common.untitled') })} onClick={(e) => menu.open(e, docMenu(d))} style={{ width: 'auto' }}>
@@ -289,11 +290,12 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     </div>
   );
 
-  const navItem = (to: string, icon: 'home' | 'clock' | 'star' | 'trash' | 'globe' | 'bell', label: string, count?: number) => (
+  const navItem = (to: string, icon: 'home' | 'clock' | 'star' | 'trash' | 'globe' | 'bell' | 'board', label: string, count?: number, total?: number) => (
     <NavLink to={to} end className={({ isActive }) => (isActive ? 'on' : '')} onClick={onClose}>
-      <Icon name={icon} />
+      <Icon name={icon} className={icon === 'board' ? 't-board' : undefined} />
       {label}
       {!!count && <span className="count">{count > 99 ? '99+' : count}</span>}
+      {!!total && <span className="total">{total}</span>}
     </NavLink>
   );
   /** A short list of docs (Starred, Recent) under a collapsible heading. */
@@ -376,6 +378,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         {navItem('/', 'home', t('nav.home'))}
         {navItem('/notifications', 'bell', t('nav.notifications'), lists?.unread)}
         {navItem('/shared', 'globe', t('nav.shared'))}
+        {navItem('/boards', 'board', t('nav.boards'), undefined, tree.documents.filter((d) => d.type === 'whiteboard' && !d.deletedAt).length)}
       </nav>
       <div className="side-scroll">
       {quickList('starred', t('nav.starred'), lists?.starred ?? [], t('nav.starredEmpty'))}
