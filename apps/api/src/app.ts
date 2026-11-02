@@ -55,12 +55,12 @@ export async function buildApp(opts: {
   );
 
   // CSRF: browsers always send Origin on cross-site mutating requests.
-  const allowedOrigin = new URL(opts.config.publicUrl).origin;
+  const allowedOrigins = new Set([new URL(opts.config.publicUrl).origin, ...opts.config.allowedOrigins]);
   app.addHook('onRequest', async (req) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.url.startsWith('/api/internal/'))
       return;
     const origin = req.headers.origin;
-    if (origin && origin !== allowedOrigin && process.env.NODE_ENV === 'production') {
+    if (origin && !allowedOrigins.has(origin) && process.env.NODE_ENV === 'production') {
       throw new HttpError(403, 'bad_origin', 'Cross-origin request rejected');
     }
   });

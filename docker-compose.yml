@@ -37,6 +37,7 @@ services:
       BEE_PUBLIC_URL: ${BEE_PUBLIC_URL:-http://localhost:7070}
       UPLOAD_DIR: /data/uploads
       COLLAB_INTERNAL_URL: http://collab:1234
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:7070}
     volumes:
       - uploads:/data/uploads
     healthcheck:
