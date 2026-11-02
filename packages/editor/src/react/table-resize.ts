@@ -204,3 +204,38 @@ export const TableResize = Extension.create({
     ];
   },
 });
+
+/**
+ * Keeps a table that is wider than its scroll area centered: whenever a table's width changes,
+ * its wrapper scrolls so the overflow is split evenly between the left and right.
+ */
+export const TableScrollCenter = Extension.create({
+  name: 'tableScrollCenter',
+
+  addProseMirrorPlugins() {
+    const widths = new WeakMap<HTMLElement, number>();
+    const center = (root: HTMLElement) => {
+      for (const wrapper of Array.from(root.querySelectorAll<HTMLElement>('.tableWrapper'))) {
+        const width = wrapper.scrollWidth;
+        if (widths.get(wrapper) === width) continue;
+        widths.set(wrapper, width);
+        wrapper.scrollLeft = (width - wrapper.clientWidth) / 2;
+      }
+    };
+    return [
+      new Plugin({
+        key: new PluginKey('tableScrollCenter'),
+        view: (view) => {
+          let frame = requestAnimationFrame(() => center(view.dom));
+          return {
+            update: () => {
+              cancelAnimationFrame(frame);
+              frame = requestAnimationFrame(() => center(view.dom));
+            },
+            destroy: () => cancelAnimationFrame(frame),
+          };
+        },
+      }),
+    ];
+  },
+});

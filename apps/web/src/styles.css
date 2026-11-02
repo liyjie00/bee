@@ -387,7 +387,8 @@ input,textarea,select{font:inherit;color:var(--fg)}
 .prose hr{border:0;border-top:1px solid var(--line);margin:24px 0}
 .prose img{max-width:100%;border-radius:8px}
 .prose a{color:var(--p1)}
-.prose table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
+/* not the editor's tables: their width and centering come from the editor stylesheet */
+.prose table:not(.bee-prose table){border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
 .prose td,.prose th{border:1px solid var(--line);padding:5px 10px;vertical-align:top}
 .prose th{background:var(--sunk);font-weight:500}
 .prose ul[data-type="taskList"]{list-style:none;padding-left:0}
