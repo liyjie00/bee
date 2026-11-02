@@ -24,6 +24,9 @@ import { useSession, useTreeOrNull } from '../state/session';
 type Status = CollabStatus;
 type Presence = BeeUser;
 
+const EXPORT_KEY = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘⇧E' : 'Ctrl+Shift+E';
+/** Menu groups with a divider between the non-empty ones. */
+const joinMenus = (...groups: MenuEntry[][]): MenuEntry[] => groups.filter((g) => g.length).flatMap((g, i) => (i ? ['-' as const, ...g] : g));
 const ACCESS_ICON = { private: 'lock', link: 'link', public: 'globe' } as const;
 const guestColor = '#7b8375';
 
@@ -269,8 +272,8 @@ export function DocView({
     fn().catch((e) => toast(errMsg(e)));
   };
   const name = title || t('common.untitled');
-  const moreItems = (): MenuEntry[] => {
-    const own: MenuEntry[] = member
+  const ownItems = (): MenuEntry[] =>
+    member
       ? [
           {
             label: isBoard ? t('docmenu.dupBoard') : t('docmenu.dup'),
@@ -293,9 +296,9 @@ export function DocView({
                 },
               ]
             : []),
-          '-',
         ]
       : [];
+  const exportItems = (): MenuEntry[] => {
     if (isBoard) {
       const image = (type: 'png' | 'jpeg') =>
         run(async () => {
@@ -304,25 +307,26 @@ export function DocView({
           saveBlob(blob, fileName(name, type === 'png' ? 'png' : 'jpg'));
         });
       return [
-        ...own,
-        { caption: t('docmenu.exportImage') },
-        { label: 'PNG', icon: 'image', hint: '.png', onSelect: image('png') },
-        { label: 'JPG', icon: 'image', hint: '.jpg', onSelect: image('jpeg') },
+        { caption: t('docmenu.exportImage'), hint: EXPORT_KEY },
+        {
+          tiles: [
+            { label: 'PNG', hint: '.png', onSelect: image('png') },
+            { label: 'JPG', hint: '.jpg', onSelect: image('jpeg') },
+            {
+              label: t('docmenu.rawFile'),
+              hint: '.excalidraw',
+              onSelect: () => {
+                const json = boardRef.current?.exportScene();
+                if (json) saveBlob(new Blob([json], { type: 'application/json' }), fileName(name, 'excalidraw'));
+              },
+            },
+          ],
+        },
         { label: t('docmenu.withBackground'), checked: exportOpts.current.background, onSelect: () => (exportOpts.current.background = !exportOpts.current.background) },
         { label: t('docmenu.onlySelected'), checked: exportOpts.current.onlySelected, onSelect: () => (exportOpts.current.onlySelected = !exportOpts.current.onlySelected) },
-        '-',
-        { caption: t('docmenu.rawFile') },
-        {
-          label: t('docmenu.downloadRaw'),
-          icon: 'down',
-          hint: '.excalidraw',
-          onSelect: () => {
-            const json = boardRef.current?.exportScene();
-            if (json) saveBlob(new Blob([json], { type: 'application/json' }), fileName(name, 'excalidraw'));
-          },
-        },
         ...(editable
           ? [
+              '-' as const,
               {
                 label: t('docmenu.importRaw'),
                 icon: 'restore' as const,
@@ -337,22 +341,50 @@ export function DocView({
       ];
     }
     return [
-      ...own,
-      { caption: t('docmenu.export') },
-      { label: 'Markdown', icon: 'code', hint: '.md', onSelect: run(async () => saveBlob(await api.exportMarkdown(doc.id), fileName(name, 'md'))) },
+      { caption: t('docmenu.exportAs'), hint: EXPORT_KEY },
       {
-        label: 'Word',
-        icon: 'doc',
-        hint: '.docx',
-        onSelect: run(async () => {
-          const ed = editorRef.current;
-          if (!ed) return;
-          const { toDocx } = await import('../lib/docx');
-          saveBlob(await toDocx(title, ed.getJSON()), fileName(name, 'docx'));
-        }),
+        tiles: [
+          { label: 'Markdown', hint: '.md', onSelect: run(async () => saveBlob(await api.exportMarkdown(doc.id), fileName(name, 'md'))) },
+          {
+            label: 'Word',
+            hint: '.docx',
+            onSelect: run(async () => {
+              const ed = editorRef.current;
+              if (!ed) return;
+              const { toDocx } = await import('../lib/docx');
+              saveBlob(await toDocx(title, ed.getJSON()), fileName(name, 'docx'));
+            }),
+          },
+          { label: 'PDF', hint: t('docmenu.print'), onSelect: () => window.print() },
+        ],
       },
-      { label: t('docmenu.pdf'), icon: 'doc', hint: '⌘P', onSelect: () => window.print() },
     ];
+  };
+  const canExport = status !== 'denied';
+  // Opens the export menu under the top-bar Export button (also from ⋯ and ⌘⇧E).
+  const exportBtn = useRef<HTMLButtonElement>(null);
+  const openExport = () => {
+    const r = exportBtn.current?.getBoundingClientRect();
+    const at = r?.width ? { x: r.left, y: r.bottom + 4 } : { x: innerWidth, y: 48 };
+    docMenu.open({ clientX: at.x, clientY: at.y, preventDefault() {}, stopPropagation() {} }, exportItems());
+  };
+  const openExportRef = useRef(openExport);
+  openExportRef.current = openExport;
+  useEffect(() => {
+    if (!canExport) return;
+    const key = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'e') {
+        // capture phase, so it wins over the whiteboard's own Shift+⌘E
+        e.preventDefault();
+        e.stopPropagation();
+        openExportRef.current();
+      }
+    };
+    document.addEventListener('keydown', key, true);
+    return () => document.removeEventListener('keydown', key, true);
+  }, [canExport]);
+  const moreItems = (): MenuEntry[] => {
+    return joinMenus([{ label: t('docmenu.exportMenu'), icon: 'download', hint: EXPORT_KEY, onSelect: openExport }], ownItems());
   };
 
   const others = presence.filter((p) => p.id !== user.id);
@@ -367,11 +399,11 @@ export function DocView({
       <main className="main">
         <TopBar
           crumbs={crumbs}
-          phoneMenu={[
+          phoneMenu={joinMenus(canExport ? exportItems() : [], [
             ...(canStar ? [{ label: starred ? t('star.remove') : t('star.add'), icon: 'star' as const, onSelect: toggleStar }] : []),
             ...(!shareToken && !isBoard ? [{ label: t('doc.history'), icon: 'clock' as const, onSelect: () => nav(`/d/${doc.id}/history`) }] : []),
-            ...(status !== 'denied' ? moreItems() : []),
-          ]}
+            ...(canExport ? ownItems() : []),
+          ])}
         >
           <span className="saved hide-sm" title={status}>
             <i style={{ background: status === 'synced' ? '#3fa34d' : status === 'disconnected' ? 'var(--del-ink)' : 'var(--honey)' }} />
@@ -399,9 +431,15 @@ export function DocView({
               {openThreads > 0 && <span className="ico-badge">{openThreads}</span>}
             </button>
           )}
-          {status !== 'denied' && (
+          {canExport && (
             <button className="ico hide-phone" aria-label={t('docmenu.more')} title={t('docmenu.more')} onClick={(e) => docMenu.open(e, moreItems())}>
               <Icon name="more" />
+            </button>
+          )}
+          {canExport && (
+            <button ref={exportBtn} className="btn hide-phone" aria-haspopup="menu" title={`${t('docmenu.export')} ${EXPORT_KEY}`} onClick={openExport}>
+              <Icon name="download" />
+              <span className="hide-sm">{t('docmenu.export')}</span>
             </button>
           )}
           {shareToken && !me && (
