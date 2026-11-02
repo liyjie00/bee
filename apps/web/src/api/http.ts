@@ -19,6 +19,8 @@ import type {
   UserRef,
 } from './types';
 
+import { clearOfflineDocs } from '@bee/editor';
+
 export class HttpError extends Error {
   constructor(
     readonly status: number,
@@ -106,6 +108,8 @@ export const api: BeeApi = {
   updateMe: (patch) => req('PATCH', '/auth/me', patch),
   logout: async () => {
     await req('POST', '/auth/logout');
+    // This browser's offline copies belong to the user who signed out.
+    await Promise.all([clearOfflineDocs().catch(() => {}), caches?.delete('bee-api-v1').catch(() => false)]);
   },
 
   tree: (ws) => req('GET', `/workspaces/${ws}/tree`),
