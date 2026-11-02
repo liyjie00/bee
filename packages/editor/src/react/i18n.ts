@@ -1,0 +1,131 @@
+import { createContext, useContext } from 'react';
+
+export type Locale = 'zh-CN' | 'en';
+
+const zhCN = {
+  placeholder: '输入 / 插入块，支持 Markdown 快捷输入',
+  emptyPlaceholder: '开始写作…',
+  // selection bubble
+  bold: '加粗',
+  italic: '斜体',
+  strike: '删除线',
+  code: '行内代码',
+  link: '链接',
+  linkPrompt: '链接地址',
+  comment: '评论',
+  // block links
+  copyBlockLink: '复制段落链接',
+  copied: '已复制',
+  // code blocks
+  plainText: '纯文本',
+  mermaidLabel: 'Mermaid 流程图',
+  codeLanguage: '代码语言',
+  copy: '复制',
+  editSource: '编辑源码',
+  hideSource: '隐藏源码',
+  mermaidError: '流程图语法错误：',
+  mermaidEmpty: '在上方输入 Mermaid 源码，例如 graph TD; A-->B',
+  // slash menu
+  slashHeading: '插入块',
+  slashEmpty: '没有匹配的块',
+  text: '正文',
+  textHint: '普通段落',
+  heading1: '标题 1',
+  heading2: '标题 2',
+  heading3: '标题 3',
+  headingHint: '章节标题',
+  bulletList: '无序列表',
+  bulletListHint: '用 - 开头也可以',
+  orderedList: '有序列表',
+  orderedListHint: '用 1. 开头也可以',
+  taskList: '待办清单',
+  taskListHint: '可勾选的任务',
+  quote: '引用',
+  quoteHint: '用 > 开头也可以',
+  codeBlock: '代码块',
+  codeBlockHint: '语法高亮，带行号',
+  mermaid: '流程图',
+  mermaidHint: 'Mermaid 源码，实时渲染',
+  table: '表格',
+  tableHint: '3 × 3 简单表格',
+  image: '图片',
+  imageHint: '上传本地图片',
+  whiteboard: '白板',
+  whiteboardHint: '新建 Excalidraw 白板并嵌入',
+  divider: '分割线',
+  dividerHint: '用 --- 也可以',
+  // embeds
+  whiteboardTitle: '白板',
+  openWhiteboard: '打开白板',
+  whiteboardLoading: '正在加载白板…',
+  whiteboardMissing: '白板不可用',
+  uploading: '正在上传…',
+  uploadFailed: '图片上传失败',
+};
+
+export type Messages = typeof zhCN;
+
+const en: Messages = {
+  placeholder: 'Type / to insert a block. Markdown shortcuts work too.',
+  emptyPlaceholder: 'Start writing…',
+  bold: 'Bold',
+  italic: 'Italic',
+  strike: 'Strikethrough',
+  code: 'Inline code',
+  link: 'Link',
+  linkPrompt: 'Link URL',
+  comment: 'Comment',
+  copyBlockLink: 'Copy link to this block',
+  copied: 'Copied',
+  plainText: 'Plain text',
+  mermaidLabel: 'Mermaid diagram',
+  codeLanguage: 'Code language',
+  copy: 'Copy',
+  editSource: 'Edit source',
+  hideSource: 'Hide source',
+  mermaidError: 'Diagram syntax error: ',
+  mermaidEmpty: 'Type Mermaid source above, e.g. graph TD; A-->B',
+  slashHeading: 'Insert block',
+  slashEmpty: 'No matching blocks',
+  text: 'Text',
+  textHint: 'Plain paragraph',
+  heading1: 'Heading 1',
+  heading2: 'Heading 2',
+  heading3: 'Heading 3',
+  headingHint: 'Section heading',
+  bulletList: 'Bulleted list',
+  bulletListHint: 'Or start a line with -',
+  orderedList: 'Numbered list',
+  orderedListHint: 'Or start a line with 1.',
+  taskList: 'To-do list',
+  taskListHint: 'Checkable tasks',
+  quote: 'Quote',
+  quoteHint: 'Or start a line with >',
+  codeBlock: 'Code block',
+  codeBlockHint: 'Syntax highlighting, line numbers',
+  mermaid: 'Diagram',
+  mermaidHint: 'Mermaid source, rendered live',
+  table: 'Table',
+  tableHint: 'Simple 3 × 3 table',
+  image: 'Image',
+  imageHint: 'Upload from your computer',
+  whiteboard: 'Whiteboard',
+  whiteboardHint: 'Create and embed an Excalidraw board',
+  divider: 'Divider',
+  dividerHint: 'Or type ---',
+  whiteboardTitle: 'Whiteboard',
+  openWhiteboard: 'Open whiteboard',
+  whiteboardLoading: 'Loading whiteboard…',
+  whiteboardMissing: 'Whiteboard unavailable',
+  uploading: 'Uploading…',
+  uploadFailed: 'Image upload failed',
+};
+
+export const builtinMessages: Record<Locale, Messages> = { 'zh-CN': zhCN, en };
+
+export function resolveMessages(locale: Locale = 'en', overrides?: Partial<Messages>): Messages {
+  return { ...(builtinMessages[locale] ?? en), ...overrides };
+}
+
+export const MessagesContext = createContext<Messages>(en);
+export const useMessages = () => useContext(MessagesContext);

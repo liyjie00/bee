@@ -140,7 +140,7 @@ export function createCollabServer(config: CollabConfig, api = new ApiClient(con
         connectionConfig.readOnly = !WRITE_ROLES.has(result.role);
         return { userId: result.userId, role: result.role } satisfies ConnectionContext;
       } catch (err) {
-        if (err instanceof ApiError) throw new Error(err.status === 404 ? 'not found' : 'permission denied');
+        if (err instanceof ApiError) throw new Error(err.status === 404 ? 'not found' : 'permission denied', { cause: err });
         throw err;
       }
     },

@@ -10,6 +10,12 @@ Tiptap + Yjs editor used by `apps/web`, plus a DOM-free Markdown serializer used
 - Roles: `owner`/`editor` connect read-write; `commenter`/`viewer` are read-only on the Yjs doc.
 - Yjs layout: rich text in XmlFragment `default`; whiteboards in Y.Map `elements` (+ Y.Map `files`).
 
+## Install (apps/web)
+
+`@excalidraw/excalidraw@^0.18.1` and `mermaid@^12` are optional peer dependencies (so the collab server image stays
+small): the web app must depend on both, plus `react`/`react-dom` 18 or 19. Import `@bee/editor/styles.css` once; it
+pulls in Excalidraw's CSS. Build with `pnpm --filter @bee/editor build` (root `pnpm build` handles order).
+
 ## Usage
 
 ```tsx
@@ -21,6 +27,7 @@ import '@bee/editor/styles.css';
   collabUrl={wsUrl}
   shareToken={token}              // optional, public links
   user={{ id: me.id, name: me.name, color: '#3b7dd8' }}
+  locale="en"                     // 'en' (default) | 'zh-CN'; `messages` overrides individual strings
   editable={role === 'owner' || role === 'editor'}
   canComment={role !== 'viewer'}
   comments={threads.map(t => ({ id: t.id, anchor: t.anchor, resolved: t.resolved }))}
@@ -28,11 +35,13 @@ import '@bee/editor/styles.css';
   onCommentClick={id => setActiveId(id)}
   onCreateComment={anchor => openDraft(anchor)}   // from the selection bubble "Comment" button
   uploadImage={file => api.upload(file)}          // resolves to an image URL
-  createWhiteboard={() => api.createDoc({ type: 'whiteboard', parentDocumentId: doc.id })} // -> { documentId }
+  createWhiteboard={() => api.createDoc({ type: 'whiteboard', parentDocumentId: doc.id }).then(d => ({ documentId: d.id }))}
   onOpenWhiteboard={id => navigate(`/d/${id}`)}
   onReady={editor => (editorRef.current = editor)}
   onStatus={s => setSaved(s)}                     // 'connecting' | 'connected' | 'synced' | 'disconnected'
   onPresence={users => setPresence(users)}
+  initialBlockId={blockIdFromHash(location.hash)} // scrolls + highlights once synced
+  onBlockMissing={() => toast('This paragraph no longer exists')}
 />
 ```
 
@@ -44,8 +53,17 @@ Comments: `CommentAnchor = { blockId, from, to, quote }` where `from`/`to` are Y
 opaque JSON. Highlights are decorations only (nothing is written into the doc), so commenters stay read-only.
 
 Other exports:
-- `BeeWhiteboard` — `{ documentId, collabUrl, shareToken?, user, editable, onStatus? }`, full-page Excalidraw board.
+- `BeeWhiteboard` — `{ documentId, collabUrl, shareToken?, user, editable, locale?, onStatus? }`, full-page Excalidraw board.
 - `BeeVersionPreview` — `{ update: Uint8Array }`, read-only render of a version snapshot.
 - `restoreVersion(editor, update)` — replaces the live content with a snapshot (as a normal, undoable edit).
 - `editorToMarkdown(editor)`, `insertMarkdown(editor, md)`.
 - `@bee/editor/markdown` (no DOM/React): `yDocToMarkdown(ydoc)`, `yUpdateToMarkdown(update)`, `jsonToMarkdown(json)`.
+
+## Development
+
+```bash
+pnpm --filter @bee/collab exec tsx scripts/dev-fake-api.ts   # collab on :18234 with an in-memory api
+pnpm --filter @bee/editor playground                          # http://127.0.0.1:5199, two users side by side
+```
+
+Playground tokens are `<role>:<userId>`; `?second=editor` makes the right pane an editor, `?board=<id>` opens a whiteboard.

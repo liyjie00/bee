@@ -123,7 +123,11 @@ function block(node: JSONNode): string {
 }
 
 function blocks(nodes: JSONNode[] = [], sep = '\n\n'): string {
-  return nodes.map(block).join(sep);
+  // Empty paragraphs are spacing in the editor; Markdown has no equivalent.
+  return nodes
+    .map(block)
+    .filter((md, i) => md !== '' || nodes[i]!.type !== 'paragraph')
+    .join(sep);
 }
 
 /** Serializes Tiptap/ProseMirror JSON to GitHub-flavoured Markdown. */
