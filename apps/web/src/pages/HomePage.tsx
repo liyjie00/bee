@@ -78,7 +78,7 @@ export function HomePage() {
                 <small>{t('home.templateHint')}</small>
               </span>
             </button>
-            <button className="qc" onClick={() => create('whiteboard')}>
+            <button className="qc primary" onClick={() => create('whiteboard')}>
               <span className="qi"><Icon name="board" /></span>
               <span>
                 {t('home.board')}
