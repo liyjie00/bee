@@ -1,9 +1,16 @@
 # Build context: repository root.
-FROM node:24-alpine AS build
+FROM node:24-bookworm-slim AS build
 RUN corepack enable
 WORKDIR /repo
-COPY . .
-RUN pnpm install --frozen-lockfile
+# Manifests first so the install layer stays cached until dependencies change.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/editor/package.json packages/editor/
+COPY apps/web/package.json apps/web/
+RUN pnpm install --frozen-lockfile --filter "@bee/web..."
+COPY packages/shared packages/shared
+COPY packages/editor packages/editor
+COPY apps/web apps/web
 # Builds @bee/shared and @bee/editor first (workspace deps), then the Vite bundle.
 RUN pnpm --filter "@bee/web..." run build
 

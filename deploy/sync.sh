@@ -26,10 +26,18 @@ BRANCH=$(git -C "$REPO" branch --show-current)
   echo "refusing to deploy uncommitted changes" >&2; exit 1; }
 SHA=$(git -C "$REPO" rev-parse --short HEAD)
 
+# A commit that already passed the gate here is not re-tested (e.g. a retried deploy).
+GATE_OK="$(git -C "$REPO" rev-parse --git-common-dir)/bee-gate-ok"
+if (( GATE )) && grep -qx "$(git -C "$REPO" rev-parse HEAD)" "$GATE_OK" 2>/dev/null; then
+  echo "== gate: $SHA already passed"; GATE=0
+fi
 if (( GATE )); then
   echo "== gate: typecheck + tests ($SHA)"
+  # Typecheck and tests run side by side; both need the built workspace packages.
   (cd "$REPO" && corepack pnpm install --frozen-lockfile >/dev/null && corepack pnpm build >/dev/null \
-    && corepack pnpm -r run typecheck && corepack pnpm -r run test)
+    && { corepack pnpm -r --workspace-concurrency=2 run typecheck & tc=$!
+         corepack pnpm -r run test; t=$?; wait $tc && (( t == 0 )); })
+  git -C "$REPO" rev-parse HEAD >> "$GATE_OK"
 fi
 
 echo "== ship $SHA to $HOST:~/$REMOTE"
@@ -55,7 +63,10 @@ if [[ ! -f .env ]]; then
   sed -i '' "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$POSTGRES_PASSWORD/" .env
   echo "created .env with fresh secrets"
 fi
-docker compose up -d --build --remove-orphans
+# Build from locally cached base images only: registry lookups from the mini's
+# Docker VM can hang indefinitely. Refresh them by hand with `docker pull`.
+docker compose build --pull=false
+docker compose up -d --no-build --remove-orphans
 for i in {1..60}; do
   if curl -fsS http://localhost:7070/api/health >/dev/null 2>&1; then
     echo "$SHA $(date '+%F %T')" >> .deploys
