@@ -109,6 +109,8 @@ export interface TrashResponse {
 export interface RecentResponse {
   documents: DocumentDTO[];
 }
+/** GET /api/workspaces/:id/starred → { documents } (newest star first) ; PUT|DELETE /api/documents/:id/star → Ok */
+export type StarredResponse = RecentResponse;
 /** GET /api/workspaces/:id/shared-with-me */
 export type SharedWithMeResponse = RecentResponse;
 
@@ -189,6 +191,14 @@ export interface MarkdownEditResponse extends MarkdownResponse {
   removed: number;
   inserted: number;
   occurrences?: number;
+}
+/** GET /api/documents/:id/link-preview?block= → LinkPreviewResponse (read access) */
+export interface LinkPreviewResponse {
+  documentId: string;
+  title: string;
+  type: DocumentType;
+  /** heading the block sits under, when `block` is given */
+  section: string | null;
 }
 /** GET /api/documents/:id/blocks/:blockId → BlockLinkDTO */
 export type BlockLinkResponse = BlockLinkDTO;

@@ -507,3 +507,18 @@ export const pushSubscriptions = pgTable(
   },
   (t) => [uniqueIndex('push_endpoint_key').on(t.endpoint), index('push_user_idx').on(t.userId)],
 );
+
+/** Documents a user starred; listed under Starred in the sidebar. */
+export const documentStars = pgTable(
+  'document_stars',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.documentId] })],
+);

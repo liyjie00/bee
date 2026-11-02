@@ -42,3 +42,17 @@ export function snippet(text: string | null, q: string, len = 160): string {
       .trim()
   );
 }
+
+const textOf = (n: JSONNode): string => n.text ?? (n.content ?? []).map(textOf).join('');
+const hasBlock = (n: JSONNode, id: string): boolean =>
+  n.attrs?.blockId === id || (n.content ?? []).some((c) => hasBlock(c, id));
+
+/** Text of the heading a block sits under (the block itself when it is a heading). */
+export function sectionOf(update: Uint8Array, blockId: string): string | null {
+  let heading: string | null = null;
+  for (const n of yUpdateToJSON(update).content ?? []) {
+    if (n.type === 'heading') heading = textOf(n).trim() || heading;
+    if (hasBlock(n, blockId)) return heading;
+  }
+  return null;
+}

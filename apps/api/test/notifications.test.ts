@@ -199,3 +199,58 @@ describe('email digests', () => {
     }
   });
 });
+
+describe('stars', () => {
+  it('stars readable docs and lists them newest first', async () => {
+    const lee = await signup(app, 'lee');
+    const ws = lee.workspace.id;
+    const a = (await lee.c.post('/api/documents', { workspaceId: ws, title: 'A' })).json.document;
+    const b = (await lee.c.post('/api/documents', { workspaceId: ws, title: 'B' })).json.document;
+    const put = (u: string) =>
+      app.inject({ method: 'PUT', url: u, headers: { cookie: lee.c.cookie } });
+    await put(`/api/documents/${a.id}/star`);
+    await put(`/api/documents/${b.id}/star`);
+    await put(`/api/documents/${b.id}/star`);
+    let list = (await lee.c.get(`/api/workspaces/${ws}/starred`)).json.documents;
+    expect(list.map((d: { title: string }) => d.title)).toEqual(['B', 'A']);
+    await lee.c.del(`/api/documents/${b.id}/star`);
+    list = (await lee.c.get(`/api/workspaces/${ws}/starred`)).json.documents;
+    expect(list.map((d: { title: string }) => d.title)).toEqual(['A']);
+    const other = await signup(app, 'mo');
+    expect(
+      (
+        await app.inject({
+          method: 'PUT',
+          url: `/api/documents/${a.id}/star`,
+          headers: { cookie: other.c.cookie },
+        })
+      ).statusCode,
+    ).toBe(404);
+  });
+});
+
+describe('link previews', () => {
+  it('gives the title and the section heading of a block', async () => {
+    const { yUpdateToJSON } = await import('@bee/editor/markdown');
+    const nat = await signup(app, 'nat');
+    const doc = (
+      await nat.c.post('/api/documents', {
+        workspaceId: nat.workspace.id,
+        title: 'Plan',
+        markdown: 'intro\n\n## Milestones\n\nfirst\n\n## Risks\n\nsecond',
+      })
+    ).json.document;
+    const state = await app.inject({
+      method: 'GET',
+      url: `/api/documents/${doc.id}/state`,
+      headers: { cookie: nat.c.cookie },
+    });
+    const blocks = yUpdateToJSON(new Uint8Array(state.rawPayload)).content!;
+    const first = blocks.find((b) => b.content?.[0]?.text === 'first')!.attrs!.blockId as string;
+    const r = (await nat.c.get(`/api/documents/${doc.id}/link-preview?block=${first}`)).json;
+    expect(r).toMatchObject({ title: 'Plan', section: 'Milestones', type: 'doc' });
+    expect((await nat.c.get(`/api/documents/${doc.id}/link-preview`)).json.section).toBeNull();
+    const out = await signup(app, 'oz');
+    expect((await out.c.get(`/api/documents/${doc.id}/link-preview`)).status).toBe(404);
+  });
+});

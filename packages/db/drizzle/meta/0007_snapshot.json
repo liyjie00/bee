@@ -1,5 +1,5 @@
 {
-  "id": "e7f275f4-1a23-435e-97ee-e9ee5cf0c440",
+  "id": "3f4b7975-9c80-4e97-b7d0-d14a94f098ff",
   "prevId": "5a0a0205-7c5f-4a2f-9b15-a75d9777557e",
   "version": "7",
   "dialect": "postgresql",
@@ -802,6 +802,73 @@
           "columns": [
             "document_id",
             "embedded_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.document_stars": {
+      "name": "document_stars",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "document_stars_user_id_users_id_fk": {
+          "name": "document_stars_user_id_users_id_fk",
+          "tableFrom": "document_stars",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "document_stars_document_id_documents_id_fk": {
+          "name": "document_stars_document_id_documents_id_fk",
+          "tableFrom": "document_stars",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "document_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "document_stars_user_id_document_id_pk": {
+          "name": "document_stars_user_id_document_id_pk",
+          "columns": [
+            "user_id",
+            "document_id"
           ]
         }
       },
