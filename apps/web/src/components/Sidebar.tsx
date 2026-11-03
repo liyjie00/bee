@@ -12,6 +12,9 @@ import { prefetchProps } from '../lib/doc-cache';
 import { useLists } from '../state/lists';
 import { useCreate } from './NewMenu';
 import { BugReportDialog } from './BugReportDialog';
+import { SpaceSwitcher } from './Spaces';
+import { MoveToSpaceDialog } from './MoveToSpaceDialog';
+import { FolderAccessDialog } from './FolderAccessDialog';
 
 const EXPANDED_KEY = 'bee-tree-open';
 const COLLAPSED_KEY = 'bee-side-collapsed';
@@ -40,6 +43,8 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
   const toast = useToast();
   const menu = useMenu();
   const [bugOpen, setBugOpen] = useState(false);
+  const [moving, setMoving] = useState<{ kind: 'doc' | 'folder'; id: string; name: string; folderId: string | null } | null>(null);
+  const [accessOf, setAccessOf] = useState<FolderDTO | null>(null);
   const t = useT();
   const [expanded, setExpanded] = useState(loadOpen);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -75,6 +80,8 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     });
 
   const wsId = workspace?.id ?? '';
+  const team = workspace?.kind === 'team';
+  const otherSpaces = (session?.workspaces.length ?? 0) > 1;
   const sortFn = (a: { sort: number; name?: string; title?: string }, b: { sort: number; name?: string; title?: string }) =>
     a.sort - b.sort || (a.name ?? a.title ?? '').localeCompare(b.name ?? b.title ?? '');
   const childFolders = (pid: string | null) => tree.folders.filter((f) => f.parentId === pid).sort(sortFn);
@@ -185,7 +192,11 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     { label: t('tree.newSubfolder'), icon: 'folder', onSelect: () => newFolder(f.id) },
     '-',
     { label: t('tree.rename'), icon: 'pen', onSelect: () => setRenaming(f.id) },
+    ...(team ? [{ label: t('restrict.menu'), icon: 'lock' as const, onSelect: () => setAccessOf(f) }] : []),
     ...moveItems({ kind: 'folder', id: f.id }, f.parentId),
+    ...(otherSpaces && f.role === 'owner'
+      ? [{ label: t('move.menu'), icon: 'arrow' as const, onSelect: () => setMoving({ kind: 'folder', id: f.id, name: f.name, folderId: f.parentId }) }]
+      : []),
     { label: t('tree.delete'), icon: 'trash', danger: true, onSelect: () => remove({ kind: 'folder', id: f.id }) },
   ];
   const starItem = (d: DocumentDTO): MenuItem =>
@@ -196,6 +207,9 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     starItem(d),
     { label: t('tree.rename'), icon: 'pen', onSelect: () => setRenaming(d.id) },
     ...moveItems({ kind: 'doc', id: d.id }, d.folderId),
+    ...(otherSpaces && d.role === 'owner'
+      ? [{ label: t('move.menu'), icon: 'arrow' as const, onSelect: () => setMoving({ kind: 'doc', id: d.id, name: d.title, folderId: d.folderId }) }]
+      : []),
     { label: t('tree.delete'), icon: 'trash', danger: true, onSelect: () => remove({ kind: 'doc', id: d.id }) },
   ];
 
@@ -249,7 +263,9 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
               </span>
               <Icon name="folder" />
               <span className="nm">{f.name}</span>
-              {f.role !== 'owner' && <Icon name="lock" className="lock" />}
+              {(team ? f.restricted : f.role !== 'owner') && (
+                <Icon name="lock" className="lock" style={team ? { color: 'var(--fg-2)' } : undefined} />
+              )}
             </button>
           )}
           <button className="more" aria-label={t('common.moreFor', { name: f.name })} onClick={(e) => menu.open(e, folderMenu(f))} style={{ width: 'auto' }}>
@@ -347,8 +363,8 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     <aside className={'side' + (open ? ' open' : '')} aria-label={t('nav.sidebar')}>
       <div className="brand">
         <BeeLogo height={22} />
-        <small>{workspace?.name}</small>
       </div>
+      <SpaceSwitcher onNavigate={onClose} />
       <button className="search" onClick={onSearch}>
         <Icon name="search" />
         {t('nav.search')}
@@ -443,6 +459,21 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
       {menu.node}
       {rootCreate.dialog}
       {bugOpen && <BugReportDialog onClose={() => setBugOpen(false)} />}
+      {moving && workspace && (
+        <MoveToSpaceDialog
+          item={{ ...moving, workspaceId: workspace.id }}
+          onClose={() => setMoving(null)}
+          onMoved={() => {
+            setMoving(null);
+            toast(t('move.done'));
+            void reload();
+            lists?.refreshUnread();
+          }}
+        />
+      )}
+      {accessOf && workspace && (
+        <FolderAccessDialog folder={accessOf} team={workspace} onClose={() => setAccessOf(null)} onChanged={() => void reload()} />
+      )}
     </aside>
   );
 }

@@ -7,6 +7,8 @@ import { useMenu } from '../components/Menu';
 import { NewMenu, useCreate } from '../components/NewMenu';
 import { TopBar } from '../components/TopBar';
 import { useSession, useTree } from '../state/session';
+import { teams } from '../api/teams';
+import { useFollowSpace } from '../components/Spaces';
 import { errMsg, useToast } from '../state/toast';
 import { useAgo, useT, type MessageKey } from '../i18n';
 import { prefetchProps } from '../lib/doc-cache';
@@ -75,6 +77,14 @@ export function FolderPage({ mode = 'folder' }: { mode?: 'folder' | 'root' | 're
   }, [mode, ws, tree.tree]);
 
   const folder = tree.folder(folderId);
+  // A folder of another of the user's spaces (e.g. from a notification): switch to that space.
+  const [elsewhere, setElsewhere] = useState<string | null>(null);
+  useEffect(() => {
+    setElsewhere(null);
+    if (mode === 'folder' && folderId && !tree.folder(folderId))
+      teams.folder(folderId).then((f) => setElsewhere(f.workspaceId), () => {});
+  }, [folderId]);
+  useFollowSpace(elsewhere);
   if (mode === 'folder' && !folder && tree.tree.folders.length > 0)
     return (
       <main className="main">

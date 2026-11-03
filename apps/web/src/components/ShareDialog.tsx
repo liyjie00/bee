@@ -6,6 +6,9 @@ import { useSession, useTree } from '../state/session';
 import { Icon } from './Icon';
 import { Avatar } from './Menu';
 import { useT } from '../i18n';
+import { teams } from '../api/teams';
+import type { WorkspaceMemberDTO } from '../api/types';
+import { ROLE_LABEL, SpaceTile } from './Spaces';
 
 export type Access = 'private' | 'link' | 'public';
 
@@ -35,6 +38,11 @@ function RoleSelect({ value, onChange, label }: { value: GrantableRole; onChange
 export function ShareDialog({ doc, onClose, onChange }: { doc: DocumentDTO; onClose(): void; onChange(a: Access): void }) {
   const { session } = useSession();
   const tree = useTree();
+  const team = session?.workspaces.find((w) => w.id === doc.workspaceId && w.kind === 'team') ?? null;
+  const [members, setMembers] = useState<WorkspaceMemberDTO[] | null>(null);
+  useEffect(() => {
+    if (team) teams.members(team.id).then(setMembers, () => {});
+  }, [team?.id]);
   const toast = useToast();
   const t = useT();
   const [sharing, setSharing] = useState<SharingDTO | null>(null);
@@ -95,6 +103,17 @@ export function ShareDialog({ doc, onClose, onChange }: { doc: DocumentDTO; onCl
   };
 
   const url = link ? link.url : `${location.origin}/d/${doc.id}`;
+  // In a team, "everyone in the workspace" is the team row; other rows are people.
+  const teamGrant = team ? sharing?.grants.find((g) => g.principalType === 'workspace') : undefined;
+  const grants = (sharing?.grants ?? []).filter((g) => !(team && g.principalType === 'workspace'));
+  const memberRole = (userId?: string) => members?.find((m) => m.user.id === userId)?.role;
+  const setTeamAccess = (v: string) =>
+    run(async () => {
+      if (v === 'team') {
+        if (teamGrant && !teamGrant.inherited) await api.removeGrant(teamGrant.id);
+      } else if (teamGrant && !teamGrant.inherited) await api.updateGrant(teamGrant.id, v as GrantableRole);
+      else await teams.setTeamGrant('documents', doc.id, v as GrantableRole);
+    });
   const folder = (id: string | null) => tree.folder(id)?.name;
 
   return (
@@ -139,7 +158,43 @@ export function ShareDialog({ doc, onClose, onChange }: { doc: DocumentDTO; onCl
                 {t('role.owner')}
               </span>
             </div>
-            {sharing?.grants.map((g) => (
+            {team && (
+              <div className="person team-access">
+                <SpaceTile space={team} />
+                <div className="nm">
+                  {t('share.teamAll', { name: team.name, n: team.memberCount })}
+                  <small>
+                    {teamGrant?.inherited
+                      ? t('share.fromFolder', { name: folder(teamGrant.sourceFolderId) ?? t('share.parentFolder') })
+                      : teamGrant
+                        ? t('share.teamOverride')
+                        : t('share.teamByRole')}
+                  </small>
+                </div>
+                {doc.role === 'owner' && !teamGrant?.inherited ? (
+                  <select
+                    className="role"
+                    aria-label={t('share.teamAccess')}
+                    value={teamGrant?.role ?? 'team'}
+                    disabled={busy}
+                    onChange={(e) => setTeamAccess(e.target.value)}
+                    style={{ border: 0, background: 'transparent' }}
+                  >
+                    <option value="team">{t('share.byTeamRole')}</option>
+                    {(['editor', 'commenter', 'viewer'] as const).map((r) => (
+                      <option key={r} value={r}>
+                        {t('share.allCan', { role: t(`role.${r}`) })}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="role" style={{ color: 'var(--fg-3)' }}>
+                    {teamGrant ? t(`role.${teamGrant.role}`) : t('share.byTeamRole')}
+                  </span>
+                )}
+              </div>
+            )}
+            {grants.map((g) => (
               <div className="person" key={g.id}>
                 {g.principalType === 'workspace' ? (
                   <span className="av" style={{ background: 'var(--fg-3)' }}>
@@ -150,6 +205,11 @@ export function ShareDialog({ doc, onClose, onChange }: { doc: DocumentDTO; onCl
                 )}
                 <div className="nm">
                   {g.principalType === 'workspace' ? t('share.workspace') : g.user?.name}
+                  {team && g.user && members && (
+                    <span className={'tag' + (memberRole(g.user.id) ? '' : ' ext')}>
+                      {memberRole(g.user.id) ? t('share.teamMember', { role: t(ROLE_LABEL[memberRole(g.user.id)!]) }) : t('share.external')}
+                    </span>
+                  )}
                   <small>{g.inherited ? t('share.fromFolder', { name: folder(g.sourceFolderId) ?? t('share.parentFolder') }) : g.user?.email}</small>
                 </div>
                 {g.inherited || doc.role !== 'owner' ? (

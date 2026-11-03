@@ -13,6 +13,9 @@ import { useAgo, useI18n, useT, type MessageKey } from '../i18n';
 import { PHONE_QUERY, useMediaQuery } from '../lib/media';
 import { NOTIFICATION_KINDS, type NotificationKind } from '@bee/shared';
 import { currentSubscription, disablePush, enablePush, pushSupported } from '../lib/push';
+import { TeamSettings } from '../components/TeamSettings';
+import { SpaceTile } from '../components/Spaces';
+import { CreateTeamDialog } from '../components/CreateTeamDialog';
 
 function CopyField({ value }: { value: string }) {
   const t = useT();
@@ -96,6 +99,7 @@ const KIND_LABEL: Record<NotificationKind, MessageKey> = {
   reply: 'settings.notif.reply',
   share: 'settings.notif.share',
   access_request: 'settings.notif.request',
+  team_invite: 'settings.notif.teamInvite',
 };
 
 /** Browser (Web Push) notifications for this browser, email (coming soon), and which events notify. */
@@ -570,24 +574,27 @@ export function SettingsPage() {
   const phone = useMediaQuery(PHONE_QUERY);
   const { session } = useSession();
   const { section } = useParams();
+  const [creating, setCreating] = useState(false);
+  const teamList = session?.workspaces.filter((w) => w.kind === 'team') ?? [];
+  const team = section?.startsWith('team-') ? teamList.find((w) => `team-${w.id}` === section) : undefined;
   const current = SECTIONS.find((s) => s.id === section);
-  if (section && !current) return <Navigate to="/settings" replace />;
-  if (!current && !phone) return <Navigate to="/settings/profile" replace />;
+  if (section && !current && !team) return <Navigate to="/settings" replace />;
+  if (!current && !team && !phone) return <Navigate to="/settings/profile" replace />;
   const View = current && SECTION_VIEW[current.id];
 
   return (
     <main className="main">
       <TopBar
         crumbs={
-          current
-            ? [{ label: t('settings.title'), to: '/settings' }, { label: t(current.title) }]
+          current || team
+            ? [{ label: t('settings.title'), to: '/settings' }, { label: team ? team.name : t(current!.title) }]
             : [{ label: t('settings.title') }]
         }
       />
       {/* .view is the scroll container; the page itself never scrolls */}
       <div className="view">
         <div className="page settings">
-          {phone && current ? (
+          {phone && (current || team) ? (
             <Link className="settings-back" to="/settings">
               <Icon name="chev" size={14} />
               {t('settings.back')}
@@ -596,7 +603,7 @@ export function SettingsPage() {
             <h1>{t('settings.title')}</h1>
           )}
           <div className="settings-cols">
-            {!(phone && current) && (
+            {!(phone && (current || team)) && (
               <nav className="settings-nav" aria-label={t('settings.sections')}>
                 {phone && session && (
                   <Link to="/settings/profile" className="settings-me">
@@ -626,6 +633,25 @@ export function SettingsPage() {
                     </Link>
                   </div>
                 ))}
+                <div className="settings-nav-item">
+                  <div className="grp">{t('settings.group.teams')}</div>
+                  {teamList.map((w) => (
+                    <Link
+                      key={w.id}
+                      to={`/settings/team-${w.id}`}
+                      className={team?.id === w.id ? 'on' : ''}
+                      aria-current={team?.id === w.id ? 'page' : undefined}
+                    >
+                      <SpaceTile space={w} size="sm" />
+                      <span>{w.name}</span>
+                      {phone && <Icon name="chev" size={14} />}
+                    </Link>
+                  ))}
+                  <button className="settings-nav-add" onClick={() => setCreating(true)}>
+                    <Icon name="plus" />
+                    <span>{t('space.create')}</span>
+                  </button>
+                </div>
               </nav>
             )}
             {View && (
@@ -633,9 +659,15 @@ export function SettingsPage() {
                 <View />
               </div>
             )}
+            {team && (
+              <div className="settings-pane" key={team.id}>
+                <TeamSettings team={team} />
+              </div>
+            )}
           </div>
         </div>
       </div>
+      {creating && <CreateTeamDialog onClose={() => setCreating(false)} />}
     </main>
   );
 }

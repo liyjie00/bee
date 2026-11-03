@@ -9,13 +9,42 @@ interface SessionCtx {
   session: Session | null;
   loading: boolean;
   setSession(s: Session | null): void;
+  /** the space the sidebar shows: the personal workspace or a team */
   workspace: WorkspaceDTO | null;
+  /** the signed-in user's own workspace */
+  personal: WorkspaceDTO | null;
+  setWorkspace(id: string): void;
+  /** re-reads the session (e.g. after joining or leaving a team) */
+  refresh(): Promise<Session | null>;
 }
 const Ctx = createContext<SessionCtx | null>(null);
+const SPACE_KEY = 'bee.space';
+
+function savedSpace(): string | null {
+  try {
+    return localStorage.getItem(SPACE_KEY);
+  } catch {
+    return null;
+  }
+}
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [spaceId, setSpaceId] = useState<string | null>(savedSpace);
+  const setWorkspace = useCallback((id: string) => {
+    setSpaceId(id);
+    try {
+      localStorage.setItem(SPACE_KEY, id);
+    } catch {
+      /* private mode */
+    }
+  }, []);
+  const refresh = useCallback(async () => {
+    const s = await api.me().catch(() => null);
+    setSession(s);
+    return s;
+  }, []);
   useEffect(() => {
     api
       .me()
@@ -38,10 +67,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     resetCollabSockets();
     if (userId) preconnectCollab(collabUrl());
   }, [userId, loading]);
-  const value = useMemo(
-    () => ({ session, loading, setSession, workspace: session?.workspaces[0] ?? null }),
-    [session, loading],
-  );
+  const value = useMemo(() => {
+    const spaces = session?.workspaces ?? [];
+    const personal = spaces.find((w) => w.kind === 'personal') ?? spaces[0] ?? null;
+    const workspace = spaces.find((w) => w.id === spaceId) ?? personal;
+    return { session, loading, setSession, workspace, personal, setWorkspace, refresh };
+  }, [session, loading, spaceId, setWorkspace, refresh]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

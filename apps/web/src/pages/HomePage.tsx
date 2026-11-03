@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/http';
 import type { DocumentDTO, NotificationDTO } from '../api/types';
 import { Icon, docIcon } from '../components/Icon';
-import { Avatar, ContextMenu } from '../components/Menu';
+import { ContextMenu } from '../components/Menu';
 import { useCreate } from '../components/NewMenu';
 import { TopBar } from '../components/TopBar';
 import { useAgo, useT, type MessageKey } from '../i18n';
@@ -12,7 +12,8 @@ import { useLists } from '../state/lists';
 import { useSession, useTree } from '../state/session';
 import { useWhatsNew } from '../lib/whatsNew';
 import { Thumb } from './FolderPage';
-import { notificationPath, RequestActions, VERB } from './NotificationsPage';
+import { notificationPath, notifTarget, NotifAvatar, RequestActions, VERB } from './NotificationsPage';
+import { TeamHome } from '../components/TeamHome';
 
 const CONTINUE_MAX = 4;
 const TODO_MAX = 5;
@@ -24,7 +25,8 @@ function greeting(hour: number): MessageKey {
 
 /** Signed-in landing: quick create, documents to pick up again, things waiting on you. */
 export function HomePage() {
-  const { session } = useSession();
+  const { session, workspace } = useSession();
+  const team = workspace?.kind === 'team' ? workspace : null;
   const tree = useTree();
   const lists = useLists();
   const nav = useNavigate();
@@ -56,13 +58,17 @@ export function HomePage() {
 
   return (
     <main className="main">
-      <TopBar crumbs={[{ label: t('nav.home') }]} />
+      <TopBar crumbs={[{ label: team ? team.name : t('nav.home') }]} />
       <section className="view">
         <div className="home">
-          <div className="home-hi">
-            <h1>{t(greeting(new Date().getHours()), { name: session?.user.name ?? '' })}</h1>
-            <p>{unread ? t('home.pending', { n: unread }) : t('home.allClear')}</p>
-          </div>
+          {team ? (
+            <TeamHome team={team} />
+          ) : (
+            <div className="home-hi">
+              <h1>{t(greeting(new Date().getHours()), { name: session?.user.name ?? '' })}</h1>
+              <p>{unread ? t('home.pending', { n: unread }) : t('home.allClear')}</p>
+            </div>
+          )}
 
           <div className="home-quick">
             <button className="qc primary" onClick={() => create('doc')}>
@@ -150,13 +156,13 @@ export function HomePage() {
                     onClick={() => openNotif(n)}
                     onKeyDown={(e) => e.key === 'Enter' && e.target === e.currentTarget && openNotif(n)}
                   >
-                    <Avatar name={n.actor?.name ?? '?'} color={n.actor?.color} url={n.actor?.avatarUrl} />
+                    <NotifAvatar n={n} />
                     <div className="notif-body">
                       <div>
                         <b>{n.actor?.name ?? t('activity.someone')}</b> {t(VERB[n.kind])}{' '}
-                        <b>{n.document ? n.document.title || t('common.untitled') : (n.folder?.name ?? '')}</b>
+                        <b>{notifTarget(n, t('common.untitled'))}</b>
                       </div>
-                      {n.kind !== 'share' && n.detail && <div className="notif-quote">{n.detail}</div>}
+                      {n.kind !== 'share' && n.kind !== 'team_invite' && n.detail && <div className="notif-quote">{n.detail}</div>}
                       <time dateTime={n.createdAt}>{ago(n.createdAt)}</time>
                       {n.kind === 'access_request' && n.request && (
                         <RequestActions n={n} onDone={(r) => setTodo((cur) => cur?.map((x) => (x.id === n.id ? { ...x, read: true, request: r } : x)) ?? null)} />

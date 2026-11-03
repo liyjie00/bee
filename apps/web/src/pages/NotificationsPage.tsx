@@ -7,6 +7,23 @@ import { Avatar } from '../components/Menu';
 import { useAgo, useT, type MessageKey } from '../i18n';
 import { useLists } from '../state/lists';
 import { errMsg, useToast } from '../state/toast';
+import { SpaceTile, useSpaceName } from '../components/Spaces';
+
+/** The actor's avatar with a small badge of the space it happened in. */
+export function NotifAvatar({ n }: { n: NotificationDTO }) {
+  return (
+    <span className="notif-av">
+      <Avatar name={n.actor?.name ?? '?'} color={n.actor?.color} url={n.actor?.avatarUrl} />
+      {n.workspace && <SpaceTile space={n.workspace} size="sm" />}
+    </span>
+  );
+}
+
+/** What a notification is about: the document or folder, or the team for invitations. */
+export function notifTarget(n: NotificationDTO, untitled: string): string {
+  if (n.kind === 'team_invite') return n.workspace?.name ?? '';
+  return n.document ? n.document.title || untitled : (n.folder?.name ?? '');
+}
 
 const ROLES: GrantableRole[] = ['viewer', 'commenter', 'editor'];
 export const VERB: Record<NotificationDTO['kind'], MessageKey> = {
@@ -14,10 +31,12 @@ export const VERB: Record<NotificationDTO['kind'], MessageKey> = {
   reply: 'notif.reply',
   share: 'notif.share',
   access_request: 'notif.request',
+  team_invite: 'notif.teamInvite',
 };
 
 /** Where a notification leads: the comment thread, the shared doc or folder. */
 export function notificationPath(n: NotificationDTO): string | null {
+  if (n.kind === 'team_invite') return '/invites';
   if (n.document) return `/d/${n.document.id}${n.threadId ? `?comment=${n.threadId}` : ''}`;
   if (n.folder) return `/f/${n.folder.id}`;
   return null;
@@ -32,6 +51,7 @@ export function NotificationsPage() {
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [items, setItems] = useState<NotificationDTO[] | null>(null);
   const [more, setMore] = useState(false);
+  const spaceName = useSpaceName();
 
   const load = async (before?: string) => {
     const r = await api.notifications({ unread: unreadOnly, before });
@@ -104,19 +124,21 @@ export function NotificationsPage() {
                   onClick={() => open(n)}
                   onKeyDown={(e) => e.key === 'Enter' && e.target === e.currentTarget && open(n)}
                 >
-                  <Avatar name={n.actor?.name ?? '?'} color={n.actor?.color} url={n.actor?.avatarUrl} />
+                  <NotifAvatar n={n} />
                   <div className="notif-body">
                     <div>
                       <b>{n.actor?.name ?? t('activity.someone')}</b> {t(VERB[n.kind])}{' '}
-                      <b>{n.document ? n.document.title || t('common.untitled') : (n.folder?.name ?? '')}</b>
+                      <b>{notifTarget(n, t('common.untitled'))}</b>
                       {n.kind === 'share' && n.detail && <span className="notif-role">{t(`role.${n.detail}` as MessageKey)}</span>}
+                      {n.kind === 'team_invite' && n.detail && <span className="notif-role">{t(`team.role.${n.detail}` as MessageKey)}</span>}
                       {n.kind === 'access_request' && n.request && (
                         <span className="notif-role">{t(`role.${n.request.role}` as MessageKey)}</span>
                       )}
                     </div>
-                    {n.kind !== 'share' && n.detail && <div className="notif-quote">{n.detail}</div>}
+                    {n.kind !== 'share' && n.kind !== 'team_invite' && n.detail && <div className="notif-quote">{n.detail}</div>}
                     <time dateTime={n.createdAt}>
                       {n.request ? n.request.user.email + ' · ' : ''}
+                      {n.workspace && n.kind !== 'team_invite' ? spaceName(n.workspace) + ' · ' : ''}
                       {ago(n.createdAt)}
                     </time>
                     {n.kind === 'access_request' && n.request && (

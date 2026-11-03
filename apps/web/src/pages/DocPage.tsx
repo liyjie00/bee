@@ -10,6 +10,7 @@ import { useSession, useTree } from '../state/session';
 import { DocView } from './DocView';
 import { RequestAccess } from '../components/RequestAccess';
 import { useT } from '../i18n';
+import { useFollowSpace } from '../components/Spaces';
 
 export function DocPage() {
   const { docId = '' } = useParams();
@@ -38,6 +39,7 @@ export function DocPage() {
       setError({ status: e instanceof HttpError ? e.status : 0, message: e instanceof Error ? e.message : String(e) }),
     );
   }, [docId, attempt]);
+  useFollowSpace(fetched?.workspaceId);
 
   if (error)
     return (

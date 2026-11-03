@@ -107,7 +107,8 @@ export const TOOLS: Tool[] = [
   tool({
     name: 'list_workspaces',
     title: 'List workspaces',
-    description: 'Lists the workspaces you belong to, and who you are signed in as.',
+    description:
+      'Lists the workspaces you belong to (your personal one and teams), and who you are signed in as.',
     input: z.object({}),
     readOnly: true,
     run: async (_a, ctx) => {
@@ -117,7 +118,13 @@ export const TOOLS: Tool[] = [
       }>('GET', '/api/auth/me');
       return json({
         user: { name: me.user.name, email: me.user.email },
-        workspaces: me.workspaces.map((w) => ({ id: w.id, name: w.name, role: w.role })),
+        workspaces: me.workspaces.map((w) => ({
+          id: w.id,
+          name: w.name,
+          kind: w.kind,
+          role: w.role,
+          members: w.memberCount,
+        })),
       });
     },
   }),

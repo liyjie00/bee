@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { IconSprite } from './components/Icon';
 import { Shell } from './components/Shell';
 import { DocPage } from './pages/DocPage';
+import { InvitePage, InvitesPage } from './pages/InvitePage';
 import { FolderPage } from './pages/FolderPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { HomePage } from './pages/HomePage';
@@ -30,6 +31,7 @@ export function App() {
               <Route path="/s/:token" element={<SharePage />} />
               <Route path="/s/:token/d/:docId" element={<SharePage />} />
               <Route path="/p/:token" element={<SharePage />} />
+              <Route path="/invite/:token" element={<InvitePage />} />
               <Route element={<Shell />}>
                 <Route index element={<HomePage />} />
                 <Route path="/files" element={<FolderPage mode="root" />} />
@@ -43,6 +45,7 @@ export function App() {
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/settings/:section" element={<SettingsPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/invites" element={<InvitesPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
