@@ -62,7 +62,7 @@ export function HomePage() {
       <section className="view">
         <div className="home">
           {team ? (
-            <TeamHome team={team} />
+            <TeamHome team={team} part="hero" />
           ) : (
             <div className="home-hi">
               <h1>{t(greeting(new Date().getHours()), { name: session?.user.name ?? '' })}</h1>
@@ -107,6 +107,8 @@ export function HomePage() {
               </span>
             </button>
           </div>
+
+          {team && <TeamHome team={team} part="body" />}
 
           <WhatsNewCards />
 

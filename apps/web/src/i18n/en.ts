@@ -730,6 +730,7 @@ export const en = {
   "move.submitTo": "Move to “{name}”",
   "move.toTeam": "Once moved, the {n} members of {name} get access by their team role. People you shared it with and its share links stay; you remain the owner.",
   "move.toPersonal": "Once moved, only you and the people you shared it with can open it.",
+  "move.toRestricted": "This folder is restricted: only the people added to it will be able to open it, plus anyone you shared it with.",
   "move.done": "Moved",
   "restrict.menu": "Who can see this…",
   "restrict.title": "Who can see “{name}”",

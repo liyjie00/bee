@@ -183,12 +183,23 @@ export async function memberCount(db: Db, workspaceId: string): Promise<number> 
   return r?.n ?? 0;
 }
 
-/** Adds a member (keeping a stronger role they may already have). */
+/** Adds a member (keeping the role they have if they are one), and clears their invitation notices. */
 export async function addMember(db: Db, workspaceId: string, userId: string, role: WorkspaceRole) {
   await db
     .insert(workspaceMembers)
     .values({ workspaceId, userId, role })
     .onConflictDoNothing();
+  await db
+    .update(notifications)
+    .set({ readAt: new Date() })
+    .where(
+      and(
+        eq(notifications.userId, userId),
+        eq(notifications.workspaceId, workspaceId),
+        eq(notifications.kind, 'team_invite'),
+        sql`${notifications.readAt} is null`,
+      ),
+    );
 }
 
 async function ownerIds(db: Db, workspaceId: string): Promise<string[]> {

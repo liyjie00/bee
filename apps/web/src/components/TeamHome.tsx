@@ -13,8 +13,11 @@ import { SpaceTile } from './Spaces';
 const AVATARS = 4;
 const UPDATES = 6;
 
-/** Top of a team's home: who is in it, its folders and what changed lately. */
-export function TeamHome({ team }: { team: WorkspaceDTO }) {
+/**
+ * A team's home: who is in it (`hero`, at the top), then its folders and what changed lately
+ * (`body`, below the create buttons).
+ */
+export function TeamHome({ team, part }: { team: WorkspaceDTO; part: 'hero' | 'body' }) {
   const t = useT();
   const ago = useAgo();
   const nav = useNavigate();
@@ -22,8 +25,8 @@ export function TeamHome({ team }: { team: WorkspaceDTO }) {
   const [members, setMembers] = useState<WorkspaceMemberDTO[]>([]);
   const [inviting, setInviting] = useState(false);
   useEffect(() => {
-    teams.members(team.id).then(setMembers, () => setMembers([]));
-  }, [team.id, team.memberCount]);
+    if (part === 'hero') teams.members(team.id).then(setMembers, () => setMembers([]));
+  }, [team.id, team.memberCount, part]);
 
   const top = tree.folders.filter((f) => !f.parentId).sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name));
   const inFolder = (id: string) => {
@@ -45,8 +48,8 @@ export function TeamHome({ team }: { team: WorkspaceDTO }) {
     .slice(0, UPDATES);
   const folderName = (id: string | null) => tree.folders.find((f) => f.id === id)?.name ?? '';
 
-  return (
-    <>
+  if (part === 'hero')
+    return (
       <div className="team-hero">
         <SpaceTile space={team} size="xl" />
         <div className="who">
@@ -69,8 +72,11 @@ export function TeamHome({ team }: { team: WorkspaceDTO }) {
             {t('teamHome.invite')}
           </button>
         )}
+        {inviting && <InviteDialog team={team} onClose={() => setInviting(false)} />}
       </div>
-
+    );
+  return (
+    <>
       {top.length > 0 && (
         <section className="home-sec">
           <div className="home-h">
@@ -113,7 +119,6 @@ export function TeamHome({ team }: { team: WorkspaceDTO }) {
           <p className="home-empty">{t('teamHome.empty')}</p>
         )}
       </section>
-      {inviting && <InviteDialog team={team} onClose={() => setInviting(false)} />}
     </>
   );
 }

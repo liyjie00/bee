@@ -732,6 +732,7 @@ export const zhCN: Record<MessageKey, string> = {
   "move.submitTo": "移到「{name}」",
   "move.toTeam": "移过去后，{name} 的 {n} 位成员都能按团队角色访问。你单独分享给的人和分享链接都保留，你仍是所有者。",
   "move.toPersonal": "移过去后，只有你和你单独分享给的人能打开。",
+  "move.toRestricted": "这是受限文件夹：移过去后只有被加进这个文件夹的人，以及你单独分享给的人能打开。",
   "move.done": "已移动",
   "restrict.menu": "谁能看到…",
   "restrict.title": "「{name}」谁能看到",

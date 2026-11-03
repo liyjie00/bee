@@ -36,7 +36,7 @@ function loadOpen(): Set<string> {
 type DragItem = { kind: 'folder' | 'doc'; id: string };
 
 export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose(): void; onSearch(): void }) {
-  const { session, workspace, setSession } = useSession();
+  const { session, workspace, setSession, setWorkspace } = useSession();
   const { tree, reload } = useTree();
   const nav = useNavigate();
   const loc = useLocation();
@@ -463,9 +463,12 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         <MoveToSpaceDialog
           item={{ ...moving, workspaceId: workspace.id }}
           onClose={() => setMoving(null)}
-          onMoved={() => {
+          onMoved={(to) => {
+            const open = loc.pathname.includes(moving.id);
             setMoving(null);
             toast(t('move.done'));
+            // what is open follows into its new space
+            if (open && to.workspaceId !== workspace.id) setWorkspace(to.workspaceId);
             void reload();
             lists?.refreshUnread();
           }}

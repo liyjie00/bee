@@ -55,6 +55,13 @@ export function MoveToSpaceDialog({
   const here = (x: Target) => x.workspaceId === item.workspaceId && x.folderId === item.folderId;
   const same = (a: Target | null, b: Target) => !!a && a.workspaceId === b.workspaceId && a.folderId === b.folderId;
   const destSpace = target && spaces.find((w) => w.id === target.workspaceId);
+  // A restricted folder (or one inside it) keeps the team out.
+  const destRestricted = (() => {
+    const list = target ? (folders[target.workspaceId] ?? []) : [];
+    for (let f = list.find((x) => x.id === target?.folderId); f; f = list.find((x) => x.id === f!.parentId))
+      if (f.restricted) return true;
+    return false;
+  })();
   const destName = target?.folderId
     ? folders[target.workspaceId]?.find((f) => f.id === target.folderId)?.name
     : destSpace && spaceName(destSpace);
@@ -130,9 +137,11 @@ export function MoveToSpaceDialog({
             <div className="move-note">
               <Icon name="users" />
               <span>
-                {destSpace.kind === 'team'
-                  ? t('move.toTeam', { name: destSpace.name, n: destSpace.memberCount })
-                  : t('move.toPersonal')}
+                {destSpace.kind !== 'team'
+                  ? t('move.toPersonal')
+                  : destRestricted
+                    ? t('move.toRestricted')
+                    : t('move.toTeam', { name: destSpace.name, n: destSpace.memberCount })}
               </span>
             </div>
           )}
