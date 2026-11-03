@@ -2,8 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { and, eq, isNull, max, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { folders, type Db } from '@bee/db';
-import { can } from '@bee/shared';
-import { folderAccess, folderChain, requireMember } from '../lib/access.js';
+import { can, TEAM_BASELINE } from '@bee/shared';
+import { folderAccess, folderChain, isTeam, requireMember } from '../lib/access.js';
 import { badRequest, forbidden } from '../lib/errors.js';
 import { folderDTO } from '../lib/dto.js';
 import { idParams, parse } from '../lib/validate.js';
@@ -18,6 +18,8 @@ const updateBody = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   parentId: z.uuid().nullable().optional(),
   sort: z.number().finite().optional(),
+  /** team folders: hide from members who are not granted access */
+  restricted: z.boolean().optional(),
 });
 
 /** Checks the caller may create things inside `folderId` (or at the workspace root). */
@@ -27,8 +29,13 @@ export async function requireCreateIn(
   folderId: string | null,
   userId: string,
 ) {
-  await requireMember(db, workspaceId, userId);
-  if (!folderId) return;
+  const role = await requireMember(db, workspaceId, userId);
+  if (!folderId) {
+    // A team's top level is open to everyone who can edit team content.
+    if (role !== 'owner' && (await isTeam(db, workspaceId)) && !can.edit(TEAM_BASELINE[role]))
+      throw forbidden('Viewers cannot add items to the team');
+    return;
+  }
   const a = await folderAccess(db, { userId, folderId });
   if (a.folder.workspaceId !== workspaceId) throw badRequest('Folder is in another workspace');
   if (!can.edit(a.role)) throw forbidden('You cannot add items to this folder');
@@ -85,6 +92,14 @@ export async function folderRoutes(app: FastifyInstance) {
     const patch: Partial<typeof folders.$inferInsert> = { updatedAt: new Date() };
     if (body.name !== undefined) patch.name = body.name;
     if (body.sort !== undefined) patch.sort = body.sort;
+    if (body.restricted !== undefined && body.restricted !== a.folder.restricted) {
+      if (!a.team) throw badRequest('Only team folders can be restricted');
+      // Restricting can lock the team's owners out too, so it is for the folder's owners.
+      if (body.restricted && !a.chain.some((f) => f.ownerId === user.id))
+        throw forbidden('Only the folder’s owner can restrict it');
+      if (!can.manage(a.role)) throw forbidden('Only the owner can change who sees this folder');
+      patch.restricted = body.restricted;
+    }
     if (body.parentId !== undefined && body.parentId !== a.folder.parentId) {
       const dest = body.parentId;
       if (dest) {

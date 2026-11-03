@@ -21,8 +21,11 @@ import type {
   DocumentType,
   GrantableRole,
   LinkRole,
+  NotificationKind,
   PrincipalType,
+  InviteRole,
   ResourceType,
+  WorkspaceKind,
   WorkspaceRole,
 } from '@bee/shared';
 
@@ -80,6 +83,12 @@ export const workspaces = pgTable('workspaces', {
   ownerId: uuid('owner_id')
     .notNull()
     .references(() => users.id),
+  kind: text('kind').$type<WorkspaceKind>().notNull().default('personal'),
+  /** team tile color */
+  color: text('color').notNull().default('#c2410c'),
+  /** token of the team's join link (shown to owners, like share links); null while it is off */
+  linkToken: text('link_token').unique(),
+  linkRole: text('link_role').$type<InviteRole>().notNull().default('viewer'),
   createdAt: createdAt(),
 });
 
@@ -98,6 +107,31 @@ export const workspaceMembers = pgTable(
   (t) => [primaryKey({ columns: [t.workspaceId, t.userId] }), index('wm_user_idx').on(t.userId)],
 );
 
+/** Email invitations to a team. The token travels only in the email link. */
+export const workspaceInvites = pgTable(
+  'workspace_invites',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: text('role').$type<InviteRole>().notNull(),
+    /** sha256 of the token in the invitation link */
+    tokenHash: text('token_hash').notNull().unique(),
+    invitedById: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    expiresAt: ts('expires_at').notNull(),
+    acceptedById: uuid('accepted_by').references(() => users.id, { onDelete: 'set null' }),
+    acceptedAt: ts('accepted_at'),
+    revokedAt: ts('revoked_at'),
+  },
+  (t) => [
+    index('invites_ws_idx').on(t.workspaceId),
+    index('invites_email_idx').on(sql`lower(${t.email})`),
+  ],
+);
+
 export const folders = pgTable(
   'folders',
   {
@@ -111,6 +145,8 @@ export const folders = pgTable(
     ownerId: uuid('owner_id')
       .notNull()
       .references(() => users.id),
+    /** team folders: only people granted access see this folder and everything below it */
+    restricted: boolean('restricted').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: ts('updated_at').notNull().defaultNow(),
     deletedAt: ts('deleted_at'),
@@ -463,7 +499,7 @@ export const notifications = pgTable(
     workspaceId: uuid('workspace_id')
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
-    kind: text('kind').$type<'mention' | 'reply' | 'share' | 'access_request'>().notNull(),
+    kind: text('kind').$type<NotificationKind>().notNull(),
     documentId: uuid('document_id').references(() => documents.id, { onDelete: 'cascade' }),
     folderId: uuid('folder_id').references(() => folders.id, { onDelete: 'cascade' }),
     threadId: uuid('thread_id').references(() => commentThreads.id, { onDelete: 'cascade' }),

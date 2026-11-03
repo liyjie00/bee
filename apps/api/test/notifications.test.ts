@@ -21,7 +21,7 @@ describe('mentions and notifications', () => {
     const cat = await signup(app, 'cat');
     const ws = ann.workspace.id;
     for (const email of ['ben@example.com', 'cat@example.com'])
-      await ann.c.post(`/api/workspaces/${ws}/members`, { email, role: 'member' });
+      await ann.c.post(`/api/workspaces/${ws}/members`, { email, role: 'editor' });
     const doc = (await ann.c.post('/api/documents', { workspaceId: ws, title: 'Plan' })).json
       .document;
 
@@ -77,7 +77,7 @@ describe('templates', () => {
     const dee = await signup(app, 'dee');
     const eve = await signup(app, 'eve');
     const ws = dee.workspace.id;
-    await dee.c.post(`/api/workspaces/${ws}/members`, { email: 'eve@example.com', role: 'member' });
+    await dee.c.post(`/api/workspaces/${ws}/members`, { email: 'eve@example.com', role: 'editor' });
     const doc = (
       await dee.c.post('/api/documents', {
         workspaceId: ws,
@@ -103,7 +103,7 @@ describe('access requests', () => {
     const gus = await signup(app, 'gus');
     const hal = await signup(app, 'hal');
     const ws = fay.workspace.id;
-    await fay.c.post(`/api/workspaces/${ws}/members`, { email: 'gus@example.com', role: 'member' });
+    await fay.c.post(`/api/workspaces/${ws}/members`, { email: 'gus@example.com', role: 'editor' });
     const doc = (await fay.c.post('/api/documents', { workspaceId: ws, title: 'Secret' })).json
       .document;
     await fay.c.post(`/api/documents/${doc.id}/grants`, {

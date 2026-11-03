@@ -46,12 +46,19 @@ export function requireUser(req: FastifyRequest): UserRow {
 
 export async function userWorkspaces(db: Db, userId: string) {
   const rows = await db
-    .select({ w: workspaces, role: workspaceMembers.role })
+    .select({
+      w: workspaces,
+      role: workspaceMembers.role,
+      members: sql<number>`(select count(*)::int from ${workspaceMembers} m where m.workspace_id = ${workspaces.id})`,
+    })
     .from(workspaceMembers)
     .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
     .where(eq(workspaceMembers.userId, userId))
     .orderBy(workspaces.createdAt);
-  return rows.map((r) => workspaceDTO(r.w, r.role));
+  // The personal workspace first, then teams in the order joined.
+  return rows
+    .map((r) => workspaceDTO(r.w, r.role, r.members))
+    .sort((a, b) => Number(a.kind === 'team') - Number(b.kind === 'team'));
 }
 
 export function slugify(name: string): string {
@@ -66,11 +73,21 @@ export function slugify(name: string): string {
     .replace(/[^a-z0-9]/g, 'x')}`;
 }
 
-export async function createWorkspace(db: Db, name: string, ownerId: string) {
+export async function createWorkspace(
+  db: Db,
+  name: string,
+  ownerId: string,
+  team?: { color: string },
+) {
   return db.transaction(async (tx) => {
     const [w] = await tx
       .insert(workspaces)
-      .values({ name, slug: slugify(name), ownerId })
+      .values({
+        name,
+        slug: slugify(name),
+        ownerId,
+        ...(team ? { kind: 'team' as const, color: team.color } : {}),
+      })
       .returning();
     await tx
       .insert(workspaceMembers)

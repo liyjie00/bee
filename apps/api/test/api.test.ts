@@ -83,7 +83,7 @@ describe('documents, folders and permissions', () => {
       (
         await alice.c.post(`/api/workspaces/${ws}/members`, {
           email: 'bob@example.com',
-          role: 'member',
+          role: 'editor',
         })
       ).status,
     ).toBe(201);
@@ -497,7 +497,7 @@ describe('comments', () => {
     const ws = owner.workspace.id;
     await owner.c.post(`/api/workspaces/${ws}/members`, {
       email: 'cviewer@example.com',
-      role: 'member',
+      role: 'editor',
     });
     const doc = (await owner.c.post('/api/documents', { workspaceId: ws, title: 'C' })).json
       .document;

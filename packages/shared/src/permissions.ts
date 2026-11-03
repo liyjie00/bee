@@ -8,6 +8,12 @@
  * folder grant, a child folder overrides its parent), so access can also be narrowed.
  * The user's effective role is the strongest role across all principals that match them,
  * combined with the share-link role if they arrived through a link.
+ *
+ * Team workspaces add a baseline from the membership role (owner → owner, editor → editor,
+ * viewer → commenter) on everything in the team. A "workspace" grant on a folder or document
+ * replaces that baseline for non-owners below it. A restricted folder hides its subtree from the
+ * team: there neither the baseline nor "workspace" grants count, only grants to the person
+ * (and ownership).
  */
 
 export const ROLES = ['viewer', 'commenter', 'editor', 'owner'] as const;
@@ -21,8 +27,19 @@ export type GrantableRole = (typeof GRANTABLE_ROLES)[number];
 export const LINK_ROLES = ['viewer', 'commenter', 'editor'] as const;
 export type LinkRole = (typeof LINK_ROLES)[number];
 
-export const WORKSPACE_ROLES = ['member', 'admin', 'owner'] as const;
+/** Membership roles, weakest first. In a personal workspace only the owner is a member. */
+export const WORKSPACE_ROLES = ['viewer', 'editor', 'owner'] as const;
 export type WorkspaceRole = (typeof WORKSPACE_ROLES)[number];
+
+export const WORKSPACE_KINDS = ['personal', 'team'] as const;
+export type WorkspaceKind = (typeof WORKSPACE_KINDS)[number];
+
+/** Role a team member gets on team content before folder or document grants. */
+export const TEAM_BASELINE: Record<WorkspaceRole, Role> = {
+  owner: 'owner',
+  editor: 'editor',
+  viewer: 'commenter',
+};
 
 export type PrincipalType = 'user' | 'workspace';
 export type ResourceType = 'folder' | 'document';
@@ -62,6 +79,8 @@ export interface ChainNode {
   id: string;
   ownerId: string;
   grants: Grant[];
+  /** folders only: hidden from the team except people granted access */
+  restricted?: boolean;
 }
 
 export interface AccessInput {
@@ -70,6 +89,8 @@ export interface AccessInput {
   workspaceId: string;
   /** the user's membership role in the resource's workspace, if any */
   workspaceRole: WorkspaceRole | null;
+  /** true when the resource's workspace is a team (adds the membership baseline) */
+  team?: boolean;
   /** resource first, then its parent folder, ... up to the root folder */
   chain: ChainNode[];
   /** role granted by a valid share link presented with the request */
@@ -80,22 +101,32 @@ export interface AccessInput {
  * Effective role on the first node in `chain`, or null when there is no access.
  */
 export function effectiveRole(input: AccessInput): Role | null {
-  const { userId, workspaceId, workspaceRole, chain, linkRole } = input;
+  const { userId, workspaceId, workspaceRole, chain, linkRole, team } = input;
   let role: Role | null = linkRole ?? null;
   if (!userId) return role;
 
-  // Ownership of the resource or any ancestor folder makes the user owner of the subtree.
-  if (chain.some((n) => n.ownerId === userId)) return 'owner';
+  // Ownership of the resource or any ancestor folder makes the user owner of the subtree
+  // (in a team only while they are a member).
+  if ((!team || workspaceRole) && chain.some((n) => n.ownerId === userId)) return 'owner';
 
-  const principals: { type: PrincipalType; id: string }[] = [{ type: 'user', id: userId }];
-  if (workspaceRole) principals.push({ type: 'workspace', id: workspaceId });
-
-  for (const p of principals) {
+  const nearest = (type: PrincipalType, id: string) => {
     for (const node of chain) {
-      const g = node.grants.find((x) => x.principalType === p.type && x.principalId === p.id);
-      if (g) {
-        role = maxRole(role, g.role);
-        break; // nearest grant for this principal wins
+      const g = node.grants.find((x) => x.principalType === type && x.principalId === id);
+      if (g) return g.role; // nearest grant for this principal wins
+    }
+    return null;
+  };
+  role = maxRole(role, nearest('user', userId));
+
+  if (workspaceRole) {
+    const restricted = team && chain.some((n) => n.restricted);
+    if (!restricted) {
+      const shared = nearest('workspace', workspaceId);
+      if (team) {
+        const base = TEAM_BASELINE[workspaceRole];
+        role = maxRole(role, base === 'owner' ? base : (shared ?? base));
+      } else {
+        role = maxRole(role, shared);
       }
     }
   }

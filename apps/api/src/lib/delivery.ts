@@ -3,7 +3,15 @@ import type { FastifyInstance } from 'fastify';
 import { and, asc, eq, inArray, isNull, lt } from 'drizzle-orm';
 import nodemailer, { type Transporter } from 'nodemailer';
 import webpush from 'web-push';
-import { documents, folders, notifications, pushSubscriptions, users, type Db } from '@bee/db';
+import {
+  documents,
+  folders,
+  notifications,
+  pushSubscriptions,
+  users,
+  workspaces,
+  type Db,
+} from '@bee/db';
 import type { NotificationKind, UserPrefs } from '@bee/shared';
 import type { Config } from '../env.js';
 
@@ -38,6 +46,10 @@ export function deliveryEnabled() {
 const ROLE: Record<Lang, Record<string, string>> = {
   'zh-CN': { viewer: '可查看', commenter: '可评论', editor: '可编辑' },
   en: { viewer: 'view', commenter: 'comment', editor: 'edit' },
+};
+const TEAM_ROLE: Record<Lang, Record<string, string>> = {
+  'zh-CN': { viewer: '查看者', editor: '编辑者', owner: '所有者' },
+  en: { viewer: 'a viewer', editor: 'an editor', owner: 'an owner' },
 };
 
 export interface Described {
@@ -87,6 +99,14 @@ export function describe(
         body: n.detail ?? '',
         path: '/notifications',
       };
+    case 'team_invite': {
+      const as = TEAM_ROLE[lang][n.detail ?? ''] ?? n.detail ?? '';
+      return {
+        title: zh ? `${actor} 邀请你加入团队「${where}」` : `${actor} invited you to the team “${where}”`,
+        body: zh ? `你将以${as}身份加入` : `You would join as ${as}`,
+        path: '/invites',
+      };
+    }
   }
 }
 
@@ -100,7 +120,10 @@ async function names(db: Db, rows: Row[]) {
   const ids = (k: 'actorId' | 'documentId' | 'folderId') => [
     ...new Set(rows.map((r) => r[k]).filter((x): x is string => !!x)),
   ];
-  const [a, d, f] = await Promise.all([
+  const teamIds = [
+    ...new Set(rows.filter((r) => r.kind === 'team_invite').map((r) => r.workspaceId)),
+  ];
+  const [a, d, f, w] = await Promise.all([
     ids('actorId').length
       ? db
           .select({ id: users.id, name: users.name })
@@ -119,12 +142,20 @@ async function names(db: Db, rows: Row[]) {
           .from(folders)
           .where(inArray(folders.id, ids('folderId')))
       : [],
+    teamIds.length
+      ? db
+          .select({ id: workspaces.id, name: workspaces.name })
+          .from(workspaces)
+          .where(inArray(workspaces.id, teamIds))
+      : [],
   ]);
-  const m = new Map([...a, ...d, ...f].map((x) => [x.id, x.name]));
+  const m = new Map([...a, ...d, ...f, ...w].map((x) => [x.id, x.name]));
   return {
     actor: (r: Row) => (r.actorId ? m.get(r.actorId) : r.actorName) || 'Someone',
     where: (r: Row, lang: Lang) =>
-      m.get(r.documentId ?? r.folderId ?? '') || (lang === 'en' ? 'Untitled' : '无标题'),
+      m.get(
+        r.kind === 'team_invite' ? r.workspaceId : (r.documentId ?? r.folderId ?? ''),
+      ) || (lang === 'en' ? 'Untitled' : '无标题'),
   };
 }
 
@@ -354,4 +385,43 @@ export async function deletePushSubscription(db: Db, userId: string, endpoint: s
   await db
     .delete(pushSubscriptions)
     .where(and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.endpoint, endpoint)));
+}
+
+/** Emails a team invitation right away. Returns false when email is off or sending failed. */
+export async function sendInviteEmail(inv: {
+  to: string;
+  inviter: string;
+  team: string;
+  role: string;
+  url: string;
+  lang: Lang;
+}): Promise<boolean> {
+  if (!mailer || !config) return false;
+  const zh = inv.lang === 'zh-CN';
+  const as = TEAM_ROLE[inv.lang][inv.role] ?? inv.role;
+  const title = zh
+    ? `${inv.inviter} 邀请你加入 Bee 团队「${inv.team}」`
+    : `${inv.inviter} invited you to “${inv.team}” on Bee`;
+  const body = zh
+    ? `你将以${as}身份加入。邀请 7 天内有效。`
+    : `You will join as ${as}. The invitation is valid for 7 days.`;
+  const join = zh ? '加入团队' : 'Join the team';
+  try {
+    await mailer.sendMail({
+      from: config.mailFrom,
+      to: inv.to,
+      subject: title,
+      text: `${title}\n${body}\n${inv.url}`,
+      html: `<div style="font-family:-apple-system,'PingFang SC',sans-serif;font-size:14px;line-height:1.55;max-width:560px">
+<div style="font-weight:700;font-size:18px;margin-bottom:8px">bee</div>
+<div style="font-weight:600;color:#1d211b">${esc(title)}</div>
+<p style="color:#4a5146">${esc(body)}</p>
+<p><a href="${esc(inv.url)}" style="display:inline-block;background:#e8a317;color:#2a1c00;font-weight:700;padding:10px 16px;border-radius:8px;text-decoration:none">${join}</a></p>
+<p style="font-size:12px;color:#7b8375">${esc(inv.url)}</p></div>`,
+    });
+    return true;
+  } catch (err) {
+    console.error('invite email failed', err);
+    return false;
+  }
 }

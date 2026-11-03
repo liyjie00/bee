@@ -6,6 +6,7 @@ import {
   permissions,
   shareLinks,
   workspaceMembers,
+  workspaces,
   type Db,
 } from '@bee/db';
 import {
@@ -60,6 +61,16 @@ export async function membershipRole(
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
     .limit(1);
   return rows[0]?.role ?? null;
+}
+
+/** Whether the workspace is a team (personal workspaces belong to one person). */
+export async function isTeam(db: Db, workspaceId: string): Promise<boolean> {
+  const [w] = await db
+    .select({ kind: workspaces.kind })
+    .from(workspaces)
+    .where(eq(workspaces.id, workspaceId))
+    .limit(1);
+  return w?.kind === 'team';
 }
 
 export async function requireMember(db: Db, workspaceId: string, userId: string | null) {
@@ -190,6 +201,8 @@ export interface DocAccess {
   role: Role;
   chain: FolderRow[];
   workspaceRole: WorkspaceRole | null;
+  /** the document is in a team workspace */
+  team: boolean;
 }
 
 /**
@@ -213,10 +226,11 @@ export async function docAccess(
   const rows = await db.select().from(documents).where(eq(documents.id, opts.documentId)).limit(1);
   const doc = rows[0];
   if (!doc || (doc.deletedAt && !opts.includeDeleted)) throw notFound('Document not found');
-  const [chain, workspaceRole, link] = await Promise.all([
+  const [chain, workspaceRole, link, team] = await Promise.all([
     folderChain(db, doc.folderId),
     membershipRole(db, doc.workspaceId, opts.userId),
     validShareLink(db, opts.shareToken, doc.id),
+    isTeam(db, doc.workspaceId),
   ]);
   const grants = await grantsFor(db, [doc.id, ...chain.map((f) => f.id)]);
   const nodes: ChainNode[] = [
@@ -231,12 +245,15 @@ export async function docAccess(
       id: f.id,
       ownerId: f.ownerId,
       grants: (grants.get(f.id) ?? []).map(toGrant),
+      restricted: f.restricted,
     })),
   ];
+  const restricted = team && chain.some((f) => f.restricted);
   let role = effectiveRole({
     userId: opts.userId,
     workspaceId: doc.workspaceId,
     workspaceRole,
+    team,
     chain: nodes,
     linkRole: doc.deletedAt ? null : linkRoleFor(link, opts.userId),
   });
@@ -256,9 +273,10 @@ export async function docAccess(
     }
   }
   // A standalone document linked into another one (e.g. a whiteboard inserted into a doc) can be
-  // viewed by readers of a host that still embeds it.
+  // viewed by readers of a host that still embeds it, unless it sits in a restricted folder.
   if (
     !can.read(role) &&
+    !restricted &&
     !opts.direct &&
     (opts.depth ?? 0) < 8 &&
     !doc.deletedAt &&
@@ -270,7 +288,7 @@ export async function docAccess(
     if (!opts.userId) throw unauthorized();
     throw notFound('Document not found');
   }
-  return { doc, role: role!, chain, workspaceRole };
+  return { doc, role: role!, chain, workspaceRole, team };
 }
 
 export async function requireDocRole(
@@ -289,6 +307,7 @@ export interface FolderAccess {
   role: Role | null;
   chain: FolderRow[];
   workspaceRole: WorkspaceRole | null;
+  team: boolean;
 }
 
 export async function folderAccess(
@@ -298,28 +317,34 @@ export async function folderAccess(
   const chain = await folderChain(db, opts.folderId);
   const folder = chain[0];
   if (!folder || (folder.deletedAt && !opts.includeDeleted)) throw notFound('Folder not found');
-  const workspaceRole = await membershipRole(db, folder.workspaceId, opts.userId);
-  const grants = await grantsFor(
-    db,
-    chain.map((f) => f.id),
-  );
+  const [workspaceRole, team, grants] = await Promise.all([
+    membershipRole(db, folder.workspaceId, opts.userId),
+    isTeam(db, folder.workspaceId),
+    grantsFor(
+      db,
+      chain.map((f) => f.id),
+    ),
+  ]);
   const role = effectiveRole({
     userId: opts.userId,
     workspaceId: folder.workspaceId,
     workspaceRole,
+    team,
     chain: chain.map((f) => ({
       type: 'folder' as const,
       id: f.id,
       ownerId: f.ownerId,
       grants: (grants.get(f.id) ?? []).map(toGrant),
+      restricted: f.restricted,
     })),
   });
   if (!can.read(role)) throw notFound('Folder not found');
-  return { folder, role, chain, workspaceRole };
+  return { folder, role, chain, workspaceRole, team };
 }
 
 export interface WorkspaceView {
   workspaceRole: WorkspaceRole;
+  team: boolean;
   folders: (FolderRow & { role: Role })[];
   documents: (DocMeta & { role: Role })[];
   /** folder ids the caller can read */
@@ -337,7 +362,8 @@ export async function workspaceView(
   opts: { deleted?: boolean } = {},
 ): Promise<WorkspaceView> {
   const workspaceRole = await requireMember(db, workspaceId, userId);
-  const [allFolders, allDocs, allGrants] = await Promise.all([
+  const [team, allFolders, allDocs, allGrants] = await Promise.all([
+    isTeam(db, workspaceId),
     db.select().from(folders).where(eq(folders.workspaceId, workspaceId)),
     db
       .select(docMeta)
@@ -372,6 +398,7 @@ export async function workspaceView(
         id: cur.id,
         ownerId: cur.ownerId,
         grants: grants.get(cur.id) ?? [],
+        restricted: cur.restricted,
       });
       cur = cur.parentId ? folderById.get(cur.parentId) : undefined;
     }
@@ -391,7 +418,7 @@ export async function workspaceView(
   };
 
   const roleIn = (chain: ChainNode[]) =>
-    effectiveRole({ userId, workspaceId, workspaceRole, chain });
+    effectiveRole({ userId, workspaceId, workspaceRole, team, chain });
 
   const visibleFolders: (FolderRow & { role: Role })[] = [];
   for (const f of allFolders) {
@@ -412,6 +439,7 @@ export async function workspaceView(
   }
   return {
     workspaceRole,
+    team,
     folders: visibleFolders,
     documents: visibleDocs,
     readableFolders: new Set(visibleFolders.map((f) => f.id)),

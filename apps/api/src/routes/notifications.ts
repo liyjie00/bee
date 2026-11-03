@@ -9,6 +9,7 @@ import {
   permissions,
   templates,
   users,
+  workspaces,
   type Db,
 } from '@bee/db';
 import {
@@ -19,7 +20,7 @@ import {
   type NotificationDTO,
   type TemplateDTO,
 } from '@bee/shared';
-import { docAccess, requireMember } from '../lib/access.js';
+import { docAccess, folderAccess, requireMember } from '../lib/access.js';
 import { logActivity } from '../lib/activity.js';
 import { docReaders, notifyShare } from '../lib/notify.js';
 import {
@@ -101,7 +102,14 @@ export async function notificationRoutes(app: FastifyInstance) {
     const docIds = [...new Set(rows.map((r) => r.documentId).filter((x): x is string => !!x))];
     const folderIds = [...new Set(rows.map((r) => r.folderId).filter((x): x is string => !!x))];
     const reqIds = [...new Set(rows.map((r) => r.requestId).filter((x): x is string => !!x))];
-    const [docs, fols, refs, reqRows] = await Promise.all([
+    const wsIds = [...new Set(rows.map((r) => r.workspaceId))];
+    // Only what the reader can still open: access may have changed since (a folder was
+    // restricted, they left a team...), and titles must not leak.
+    const readable = async (ids: string[], check: (id: string) => Promise<unknown>) => {
+      const ok = await Promise.all(ids.map((id) => check(id).then(() => true, () => false)));
+      return new Set(ids.filter((_, i) => ok[i]));
+    };
+    const [docs, fols, refs, reqRows, spaces, openDocs, openFolders] = await Promise.all([
       docIds.length
         ? db
             .select({
@@ -126,19 +134,35 @@ export async function notificationRoutes(app: FastifyInstance) {
       reqIds.length
         ? db.select().from(accessRequests).where(inArray(accessRequests.id, reqIds))
         : [],
+      wsIds.length
+        ? db
+            .select({
+              id: workspaces.id,
+              name: workspaces.name,
+              kind: workspaces.kind,
+              color: workspaces.color,
+            })
+            .from(workspaces)
+            .where(inArray(workspaces.id, wsIds))
+        : [],
+      readable(docIds, (id) => docAccess(db, { userId: user.id, documentId: id })),
+      readable(folderIds, (id) => folderAccess(db, { userId: user.id, folderId: id })),
     ]);
+    const spaceById = new Map(spaces.map((w) => [w.id, w]));
     const reqs = await requestDTOs(db, reqRows);
     const docById = new Map(docs.map((d) => [d.id, d]));
     const folderById = new Map(fols.map((f) => [f.id, f]));
     const list: NotificationDTO[] = [];
     for (const r of rows) {
       const d = r.documentId ? docById.get(r.documentId) : undefined;
-      // Documents in the trash drop out of the inbox.
-      if (r.documentId && (!d || d.deletedAt)) continue;
+      // Documents in the trash drop out of the inbox, and so does what the reader cannot open.
+      if (r.documentId && (!d || d.deletedAt || !openDocs.has(r.documentId))) continue;
+      if (r.folderId && !openFolders.has(r.folderId)) continue;
       const name = r.actorName ?? 'Guest';
       list.push({
         id: r.id,
         kind: r.kind,
+        workspace: spaceById.get(r.workspaceId) ?? null,
         actor: r.actorId
           ? refOr(refs, r.actorId)
           : { id: '', name, avatarUrl: null, color: guestColor(name) },
@@ -388,7 +412,7 @@ export async function notificationRoutes(app: FastifyInstance) {
     createdAt: t.createdAt.toISOString(),
   });
   const mayDelete = (t: typeof templates.$inferSelect, userId: string, role: string) =>
-    t.createdById === userId || role === 'owner' || role === 'admin';
+    t.createdById === userId || role === 'owner';
 
   app.get('/workspaces/:id/templates', async (req) => {
     const user = requireUser(req);

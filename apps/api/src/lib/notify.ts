@@ -48,6 +48,7 @@ export async function docReaders(
       id: f.id,
       ownerId: f.ownerId,
       grants: grantsOf(f.id),
+      restricted: f.restricted,
     })),
   ];
   const candidates = new Set<string>([
@@ -60,6 +61,7 @@ export async function docReaders(
       userId,
       workspaceId: a.doc.workspaceId,
       workspaceRole: memberRole.get(userId) ?? null,
+      team: a.team,
       chain,
     });
     return opts.minRole ? roleAtLeast(role, opts.minRole) : can.read(role);

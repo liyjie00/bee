@@ -9,33 +9,63 @@ import {
   workspaceMembers,
   workspaces,
 } from '@bee/db';
-import { WORKSPACE_ROLES, workspaceRoleAtLeast, type WorkspaceMemberDTO } from '@bee/shared';
+import {
+  INVITE_ROLES,
+  TEAM_COLORS,
+  WORKSPACE_ROLES,
+  workspaceRoleAtLeast,
+  type WorkspaceMemberDTO,
+} from '@bee/shared';
 import { docAccess, requireMember, workspaceView } from '../lib/access.js';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors.js';
 import { documentDTOs, folderDTO, userRef, workspaceDTO } from '../lib/dto.js';
 import { snippet } from '../lib/content.js';
+import {
+  inviteByEmail,
+  memberCount,
+  removeMember,
+  requireAnotherOwner,
+  requireTeam,
+} from '../lib/teams.js';
 import { idParams, parse } from '../lib/validate.js';
 import { createWorkspace, requireUser, userWorkspaces } from './auth.js';
 
-const nameBody = z.object({ name: z.string().trim().min(1).max(100) });
-const addMemberBody = z.object({
-  email: z.email().transform((s) => s.trim().toLowerCase()),
-  role: z.enum(WORKSPACE_ROLES),
+const email = z.email().transform((s) => s.trim().toLowerCase());
+const createBody = z.object({
+  name: z.string().trim().min(1).max(100),
+  color: z.enum(TEAM_COLORS).optional(),
+  /** invited as editors */
+  emails: z.array(email).max(50).optional(),
+});
+const patchBody = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  color: z.enum(TEAM_COLORS).optional(),
 });
 const memberParams = z.object({ id: z.uuid(), userId: z.uuid() });
 
 export async function workspaceRoutes(app: FastifyInstance) {
-  const { db } = app;
+  const { db, config } = app;
 
   app.get('/workspaces', async (req) => ({
     workspaces: await userWorkspaces(db, requireUser(req).id),
   }));
 
+  /** Creates a team; the personal workspace is made at sign-up. */
   app.post('/workspaces', async (req, reply) => {
     const user = requireUser(req);
-    const { name } = parse(nameBody, req.body);
-    const w = await createWorkspace(db, name, user.id);
-    return reply.status(201).send({ workspace: workspaceDTO(w, 'owner') });
+    const body = parse(createBody, req.body);
+    const w = await createWorkspace(db, body.name, user.id, { color: body.color ?? TEAM_COLORS[0] });
+    const invited = await inviteByEmail(db, {
+      team: w,
+      emails: (body.emails ?? []).filter((e) => e !== user.email.toLowerCase()),
+      role: 'editor',
+      inviter: user,
+      publicUrl: config.publicUrl,
+    });
+    return reply.status(201).send({
+      workspace: workspaceDTO(w, 'owner', 1),
+      invites: invited.map((i) => ({ email: i.invite.email, url: i.url, emailed: i.emailed })),
+    });
   });
 
   app.get('/workspaces/:id', async (req) => {
@@ -43,18 +73,31 @@ export async function workspaceRoutes(app: FastifyInstance) {
     const { id } = parse(idParams, req.params);
     const role = await requireMember(db, id, user.id);
     const [w] = await db.select().from(workspaces).where(eq(workspaces.id, id));
-    return { workspace: workspaceDTO(w!, role) };
+    return { workspace: workspaceDTO(w!, role, await memberCount(db, id)) };
   });
 
   app.patch('/workspaces/:id', async (req) => {
     const user = requireUser(req);
     const { id } = parse(idParams, req.params);
     const role = await requireMember(db, id, user.id);
-    if (!workspaceRoleAtLeast(role, 'admin'))
-      throw forbidden('Only admins can rename the workspace');
-    const { name } = parse(nameBody, req.body);
-    const [w] = await db.update(workspaces).set({ name }).where(eq(workspaces.id, id)).returning();
-    return { workspace: workspaceDTO(w!, role) };
+    if (!workspaceRoleAtLeast(role, 'owner'))
+      throw forbidden('Only owners can change the workspace');
+    const body = parse(patchBody, req.body);
+    const [w] = await db.update(workspaces).set(body).where(eq(workspaces.id, id)).returning();
+    return { workspace: workspaceDTO(w!, role, await memberCount(db, id)) };
+  });
+
+  /** Deletes a team and everything in it. The name must be typed to confirm. */
+  app.delete('/workspaces/:id', async (req) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    const { confirm } = parse(z.object({ confirm: z.string() }), req.query);
+    const role = await requireMember(db, id, user.id);
+    const w = await requireTeam(db, id);
+    if (role !== 'owner') throw forbidden('Only owners can delete the team');
+    if (confirm.trim() !== w.name.trim()) throw badRequest('Type the team name to confirm');
+    await db.delete(workspaces).where(eq(workspaces.id, id));
+    return { ok: true };
   });
 
   app.get('/workspaces/:id/members', async (req) => {
@@ -75,19 +118,19 @@ export async function workspaceRoutes(app: FastifyInstance) {
     return { members };
   });
 
+  /** Adds someone who already has an account straight away (owners only; no invitation). */
   app.post('/workspaces/:id/members', async (req, reply) => {
     const user = requireUser(req);
     const { id } = parse(idParams, req.params);
     const myRole = await requireMember(db, id, user.id);
-    if (!workspaceRoleAtLeast(myRole, 'admin')) throw forbidden('Only admins can add members');
-    const body = parse(addMemberBody, req.body);
-    if (body.role === 'owner') throw badRequest('There can only be one owner');
+    if (myRole !== 'owner') throw forbidden('Only owners can add members');
+    const body = parse(z.object({ email, role: z.enum(WORKSPACE_ROLES) }), req.body);
     const [target] = await db
       .select()
       .from(users)
       .where(sql`lower(${users.email}) = ${body.email}`)
       .limit(1);
-    if (!target) throw notFound('No user with that email. Ask them to sign up first.');
+    if (!target) throw notFound('No user with that email. Invite them instead.');
     const inserted = await db
       .insert(workspaceMembers)
       .values({ workspaceId: id, userId: target.id, role: body.role })
@@ -103,14 +146,38 @@ export async function workspaceRoutes(app: FastifyInstance) {
     });
   });
 
+  /** Invites people by email. Editors may invite editors and viewers. */
+  app.post('/workspaces/:id/invites', async (req, reply) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    const body = parse(
+      z.object({ emails: z.array(email).min(1).max(50), role: z.enum(INVITE_ROLES) }),
+      req.body,
+    );
+    const role = await requireMember(db, id, user.id);
+    const team = await requireTeam(db, id);
+    if (!workspaceRoleAtLeast(role, 'editor')) throw forbidden('Viewers cannot invite people');
+    const invited = await inviteByEmail(db, {
+      team,
+      emails: body.emails,
+      role: body.role,
+      inviter: user,
+      publicUrl: config.publicUrl,
+    });
+    return reply.status(201).send({
+      invites: invited.map((i) => ({ email: i.invite.email, url: i.url, emailed: i.emailed })),
+    });
+  });
+
   app.patch('/workspaces/:id/members/:userId', async (req) => {
     const user = requireUser(req);
     const { id, userId } = parse(memberParams, req.params);
     const myRole = await requireMember(db, id, user.id);
-    if (!workspaceRoleAtLeast(myRole, 'admin')) throw forbidden();
-    const { role } = parse(z.object({ role: z.enum(['member', 'admin']) }), req.body);
+    await requireTeam(db, id);
+    if (myRole !== 'owner') throw forbidden('Only owners can change roles');
+    const { role } = parse(z.object({ role: z.enum(WORKSPACE_ROLES) }), req.body);
     const targetRole = await requireMember(db, id, userId);
-    if (targetRole === 'owner') throw badRequest('Cannot change the owner role');
+    if (targetRole === 'owner' && role !== 'owner') await requireAnotherOwner(db, id, userId);
     await db
       .update(workspaceMembers)
       .set({ role })
@@ -118,16 +185,17 @@ export async function workspaceRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
+  /** Removes a member (owners), or leaves the team (anyone). */
   app.delete('/workspaces/:id/members/:userId', async (req) => {
     const user = requireUser(req);
     const { id, userId } = parse(memberParams, req.params);
     const myRole = await requireMember(db, id, user.id);
-    if (userId !== user.id && !workspaceRoleAtLeast(myRole, 'admin')) throw forbidden();
+    await requireTeam(db, id);
+    const self = userId === user.id;
+    if (!self && myRole !== 'owner') throw forbidden('Only owners can remove members');
     const targetRole = await requireMember(db, id, userId);
-    if (targetRole === 'owner') throw badRequest('The owner cannot leave the workspace');
-    await db
-      .delete(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, id), eq(workspaceMembers.userId, userId)));
+    if (targetRole === 'owner') await requireAnotherOwner(db, id, userId);
+    await removeMember(db, id, userId, self ? undefined : user.id);
     return { ok: true };
   });
 

@@ -61,6 +61,7 @@ export function client(app: App) {
     get: (u: string, h?: Record<string, string>) => call('GET', u, undefined, h),
     post: (u: string, b?: unknown, h?: Record<string, string>) => call('POST', u, b ?? {}, h),
     patch: (u: string, b?: unknown, h?: Record<string, string>) => call('PATCH', u, b ?? {}, h),
+    put: (u: string, b?: unknown, h?: Record<string, string>) => call('PUT', u, b ?? {}, h),
     del: (u: string, h?: Record<string, string>) => call('DELETE', u, undefined, h),
     get cookie() {
       return cookie;

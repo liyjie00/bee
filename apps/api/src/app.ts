@@ -10,6 +10,7 @@ import { HttpError } from './lib/errors.js';
 import { authRoutes, setSessionCookie } from './routes/auth.js';
 import { googleAuthRoutes } from './routes/google-auth.js';
 import { workspaceRoutes } from './routes/workspaces.js';
+import { teamRoutes } from './routes/teams.js';
 import { folderRoutes } from './routes/folders.js';
 import { documentRoutes } from './routes/documents.js';
 import { versionRoutes } from './routes/versions.js';
@@ -189,6 +190,7 @@ export async function buildApp(opts: {
       await api.register(authRoutes);
       await api.register(googleAuthRoutes);
       await api.register(workspaceRoutes);
+      await api.register(teamRoutes);
       await api.register(folderRoutes);
       await api.register(documentRoutes);
       await api.register(versionRoutes);

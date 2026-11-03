@@ -60,8 +60,21 @@ export async function loadUserRefs(
 export const refOr = (map: Map<string, UserRef>, id: string | null | undefined): UserRef =>
   (id && map.get(id)) || { ...UNKNOWN, id: id ?? '' };
 
-export function workspaceDTO(w: typeof workspaces.$inferSelect, role: WorkspaceRole): WorkspaceDTO {
-  return { id: w.id, name: w.name, slug: w.slug, role, createdAt: w.createdAt.toISOString() };
+export function workspaceDTO(
+  w: typeof workspaces.$inferSelect,
+  role: WorkspaceRole,
+  memberCount = 1,
+): WorkspaceDTO {
+  return {
+    id: w.id,
+    name: w.name,
+    slug: w.slug,
+    kind: w.kind,
+    color: w.color,
+    role,
+    memberCount,
+    createdAt: w.createdAt.toISOString(),
+  };
 }
 
 export function folderDTO(f: FolderRow, role: Role): FolderDTO {
@@ -73,6 +86,7 @@ export function folderDTO(f: FolderRow, role: Role): FolderDTO {
     sort: f.sort,
     ownerId: f.ownerId,
     role,
+    restricted: f.restricted,
     createdAt: f.createdAt.toISOString(),
     updatedAt: f.updatedAt.toISOString(),
   };

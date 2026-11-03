@@ -2,7 +2,14 @@
  * Wire types for the HTTP API (apps/api). Dates are ISO strings.
  * All routes live under /api. Errors are `{ error: { code, message } }`.
  */
-import type { GrantableRole, LinkRole, PrincipalType, Role, WorkspaceRole } from './permissions.js';
+import type {
+  GrantableRole,
+  LinkRole,
+  PrincipalType,
+  Role,
+  WorkspaceKind,
+  WorkspaceRole,
+} from './permissions.js';
 
 export type DocumentType = 'doc' | 'whiteboard' | 'sheet';
 
@@ -64,8 +71,46 @@ export interface WorkspaceDTO {
   id: string;
   name: string;
   slug: string;
+  kind: WorkspaceKind;
+  /** tile color of a team */
+  color: string;
   role: WorkspaceRole;
+  memberCount: number;
   createdAt: string;
+}
+
+/** Colors a team tile can take. */
+export const TEAM_COLORS = ['#c2410c', '#3b7dd8', '#7c3aed', '#1e6b2a', '#e8a317', '#4a5146'] as const;
+
+/** Roles an invitation can give (owners promote people after they join). */
+export const INVITE_ROLES = ['editor', 'viewer'] as const;
+export type InviteRole = (typeof INVITE_ROLES)[number];
+
+/** A pending invitation by email. */
+export interface TeamInviteDTO {
+  id: string;
+  email: string;
+  role: InviteRole;
+  invitedBy: UserRef | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** The team's join link (one per team). `url` is null while the link is off. */
+export interface TeamLinkDTO {
+  url: string | null;
+  role: InviteRole;
+}
+
+/** What an invitation page shows before the visitor accepts. */
+export interface InvitePreviewDTO {
+  workspace: { id: string; name: string; color: string; memberCount: number };
+  role: InviteRole;
+  invitedBy: UserRef | null;
+  /** email invitations: the address it was sent to */
+  email: string | null;
+  /** the visitor is already a member */
+  member: boolean;
 }
 
 export interface WorkspaceMemberDTO {
@@ -82,6 +127,8 @@ export interface FolderDTO {
   sort: number;
   ownerId: string;
   role: Role;
+  /** team folders hidden from members who were not added */
+  restricted: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -232,7 +279,13 @@ export interface ConnectedAppDTO {
   lastUsedAt: string | null;
 }
 
-export const NOTIFICATION_KINDS = ['mention', 'reply', 'share', 'access_request'] as const;
+export const NOTIFICATION_KINDS = [
+  'mention',
+  'reply',
+  'share',
+  'access_request',
+  'team_invite',
+] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 export interface AccessRequestDTO {
@@ -249,6 +302,8 @@ export interface AccessRequestDTO {
 export interface NotificationDTO {
   id: string;
   kind: NotificationKind;
+  /** the space it happened in */
+  workspace: { id: string; name: string; kind: WorkspaceKind; color: string } | null;
   /** for guests: id '' and the guest's nickname */
   actor: UserRef | null;
   document: { id: string; title: string; type: DocumentType } | null;
