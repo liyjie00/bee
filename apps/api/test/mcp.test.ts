@@ -478,4 +478,76 @@ describe('mcp', () => {
       (await callTool(otherToken, 'draw_diagram', { embedInDocumentId: docId, nodes })).isError,
     ).toBe(true);
   });
+
+  it('uploads and inserts images', async () => {
+    const { c } = await signup(app, 'mcp5');
+    const token = (await c.post('/api/tokens', { name: 't' })).json.secret as string;
+    const doc = await callTool(token, 'create_document', { title: 'Pics', markdown: 'Intro' });
+    const docId = /id: ([0-9a-f-]{36})/.exec(doc.text)![1]!;
+    // 1x1 transparent PNG.
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+    collabCalls.length = 0;
+    const end = await callTool(token, 'insert_image', {
+      documentId: docId,
+      base64: `data:image/png;base64,${png}`,
+      alt: 'Dot [x]',
+    });
+    expect(end.isError).toBe(false);
+    const url = /\((\/api\/uploads\/[0-9a-f-]{36})\)/.exec(end.text)![1]!;
+    const edit = JSON.parse(collabCalls.find((x) => x.method === 'POST')!.body);
+    expect(edit).toMatchObject({ mode: 'append', markdown: `![Dot  x](${url})` });
+    const file = await c.get(url);
+    expect(file.res.headers['content-type']).toBe('image/png');
+    expect(file.res.rawPayload.equals(Buffer.from(png, 'base64'))).toBe(true);
+
+    collabCalls.length = 0;
+    const after = await callTool(token, 'insert_image', {
+      documentId: docId,
+      base64: png,
+      position: 'after',
+      find: 'Intro',
+    });
+    expect(after.isError).toBe(false);
+    const body = JSON.parse(collabCalls.find((x) => x.method === 'POST')!.body);
+    expect(body.mode).toBe('str_replace');
+    expect(body.find).toBe('Intro');
+    expect(body.replace).toMatch(/^Intro\n\n!\[\]\(\/api\/uploads\/[0-9a-f-]{36}\)\n\n$/);
+
+    const none = await callTool(token, 'insert_image', {
+      documentId: docId,
+      base64: png,
+      position: 'none',
+    });
+    expect(none.text).toContain('Use this Markdown');
+
+    // Not an image, both/neither source, missing find, private URLs, other users.
+    const bad = await callTool(token, 'insert_image', {
+      documentId: docId,
+      base64: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>').toString('base64'),
+    });
+    expect(bad).toMatchObject({ isError: true });
+    expect(bad.text).toContain('Not a PNG');
+    expect((await callTool(token, 'insert_image', { documentId: docId })).isError).toBe(true);
+    expect(
+      (await callTool(token, 'insert_image', { documentId: docId, base64: png, position: 'after' }))
+        .isError,
+    ).toBe(true);
+    for (const u of [
+      'http://127.0.0.1:7070/x.png',
+      'http://[::1]/x.png',
+      'file:///etc/passwd',
+      'http://localhost/x.png',
+    ]) {
+      const r = await callTool(token, 'insert_image', { documentId: docId, url: u });
+      expect(r.isError).toBe(true);
+      expect(r.text).toMatch(/not reachable|only http/i);
+    }
+    const other = await signup(app, 'mcp6');
+    const otherToken = (await other.c.post('/api/tokens', { name: 't' })).json.secret as string;
+    expect(
+      (await callTool(otherToken, 'insert_image', { documentId: docId, base64: png })).isError,
+    ).toBe(true);
+  });
 });

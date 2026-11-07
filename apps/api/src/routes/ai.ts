@@ -18,7 +18,7 @@ import { openKeys, sealKeys, type KeyRing } from '../lib/ai/keys.js';
 import { listModels, openSession, type ToolOutput, type ToolSpec } from '../lib/ai/providers.js';
 import { parse } from '../lib/validate.js';
 import { requireUser } from './auth.js';
-import { INSTRUCTIONS, TOOLS, ToolError, injectCaller, type Ctx } from './mcp.js';
+import { INSTRUCTIONS, TOOLS, ToolError, injectCaller, injectUploader, type Ctx } from './mcp.js';
 
 /**
  * Ask AI: a chat next to the document that writes and edits documents with the user's own
@@ -239,6 +239,8 @@ export async function aiRoutes(app: FastifyInstance) {
         collab,
         publicUrl: config.publicUrl,
         call: injectCaller(app, { cookie: req.headers.cookie ?? '' }),
+        upload: injectUploader(app, { cookie: req.headers.cookie ?? '' }),
+        maxUploadBytes: config.maxUploadBytes,
       };
       const doc = body.documentId
         ? await ctx

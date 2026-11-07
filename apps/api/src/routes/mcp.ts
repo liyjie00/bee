@@ -7,7 +7,9 @@ import type {
   MarkdownEditResponse,
   WorkspaceDTO,
 } from '@bee/shared';
+import { can } from '@bee/shared';
 import { CollabClient } from '../lib/collab.js';
+import { decodeBase64Image, fetchImage, ImageFetchError, imageExt, sniffImage } from '../lib/images.js';
 
 /**
  * MCP server (Streamable HTTP transport, stateless, JSON responses only) so Claude and other
@@ -26,6 +28,7 @@ export const INSTRUCTIONS = `Bee is a collaborative document editor (folders, Ma
 - Start with list_documents (or search_documents) to find ids; most tools take a documentId or folderId.
 - read_document returns the live content as Markdown. Prefer edit_document with mode "str_replace" for targeted edits: "find" must match the Markdown exactly once (copy it from read_document). Use "append" to add at the end, "replace" to rewrite everything. Edits show up live for people who have the document open; unchanged paragraphs keep their comments.
 - add_comment with a "quote" pins the comment to that text; without it the comment is about the whole document.
+- Images: insert_image uploads an image (base64 data, or an http(s) URL Bee downloads) into the document and places it at the end, next to some text, or nowhere (it then returns Markdown to use in edit_document / create_document). Images with other src URLs in Markdown are not copied into Bee.
 - Diagrams: draw_diagram draws boxes with text and connecting arrows on a whiteboard (laid out automatically), on an existing board, a new one, or a new board embedded at the end of a document. read_whiteboard describes a board. For a quick diagram inside a document, a \`\`\`mermaid code block via edit_document also renders.
 - Math: LaTeX between $…$ (inline) or $$…$$ on lines of their own (block) renders as formulas; write a literal dollar as \\$.
 - Spreadsheets in a document appear as \`<!-- bee:sheet <id> name="…" -->\` followed by a table of their computed values. Keep the marker line when editing around them; the values table is read-only (changes to it are ignored).
@@ -43,9 +46,20 @@ interface JsonRpcRequest {
 export type Ctx = {
   userId: string;
   call: <T>(method: InjectOptions['method'], url: string, payload?: unknown) => Promise<T>;
+  /** Uploads a file to a document (POST /api/documents/:id/uploads) as the caller. */
+  upload: (documentId: string, data: Buffer, filename: string, mime: string) => Promise<UploadResponse>;
+  maxUploadBytes: number;
   collab: CollabClient;
   publicUrl: string;
 };
+
+export interface UploadResponse {
+  id: string;
+  url: string;
+  filename: string;
+  mime: string;
+  size: number;
+}
 
 export interface Tool<S extends z.ZodType = z.ZodType> {
   name: string;
@@ -302,6 +316,84 @@ export const TOOLS: Tool[] = [
       );
       const stats = `${r.inserted} block(s) added, ${r.removed} removed, ${r.kept} unchanged${r.occurrences ? `; ${r.occurrences} occurrence(s) replaced` : ''}`;
       return `Edited "${r.title || 'Untitled'}": ${stats}.\nURL: ${docUrl(ctx, a.documentId)}`;
+    },
+  }),
+  tool({
+    name: 'insert_image',
+    title: 'Insert an image',
+    description:
+      'Uploads an image (PNG, JPEG, GIF, WebP or AVIF) into a document and inserts it as its own block. Give either `base64` (raw base64 or a data: URL) or `url` (a public http(s) image that Bee downloads and stores). `position`: "end" (default) appends it; "after" / "before" puts it next to the exact Markdown `find` (must occur once, best a whole paragraph or heading copied from read_document); "replace" swaps `find` (e.g. a placeholder) for the image; "none" only uploads and returns the Markdown to use yourself.',
+    input: z.object({
+      documentId: id,
+      base64: z.string().max(14_000_000).optional().describe('Image bytes as base64 or a data: URL'),
+      url: z.string().max(4000).optional().describe('Public http(s) URL of the image'),
+      alt: z.string().max(500).optional().describe('Alt text / caption'),
+      filename: z.string().max(200).optional(),
+      position: z.enum(['end', 'after', 'before', 'replace', 'none']).default('end'),
+      find: z.string().optional().describe('after / before / replace: exact Markdown to place it at'),
+    }),
+    run: async (a, ctx) => {
+      if (!!a.base64 === !!a.url) throw new ToolError('Give exactly one of `base64` or `url`');
+      if (['after', 'before', 'replace'].includes(a.position) && !a.find)
+        throw new ToolError(`\`find\` is required for position "${a.position}"`);
+      // Edit access first, so nothing is downloaded on behalf of someone who cannot upload.
+      const { document: d } = await ctx.call<{ document: DocumentDTO }>(
+        'GET',
+        `/api/documents/${a.documentId}`,
+      );
+      if (d.type !== 'doc') throw new ToolError(`This is a ${d.type}; images go into documents`);
+      if (!can.edit(d.role))
+        throw new ToolError('You cannot edit this document');
+      let data: Buffer;
+      let name = a.filename;
+      if (a.url) {
+        try {
+          const r = await fetchImage(a.url, ctx.maxUploadBytes);
+          data = r.data;
+          name ??= r.filename;
+        } catch (err) {
+          if (err instanceof ImageFetchError) throw new ToolError(err.message);
+          throw err;
+        }
+      } else {
+        data = decodeBase64Image(a.base64!);
+      }
+      if (data.length > ctx.maxUploadBytes)
+        throw new ToolError(`The image is larger than ${Math.round(ctx.maxUploadBytes / 1048576)} MB`);
+      const mime = sniffImage(data);
+      if (!mime) throw new ToolError('Not a PNG, JPEG, GIF, WebP or AVIF image');
+      const ext = imageExt(mime);
+      name = (name || 'image').replace(/[\\/\r\n]/g, '_');
+      if (!/\.[a-z0-9]{2,5}$/i.test(name)) name += `.${ext}`;
+      const up = await ctx.upload(d.id, data, name, mime);
+      const alt = (a.alt ?? '').replace(/[[\]\r\n]/g, ' ').trim();
+      const md = `![${alt}](${up.url})`;
+      const kb = `${Math.max(1, Math.round(up.size / 1024))} KB`;
+      if (a.position === 'none')
+        return `Uploaded ${up.filename} (${mime}, ${kb}). Use this Markdown to place it:\n${md}`;
+      const body =
+        a.position === 'end'
+          ? { mode: 'append', markdown: md }
+          : {
+              mode: 'str_replace',
+              find: a.find,
+              replace:
+                a.position === 'after'
+                  ? `${a.find}\n\n${md}\n\n`
+                  : a.position === 'before'
+                    ? `\n\n${md}\n\n${a.find}`
+                    : `\n\n${md}\n\n`,
+            };
+      try {
+        await ctx.call<MarkdownEditResponse>('POST', `/api/documents/${d.id}/markdown`, body);
+      } catch (err) {
+        if (err instanceof ToolError)
+          throw new ToolError(
+            `${err.message}. The image was uploaded; place it with edit_document using:\n${md}`,
+          );
+        throw err;
+      }
+      return `Inserted ${up.filename} (${mime}, ${kb}) into "${d.title || 'Untitled'}".\nMarkdown: ${md}\nURL: ${docUrl(ctx, d.id)}`;
     },
   }),
   tool({
@@ -620,6 +712,31 @@ export function injectCaller(app: FastifyInstance, auth: Record<string, string>)
   };
 }
 
+/** Uploads through POST /api/documents/:id/uploads in-process (multipart), like the web editor. */
+export function injectUploader(app: FastifyInstance, auth: Record<string, string>): Ctx['upload'] {
+  return async (documentId, data, filename, mime) => {
+    const boundary = `----bee${Math.random().toString(16).slice(2)}`;
+    const safeName = filename.replace(/["\r\n]/g, '_');
+    const payload = Buffer.concat([
+      Buffer.from(
+        `--${boundary}\r\ncontent-disposition: form-data; name="file"; filename="${safeName}"\r\ncontent-type: ${mime}\r\n\r\n`,
+      ),
+      data,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/documents/${documentId}/uploads`,
+      headers: { ...auth, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload,
+    });
+    const body = res.body ? (JSON.parse(res.body) as UploadResponse & { error?: { message?: string } }) : null;
+    if (res.statusCode >= 400 || !body)
+      throw new ToolError(body?.error?.message ?? `Upload failed (HTTP ${res.statusCode})`);
+    return body;
+  };
+}
+
 const rpcError = (id: JsonRpcRequest['id'], code: number, message: string) => ({
   jsonrpc: '2.0' as const,
   id: id ?? null,
@@ -643,6 +760,8 @@ export async function mcpRoutes(app: FastifyInstance) {
       collab,
       publicUrl,
       call: injectCaller(app, { authorization: req.headers.authorization! }),
+      upload: injectUploader(app, { authorization: req.headers.authorization! }),
+      maxUploadBytes: app.config.maxUploadBytes,
     };
     switch (msg.method) {
       case 'initialize': {
