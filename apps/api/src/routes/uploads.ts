@@ -1,6 +1,6 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { createReadStream } from 'node:fs';
-import { mkdir, unlink } from 'node:fs/promises';
+import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
@@ -9,8 +9,11 @@ import { eq } from 'drizzle-orm';
 import { uploads } from '@bee/db';
 import { can } from '@bee/shared';
 import { docAccess } from '../lib/access.js';
+import { imageExt, sniffImage } from '../lib/images.js';
+import { readUploadTicket } from '../lib/upload-links.js';
 import { badRequest, forbidden, HttpError, notFound } from '../lib/errors.js';
 import { idParams, parse } from '../lib/validate.js';
+import { z } from 'zod';
 import { requireUser } from './auth.js';
 
 /** MIME types served inline; everything else is downloaded as an attachment. */
@@ -57,6 +60,59 @@ export async function uploadRoutes(app: FastifyInstance) {
     return reply
       .status(201)
       .send({ id: fileId, url: `/api/uploads/${fileId}`, filename, mime, size });
+  });
+
+  /**
+   * Signed upload link from the MCP insert_image tool (upload: true): the raw image bytes as the
+   * body (curl -T file <url>), no cookie or token. Only images; the caller then inserts the
+   * returned uploadId with insert_image.
+   */
+  await app.register(async (links) => {
+    links.removeAllContentTypeParsers();
+    links.addContentTypeParser(
+      '*',
+      { parseAs: 'buffer', bodyLimit: config.maxUploadBytes },
+      (_req, body, done) => done(null, body),
+    );
+    const handler = async (req: FastifyRequest, reply: FastifyReply) => {
+      const { ticket } = parse(z.object({ ticket: z.string().max(2000) }), req.params);
+      const t = readUploadTicket(config.sessionSecret, ticket);
+      if (!t) throw new HttpError(403, 'bad_link', 'This upload link is invalid or has expired');
+      const a = await docAccess(db, { userId: t.u, documentId: t.d });
+      if (!can.edit(a.role)) throw forbidden('You cannot upload to this document');
+      const data = Buffer.isBuffer(req.body) ? req.body : null;
+      if (!data?.length)
+        throw badRequest('Send the image bytes as the request body (curl -T file URL)');
+      const mime = sniffImage(data);
+      if (!mime) throw badRequest('Not a PNG, JPEG, GIF, WebP or AVIF image', 'not_image');
+      const fileId = randomUUID();
+      const key = join(a.doc.workspaceId, fileId);
+      await mkdir(join(root, a.doc.workspaceId), { recursive: true });
+      await writeFile(join(root, key), data);
+      let filename = (t.n || 'image').replace(/[\\/\r\n]/g, '_').slice(0, 200);
+      if (!/\.[a-z0-9]{2,5}$/i.test(filename)) filename += `.${imageExt(mime)}`;
+      await db.insert(uploads).values({
+        id: fileId,
+        workspaceId: a.doc.workspaceId,
+        documentId: t.d,
+        filename,
+        mime,
+        size: data.length,
+        storageKey: key,
+        createdById: t.u,
+      });
+      return reply.status(201).send({
+        uploadId: fileId,
+        url: `/api/uploads/${fileId}`,
+        filename,
+        mime,
+        size: data.length,
+        next: `Call insert_image with documentId ${t.d} and uploadId ${fileId} to place it.`,
+      });
+    };
+    const limit = { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } };
+    links.put('/upload-links/:ticket', limit, handler);
+    links.post('/upload-links/:ticket', limit, handler);
   });
 
   /** Authorized by the owning document; pass ?share=<token> for share-link visitors. */

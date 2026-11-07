@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decodeBase64Image, isPublicAddress, sniffImage } from '../src/lib/images.js';
+import { createUploadTicket, readUploadTicket } from '../src/lib/upload-links.js';
 
 describe('images', () => {
   it('sniffs image types from bytes', () => {
@@ -31,5 +32,15 @@ describe('images', () => {
     for (const a of blocked) expect(isPublicAddress(a), a).toBe(false);
     for (const a of ['93.184.216.34', '1.1.1.1', '2606:4700:4700::1111'])
       expect(isPublicAddress(a), a).toBe(true);
+  });
+
+  it('signs and expires upload links', () => {
+    const t = { d: 'doc', u: 'user', e: 2_000, n: 'a.png' };
+    const ticket = createUploadTicket('s', t);
+    expect(readUploadTicket('s', ticket, 1_000)).toEqual(t);
+    expect(readUploadTicket('s', ticket, 3_000)).toBeNull();
+    expect(readUploadTicket('other', ticket, 1_000)).toBeNull();
+    expect(readUploadTicket('s', 'x' + ticket, 1_000)).toBeNull();
+    expect(readUploadTicket('s', 'garbage', 1_000)).toBeNull();
   });
 });

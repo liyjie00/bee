@@ -52,6 +52,8 @@ export async function buildApp(opts: {
     logger: opts.logger ?? false,
     trustProxy: true,
     bodyLimit: 10 * 1024 * 1024,
+    // Signed upload links carry their ticket in the path.
+    routerOptions: { maxParamLength: 1000 },
   });
   app.decorate('db', opts.db);
   app.decorate('config', opts.config);

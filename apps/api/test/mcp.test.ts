@@ -550,4 +550,92 @@ describe('mcp', () => {
       (await callTool(otherToken, 'insert_image', { documentId: docId, base64: png })).isError,
     ).toBe(true);
   });
+
+  it('hands out upload links for local files', async () => {
+    const { c } = await signup(app, 'mcp7');
+    const token = (await c.post('/api/tokens', { name: 't' })).json.secret as string;
+    const doc = await callTool(token, 'create_document', { title: 'Local', markdown: 'Top' });
+    const docId = /id: ([0-9a-f-]{36})/.exec(doc.text)![1]!;
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'base64',
+    );
+
+    const got = await callTool(token, 'insert_image', {
+      documentId: docId,
+      upload: true,
+      filename: 'chart.png',
+    });
+    expect(got.isError).toBe(false);
+    const link = /http:\/\/localhost:7070(\/api\/upload-links\/[\w.-]+)/.exec(got.text)![1]!;
+    expect(got.text).toContain('curl -sS -T');
+
+    // curl -T sends no content type; other clients may send any type.
+    for (const headers of [
+      {},
+      { 'content-type': 'image/png' },
+      { 'content-type': 'application/x-www-form-urlencoded' },
+      { 'content-type': 'application/octet-stream' },
+    ]) {
+      const r = await app.inject({ method: 'PUT', url: link, headers, payload: png });
+      expect(r.statusCode, JSON.stringify(headers)).toBe(201);
+      expect(r.json()).toMatchObject({
+        filename: 'chart.png',
+        mime: 'image/png',
+        size: png.length,
+      });
+    }
+    const up = await app.inject({ method: 'PUT', url: link, payload: png });
+    const { uploadId, url } = up.json() as { uploadId: string; url: string };
+    expect((await c.get(url)).res.rawPayload.equals(png)).toBe(true);
+
+    collabCalls.length = 0;
+    const placed = await callTool(token, 'insert_image', {
+      documentId: docId,
+      uploadId,
+      alt: 'Chart',
+      position: 'before',
+      find: 'Top',
+    });
+    expect(placed.isError).toBe(false);
+    const body = JSON.parse(collabCalls.find((x) => x.method === 'POST')!.body);
+    expect(body.replace).toBe(`\n\n![Chart](/api/uploads/${uploadId})\n\nTop`);
+
+    // Not an image, tampered link, unknown upload, someone else's document.
+    expect(
+      (await app.inject({ method: 'PUT', url: link, payload: Buffer.from('hello world, not png') }))
+        .statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await app.inject({
+          method: 'PUT',
+          url: link.replace(/.$/, (ch) => (ch === 'A' ? 'B' : 'A')),
+          payload: png,
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await callTool(token, 'insert_image', {
+          documentId: docId,
+          uploadId: '00000000-0000-4000-8000-000000000000',
+        })
+      ).isError,
+    ).toBe(true);
+    const other = await signup(app, 'mcp8');
+    const otherToken = (await other.c.post('/api/tokens', { name: 't' })).json.secret as string;
+    expect(
+      (await callTool(otherToken, 'insert_image', { documentId: docId, upload: true })).isError,
+    ).toBe(true);
+    expect(
+      (
+        await callTool(token, 'insert_image', {
+          documentId: docId,
+          upload: true,
+          url: 'https://x/y.png',
+        })
+      ).isError,
+    ).toBe(true);
+  });
 });

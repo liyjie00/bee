@@ -9,6 +9,7 @@ import type {
 } from '@bee/shared';
 import { can } from '@bee/shared';
 import { CollabClient } from '../lib/collab.js';
+import { createUploadTicket, UPLOAD_LINK_TTL_MS } from '../lib/upload-links.js';
 import { decodeBase64Image, fetchImage, ImageFetchError, imageExt, sniffImage } from '../lib/images.js';
 
 /**
@@ -28,7 +29,7 @@ export const INSTRUCTIONS = `Bee is a collaborative document editor (folders, Ma
 - Start with list_documents (or search_documents) to find ids; most tools take a documentId or folderId.
 - read_document returns the live content as Markdown. Prefer edit_document with mode "str_replace" for targeted edits: "find" must match the Markdown exactly once (copy it from read_document). Use "append" to add at the end, "replace" to rewrite everything. Edits show up live for people who have the document open; unchanged paragraphs keep their comments.
 - add_comment with a "quote" pins the comment to that text; without it the comment is about the whole document.
-- Images: insert_image uploads an image (base64 data, or an http(s) URL Bee downloads) into the document and places it at the end, next to some text, or nowhere (it then returns Markdown to use in edit_document / create_document). Images with other src URLs in Markdown are not copied into Bee.
+- Images: insert_image puts an image into a document (at the end, next to some text, or only returns its Markdown). For a local file, call it with upload: true, send the file to the returned link with curl -T, then call it with the uploadId; a public image URL or small base64 also works. Images with other src URLs in Markdown are not copied into Bee.
 - Diagrams: draw_diagram draws boxes with text and connecting arrows on a whiteboard (laid out automatically), on an existing board, a new one, or a new board embedded at the end of a document. read_whiteboard describes a board. For a quick diagram inside a document, a \`\`\`mermaid code block via edit_document also renders.
 - Math: LaTeX between $…$ (inline) or $$…$$ on lines of their own (block) renders as formulas; write a literal dollar as \\$.
 - Spreadsheets in a document appear as \`<!-- bee:sheet <id> name="…" -->\` followed by a table of their computed values. Keep the marker line when editing around them; the values table is read-only (changes to it are ignored).
@@ -49,6 +50,8 @@ export type Ctx = {
   /** Uploads a file to a document (POST /api/documents/:id/uploads) as the caller. */
   upload: (documentId: string, data: Buffer, filename: string, mime: string) => Promise<UploadResponse>;
   maxUploadBytes: number;
+  /** A signed URL the caller can PUT one image to for this document (see upload-links.ts). */
+  uploadLink: (documentId: string, filename?: string) => string;
   collab: CollabClient;
   publicUrl: string;
 };
@@ -322,19 +325,26 @@ export const TOOLS: Tool[] = [
     name: 'insert_image',
     title: 'Insert an image',
     description:
-      'Uploads an image (PNG, JPEG, GIF, WebP or AVIF) into a document and inserts it as its own block. Give either `base64` (raw base64 or a data: URL) or `url` (a public http(s) image that Bee downloads and stores). `position`: "end" (default) appends it; "after" / "before" puts it next to the exact Markdown `find` (must occur once, best a whole paragraph or heading copied from read_document); "replace" swaps `find` (e.g. a placeholder) for the image; "none" only uploads and returns the Markdown to use yourself.',
+      'Uploads an image (PNG, JPEG, GIF, WebP or AVIF) into a document and inserts it as its own block. The image comes from exactly one of: `url` (a public http(s) image that Bee downloads); `uploadId` (from an upload link, see below); `base64` (raw base64 or a data: URL, fine for small images only). For a file on your machine, first call with `upload: true` to get a short-lived upload link, send the file with `curl -T <file> <link>`, then call again with the returned `uploadId`. `position`: "end" (default) appends it; "after" / "before" puts it next to the exact Markdown `find` (must occur once, best a whole paragraph or heading copied from read_document); "replace" swaps `find` (e.g. a placeholder) for the image; "none" only returns the Markdown to use yourself.',
     input: z.object({
       documentId: id,
-      base64: z.string().max(14_000_000).optional().describe('Image bytes as base64 or a data: URL'),
+      upload: z
+        .boolean()
+        .optional()
+        .describe('Only get an upload link for a local file (nothing is inserted yet)'),
+      uploadId: id.optional().describe('Image sent to an upload link'),
       url: z.string().max(4000).optional().describe('Public http(s) URL of the image'),
+      base64: z.string().max(14_000_000).optional().describe('Image bytes as base64 or a data: URL'),
       alt: z.string().max(500).optional().describe('Alt text / caption'),
       filename: z.string().max(200).optional(),
       position: z.enum(['end', 'after', 'before', 'replace', 'none']).default('end'),
       find: z.string().optional().describe('after / before / replace: exact Markdown to place it at'),
     }),
     run: async (a, ctx) => {
-      if (!!a.base64 === !!a.url) throw new ToolError('Give exactly one of `base64` or `url`');
-      if (['after', 'before', 'replace'].includes(a.position) && !a.find)
+      const sources = [a.upload, a.uploadId, a.url, a.base64].filter(Boolean).length;
+      if (sources !== 1)
+        throw new ToolError('Give exactly one of `upload: true`, `uploadId`, `url` or `base64`');
+      if (!a.upload && ['after', 'before', 'replace'].includes(a.position) && !a.find)
         throw new ToolError(`\`find\` is required for position "${a.position}"`);
       // Edit access first, so nothing is downloaded on behalf of someone who cannot upload.
       const { document: d } = await ctx.call<{ document: DocumentDTO }>(
@@ -342,35 +352,61 @@ export const TOOLS: Tool[] = [
         `/api/documents/${a.documentId}`,
       );
       if (d.type !== 'doc') throw new ToolError(`This is a ${d.type}; images go into documents`);
-      if (!can.edit(d.role))
-        throw new ToolError('You cannot edit this document');
-      let data: Buffer;
-      let name = a.filename;
-      if (a.url) {
-        try {
-          const r = await fetchImage(a.url, ctx.maxUploadBytes);
-          data = r.data;
-          name ??= r.filename;
-        } catch (err) {
-          if (err instanceof ImageFetchError) throw new ToolError(err.message);
-          throw err;
-        }
-      } else {
-        data = decodeBase64Image(a.base64!);
+      if (!can.edit(d.role)) throw new ToolError('You cannot edit this document');
+
+      if (a.upload) {
+        const link = ctx.uploadLink(d.id, a.filename);
+        return [
+          `Upload link (valid 15 minutes, images up to ${Math.round(ctx.maxUploadBytes / 1048576)} MB):`,
+          link,
+          '',
+          'Send the file as the raw request body, for example:',
+          `curl -sS -T ./picture.png '${link}'`,
+          '',
+          `The response has an uploadId. Then call insert_image with documentId ${d.id}, that uploadId, and the position you want.`,
+        ].join('\n');
       }
-      if (data.length > ctx.maxUploadBytes)
-        throw new ToolError(`The image is larger than ${Math.round(ctx.maxUploadBytes / 1048576)} MB`);
-      const mime = sniffImage(data);
-      if (!mime) throw new ToolError('Not a PNG, JPEG, GIF, WebP or AVIF image');
-      const ext = imageExt(mime);
-      name = (name || 'image').replace(/[\\/\r\n]/g, '_');
-      if (!/\.[a-z0-9]{2,5}$/i.test(name)) name += `.${ext}`;
-      const up = await ctx.upload(d.id, data, name, mime);
+
+      let file: { url: string; filename: string; mime: string; size: number };
+      if (a.uploadId) {
+        // Must exist and be readable by you (it is authorized by the document it was uploaded to).
+        await ctx.call('HEAD', `/api/uploads/${a.uploadId}`);
+        file = { url: `/api/uploads/${a.uploadId}`, filename: a.uploadId, mime: '', size: 0 };
+      } else {
+        let data: Buffer;
+        let name = a.filename;
+        if (a.url) {
+          try {
+            const r = await fetchImage(a.url, ctx.maxUploadBytes);
+            data = r.data;
+            name ??= r.filename;
+          } catch (err) {
+            if (err instanceof ImageFetchError) throw new ToolError(err.message);
+            throw err;
+          }
+        } else {
+          data = decodeBase64Image(a.base64!);
+        }
+        if (data.length > ctx.maxUploadBytes)
+          throw new ToolError(
+            `The image is larger than ${Math.round(ctx.maxUploadBytes / 1048576)} MB`,
+          );
+        const mime = sniffImage(data);
+        if (!mime)
+          throw new ToolError(
+            'Not a PNG, JPEG, GIF, WebP or AVIF image' +
+              (a.base64 ? ' (if the base64 was long, use `upload: true` and curl instead)' : ''),
+          );
+        name = (name || 'image').replace(/[\\/\r\n]/g, '_');
+        if (!/\.[a-z0-9]{2,5}$/i.test(name)) name += `.${imageExt(mime)}`;
+        file = await ctx.upload(d.id, data, name, mime);
+      }
       const alt = (a.alt ?? '').replace(/[[\]\r\n]/g, ' ').trim();
-      const md = `![${alt}](${up.url})`;
-      const kb = `${Math.max(1, Math.round(up.size / 1024))} KB`;
-      if (a.position === 'none')
-        return `Uploaded ${up.filename} (${mime}, ${kb}). Use this Markdown to place it:\n${md}`;
+      const md = `![${alt}](${file.url})`;
+      const what = file.size
+        ? `${file.filename} (${file.mime}, ${Math.max(1, Math.round(file.size / 1024))} KB)`
+        : 'the image';
+      if (a.position === 'none') return `Uploaded ${what}. Use this Markdown to place it:\n${md}`;
       const body =
         a.position === 'end'
           ? { mode: 'append', markdown: md }
@@ -393,7 +429,7 @@ export const TOOLS: Tool[] = [
           );
         throw err;
       }
-      return `Inserted ${up.filename} (${mime}, ${kb}) into "${d.title || 'Untitled'}".\nMarkdown: ${md}\nURL: ${docUrl(ctx, d.id)}`;
+      return `Inserted ${what} into "${d.title || 'Untitled'}".\nMarkdown: ${md}\nURL: ${docUrl(ctx, d.id)}`;
     },
   }),
   tool({
@@ -712,6 +748,19 @@ export function injectCaller(app: FastifyInstance, auth: Record<string, string>)
   };
 }
 
+/** Signs an upload link for this user (insert_image with upload: true). */
+export function uploadLinker(app: FastifyInstance, userId: string): Ctx['uploadLink'] {
+  return (documentId, filename) => {
+    const ticket = createUploadTicket(app.config.sessionSecret, {
+      d: documentId,
+      u: userId,
+      e: Date.now() + UPLOAD_LINK_TTL_MS,
+      ...(filename ? { n: filename } : {}),
+    });
+    return `${app.config.publicUrl}/api/upload-links/${ticket}`;
+  };
+}
+
 /** Uploads through POST /api/documents/:id/uploads in-process (multipart), like the web editor. */
 export function injectUploader(app: FastifyInstance, auth: Record<string, string>): Ctx['upload'] {
   return async (documentId, data, filename, mime) => {
@@ -762,6 +811,7 @@ export async function mcpRoutes(app: FastifyInstance) {
       call: injectCaller(app, { authorization: req.headers.authorization! }),
       upload: injectUploader(app, { authorization: req.headers.authorization! }),
       maxUploadBytes: app.config.maxUploadBytes,
+      uploadLink: uploadLinker(app, req.user!.id),
     };
     switch (msg.method) {
       case 'initialize': {
