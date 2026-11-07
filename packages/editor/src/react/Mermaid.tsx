@@ -15,7 +15,8 @@ function loadMermaid(): Promise<MermaidApi> {
 export function MermaidPreview({ code }: { code: string }) {
   const id = `bee-mermaid-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const t = useMessages();
-  const theme = useTheme(useBeeEditorContext()?.theme);
+  const ctx = useBeeEditorContext();
+  const theme = useTheme(ctx?.theme);
   const [svg, setSvg] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -50,5 +51,13 @@ export function MermaidPreview({ code }: { code: string }) {
 
   if (error) return <div className="bee-mermaid-error">{t.mermaidError}{error.split('\n')[0]}</div>;
   if (!svg) return <div className="bee-mermaid-empty">{t.mermaidEmpty}</div>;
-  return <div className="bee-mermaid" dangerouslySetInnerHTML={{ __html: svg }} />;
+  const open = ctx?.openLightbox;
+  return (
+    <div
+      className={`bee-mermaid${open ? ' is-zoomable' : ''}`}
+      title={open ? t.viewImage : undefined}
+      onClick={open ? () => open({ svg }) : undefined}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
 }

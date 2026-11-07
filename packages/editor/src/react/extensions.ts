@@ -13,6 +13,8 @@ import { SheetView } from './sheet/SheetView.js';
 import { CommentHighlights } from './comments.js';
 import { SlashCommand, type SlashHost } from './SlashMenu.js';
 import { ImageUpload, type UploadImage } from './image-upload.js';
+import { ImageLightbox } from './image-lightbox.js';
+import type { LightboxContent } from './Lightbox.js';
 import { MarkdownPaste } from './markdown-paste.js';
 import type { BeeUser } from './collab.js';
 import { IdleCollaborationCaret } from './caret-idle.js';
@@ -36,6 +38,8 @@ export interface BuildOptions {
   shareToken?: string;
   /** link popover callbacks (editable editors) */
   links?: LinkHost;
+  /** Opens an image in the lightbox (click to read, double click while editing). */
+  openLightbox?: (content: LightboxContent) => void;
 }
 
 /** Adds `?share=` to Bee upload URLs so anonymous viewers of a public link can load them. */
@@ -108,6 +112,7 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
     TableScrollCenter,
     BeeLinks.configure({ host: opts.links ?? null, editable: opts.editable }),
   ];
+  if (opts.openLightbox) extensions.push(ImageLightbox.configure({ open: opts.openLightbox }));
   if (opts.placeholder) {
     extensions.push(
       Placeholder.configure({
