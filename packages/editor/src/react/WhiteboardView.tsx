@@ -139,6 +139,19 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
   }, [fullscreen]);
   const toggleFullscreen = () => setFullscreen((f) => !f);
 
+  // The whole drawing as a PNG in the lightbox; the object URL lives until the next one.
+  const imageUrl = useRef<string | null>(null);
+  useEffect(() => () => {
+    if (imageUrl.current) URL.revokeObjectURL(imageUrl.current);
+  }, []);
+  const viewImage = async () => {
+    const blob = await board.current?.exportImage('png', { background: true });
+    if (!blob) return;
+    if (imageUrl.current) URL.revokeObjectURL(imageUrl.current);
+    imageUrl.current = URL.createObjectURL(blob);
+    ctx?.openLightbox?.({ src: imageUrl.current, alt: title });
+  };
+
   const saveView = () => {
     const v = board.current?.getView();
     if (v && v.w > 0 && v.h > 0) {
@@ -201,6 +214,15 @@ export function WhiteboardView({ node, selected, updateAttributes }: ReactNodeVi
               <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
                 <rect x="4.5" y="4.5" width="7" height="7" rx="1" />
                 <path d="M1.5 4V1.5H4M12 1.5h2.5V4M1.5 12v2.5H4M12 14.5h2.5V12" />
+              </svg>
+            </button>
+          )}
+          {documentId && ctx?.openLightbox && (
+            <button type="button" className="bee-embed-icon bee-embed-image" title={t.whiteboardViewImage} aria-label={t.whiteboardViewImage} onClick={viewImage}>
+              <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+                <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" />
+                <path d="M1.5 11l3.5-3.5 3 3 2-2 4.5 4.5" />
+                <circle cx="10.5" cy="6" r="1.2" />
               </svg>
             </button>
           )}

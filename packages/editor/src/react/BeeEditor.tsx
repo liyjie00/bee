@@ -17,6 +17,7 @@ import { TableToolbar } from './TableToolbar.js';
 import { ColorMenu } from './ColorMenu.js';
 import { LinkPopover, openLinkEditor, type LinkHost, type LinkPopoverState, type LinkTarget } from './links.js';
 import type { Theme } from './theme.js';
+import { Lightbox, type LightboxContent } from './Lightbox.js';
 
 export interface BeeEditorProps {
   documentId: string;
@@ -161,6 +162,7 @@ function EditorInner(props: InnerProps) {
     [],
   );
 
+  const [lightbox, setLightbox] = useState<LightboxContent | null>(null);
   const [linkState, setLinkState] = useState<LinkPopoverState | null>(null);
   const links = useMemo<LinkHost>(
     () => ({
@@ -185,6 +187,7 @@ function EditorInner(props: InnerProps) {
         onCommentClick: (id) => latest.current.onCommentClick?.(id),
         cursorIdleMs: props.cursorIdleMs,
         shareToken: props.shareToken,
+        openLightbox: setLightbox,
       }),
     // The editor is rebuilt per connection / editability (see the key in BeeEditor).
     [],
@@ -248,6 +251,7 @@ function EditorInner(props: InnerProps) {
       theme: props.theme,
       onOpenWhiteboard: props.onOpenWhiteboard,
       whiteboardTitle: props.whiteboardTitle,
+      openLightbox: setLightbox,
     }),
     [props.documentId, props.collabUrl, props.shareToken, props.user, editable, props.locale, props.theme, props.onOpenWhiteboard, props.whiteboardTitle],
   );
@@ -277,6 +281,7 @@ function EditorInner(props: InnerProps) {
         {editor && <BlockLinkButton editor={editor} messages={t} documentId={props.documentId} shareToken={props.shareToken} onCopy={props.onCopyBlockLink} />}
         <EditorContent editor={editor} className="bee-editor-content" />
         <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={onFile} />
+        {lightbox && <Lightbox content={lightbox} onClose={() => setLightbox(null)} />}
       </div>
       </SheetDocContext.Provider>
     </BeeEditorContext.Provider>

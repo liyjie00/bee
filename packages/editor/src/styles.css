@@ -1982,3 +1982,121 @@ a .bee-doc-link,
 .toolbar .bee-color-btn.is-active {
   background: var(--sunk);
 }
+
+/* ---------- image lightbox ---------- */
+.bee-prose img,
+.bee-mermaid.is-zoomable {
+  cursor: zoom-in;
+}
+.bee-prose[contenteditable='true'] img {
+  cursor: default;
+}
+.bee-lightbox {
+  /* Lives on <body>, outside .bee-editor where the --be-* tokens are defined. */
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(20, 22, 18, 0.88);
+  animation: bee-lightbox-in 0.14s ease-out;
+  user-select: none;
+  -webkit-user-select: none;
+}
+@keyframes bee-lightbox-in {
+  from {
+    opacity: 0;
+  }
+}
+.bee-lightbox-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+.bee-lightbox-stage:active {
+  cursor: grabbing;
+}
+.bee-lightbox-content {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+  will-change: transform;
+}
+.bee-lightbox-content.is-loading {
+  transform: translate(-50%, -50%);
+  max-width: calc(100vw - 6rem);
+  max-height: calc(100vh - 6rem);
+}
+.bee-lightbox-content img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 0.25rem;
+  box-shadow: 0 0.5rem 2.5rem rgba(0, 0, 0, 0.35);
+}
+.bee-lightbox-content.is-loading img {
+  max-width: calc(100vw - 6rem);
+  max-height: calc(100vh - 6rem);
+  visibility: hidden;
+}
+.bee-lightbox-svg {
+  width: 100%;
+  height: 100%;
+  box-sizing: content-box;
+  padding: 1.5rem;
+  margin: -1.5rem;
+  border-radius: 0.375rem;
+  background: var(--surface, #fff);
+  box-shadow: 0 0.5rem 2.5rem rgba(0, 0, 0, 0.35);
+}
+.bee-lightbox-svg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none !important;
+}
+.bee-lightbox-tools {
+  position: absolute;
+  top: 0.875rem;
+  right: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0.25rem;
+  border-radius: 0.625rem;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.bee-lightbox-tools button {
+  font: inherit;
+  font-size: 0.9375rem;
+  line-height: 1;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.375rem;
+  border: 0;
+  border-radius: 0.4375rem;
+  background: transparent;
+  color: #f4f5f1;
+  cursor: pointer;
+}
+.bee-lightbox-tools button:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+.bee-lightbox-tools button:focus-visible {
+  outline: 2px solid var(--honey, #e8a317);
+  outline-offset: -2px;
+}
+.bee-lightbox-tools .bee-lightbox-pct {
+  min-width: 3.25rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.bee-lightbox-sep {
+  width: 1px;
+  height: 1.125rem;
+  margin: 0 0.25rem;
+  background: rgba(255, 255, 255, 0.22);
+}
