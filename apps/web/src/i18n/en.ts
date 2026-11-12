@@ -20,6 +20,7 @@ export const en = {
   'lang.switch': '中文',
   'nav.openSidebar': 'Open sidebar',
   'nav.sidebar': 'Sidebar',
+  'nav.resizeSidebar': 'Drag to resize the sidebar, double-click to reset',
   'nav.location': 'Location',
   'nav.search': 'Search documents',
   'nav.home': 'Home',

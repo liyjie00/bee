@@ -15,6 +15,7 @@ import { BugReportDialog } from './BugReportDialog';
 import { SpaceSwitcher } from './Spaces';
 import { MoveToSpaceDialog } from './MoveToSpaceDialog';
 import { FolderAccessDialog } from './FolderAccessDialog';
+import { SidebarResizer } from './SidebarResizer';
 
 const EXPANDED_KEY = 'bee-tree-open';
 const COLLAPSED_KEY = 'bee-side-collapsed';
@@ -361,6 +362,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
 
   return (
     <aside className={'side' + (open ? ' open' : '')} aria-label={t('nav.sidebar')}>
+      <SidebarResizer />
       <div className="brand">
         <BeeLogo height={22} />
       </div>

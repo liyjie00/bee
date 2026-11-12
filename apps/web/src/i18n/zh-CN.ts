@@ -22,6 +22,7 @@ export const zhCN: Record<MessageKey, string> = {
   'lang.switch': 'English',
   'nav.openSidebar': '打开侧边栏',
   'nav.sidebar': '侧边栏',
+  'nav.resizeSidebar': '拖动调整侧边栏宽度，双击恢复默认',
   'nav.location': '位置',
   'nav.search': '搜索文档',
   'nav.home': '主页',
