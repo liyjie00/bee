@@ -70,6 +70,10 @@ export interface SheetEditor {
   /** Points the workbook at a new set of sheets (a table was added to or removed from the document). */
   setSheets(sheetIds: string[]): void;
   setDark(dark: boolean): void;
+  /** Resolves once Univer has drawn the grid (it shows its own skeleton until then). */
+  rendered: Promise<void>;
+  /** Commits a cell edit in progress (leaving edit mode keeps the instance alive). */
+  endEditing(): Promise<void>;
   /** Renames a sheet; Univer rewrites formulas that reference the old name. */
   rename(sheetId: string, name: string): void;
   dispose(): void;
@@ -83,7 +87,8 @@ const SKIP_META = new Set(['id', 'name', 'cellData', 'scrollTop', 'scrollLeft', 
 
 export async function mountSheetEditor(opts: SheetEditorOptions): Promise<SheetEditor> {
   const { presets, core, locales } = await loadUniver(opts.locale);
-  const { createUniver, LocaleType, mergeLocales, ICommandService, IUniverInstanceService, CommandType, UniverInstanceType } = presets;
+  const { createUniver, LocaleType, mergeLocales, ICommandService, IUniverInstanceService, CommandType, UniverInstanceType, LifecycleService, LifecycleStages } =
+    presets;
   const { UniverSheetsCorePreset } = core;
   const { ydoc } = opts;
 
@@ -110,6 +115,12 @@ export async function mountSheetEditor(opts: SheetEditorOptions): Promise<SheetE
   const injector = univer.__getInjector();
   const commands = injector.get(ICommandService);
   const instances = injector.get(IUniverInstanceService);
+  const rendered = injector
+    .get(LifecycleService)
+    .onStage(LifecycleStages.Rendered)
+    // Its skeleton goes away two frames after that stage.
+    .then(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+    .catch(() => undefined);
 
   const unitId = `bee-sheets-${Math.random().toString(36).slice(2, 10)}`;
   let sheetIds = opts.sheetIds.filter((id) => sheetEntry(ydoc, id));
@@ -284,11 +295,20 @@ export async function mountSheetEditor(opts: SheetEditorOptions): Promise<SheetE
   scheduleFlush();
 
   return {
+    rendered,
     setSheets(ids) {
       const next = ids.filter((id) => sheetEntry(ydoc, id));
       if (json(next) === json(sheetIds)) return;
       sheetIds = next;
       reload();
+    },
+    async endEditing() {
+      const fwb = univerAPI.getActiveWorkbook() as unknown as { endEditingAsync?: (save?: boolean) => Promise<boolean> } | null;
+      try {
+        await fwb?.endEditingAsync?.(true);
+      } catch {
+        // Nothing was being edited.
+      }
     },
     setDark(dark) {
       univerAPI.toggleDarkMode(dark);

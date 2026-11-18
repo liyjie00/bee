@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
+import { NodeSelection } from '@tiptap/pm/state';
 import { TableMap } from '@tiptap/pm/tables';
 import type * as Y from 'yjs';
 import {
@@ -26,7 +27,17 @@ export function insertNewSheet(editor: Editor, baseName: string): boolean {
   if (!ydoc) return false;
   const sheetId = newBlockId();
   writeSheet(ydoc, sheetId, { name: uniqueSheetName(ydoc, baseName), meta: { rowCount: SHEET_DEFAULT_ROWS, columnCount: SHEET_DEFAULT_COLUMNS } });
-  return editor.chain().focus().insertSheet({ sheetId }).run();
+  if (!editor.chain().focus().insertSheet({ sheetId }).run()) return false;
+  // Inserted as the last block, the sheet ends up selected and the next keystroke would replace
+  // it: put the caret in the paragraph after it instead (adding one if needed).
+  const { selection, doc } = editor.state;
+  if (selection instanceof NodeSelection && selection.node.type.name === 'sheet') {
+    const after = selection.to;
+    const next = doc.resolve(after).nodeAfter;
+    if (next?.isTextblock) editor.chain().setTextSelection(after + 1).run();
+    else editor.chain().insertContentAt(after, { type: 'paragraph' }).setTextSelection(after + 1).run();
+  }
+  return true;
 }
 
 /** Same colors as the doc table swatches (styles.css), as Univer needs hex values. */

@@ -1499,6 +1499,7 @@ body.bee-table-grabbing * {
 
 /* spreadsheet blocks (Univer when editing, a static table otherwise) */
 .bee-ss {
+  position: relative;
   margin: 1.125rem calc(-1 * var(--bee-table-bleed, 0px));
   display: flex;
   flex-direction: column;
@@ -1664,7 +1665,8 @@ body.bee-table-grabbing * {
   box-shadow: 0 0 0 2px var(--be-honey);
   background: var(--be-surface);
 }
-.bee-ss-univer {
+.bee-ss-univer,
+.bee-ss-univer-root {
   position: absolute;
   inset: 0;
 }
@@ -2156,4 +2158,37 @@ a .bee-doc-link,
   color: var(--be-fg-3, #7b8375);
   white-space: nowrap;
   flex: none;
+}
+.bee-ss-placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  background: var(--be-surface);
+  pointer-events: none;
+}
+.bee-ss-placeholder-bar {
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  color: var(--be-fg-3);
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--be-line);
+}
+.bee-ss-placeholder-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.7;
+}
+.bee-ss-editor.is-warm {
+  /* Kept mounted but out of sight, so editing opens instantly. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.bee-ss .bee-ss-placeholder .bee-ss-table {
+  outline: none;
 }
