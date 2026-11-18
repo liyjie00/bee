@@ -285,6 +285,10 @@ export const NOTIFICATION_KINDS = [
   'share',
   'access_request',
   'team_invite',
+  'ticket_assigned',
+  'ticket_mention',
+  'ticket_comment',
+  'ticket_update',
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
@@ -308,6 +312,8 @@ export interface NotificationDTO {
   actor: UserRef | null;
   document: { id: string; title: string; type: DocumentType } | null;
   folder: { id: string; name: string } | null;
+  /** ticket_* kinds: the ticket */
+  ticket: { id: string; key: string; title: string } | null;
   threadId: string | null;
   /** comment text (mention, reply) or the granted role (share) */
   detail: string | null;

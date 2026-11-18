@@ -27,6 +27,18 @@ import type {
   ResourceType,
   WorkspaceKind,
   WorkspaceRole,
+  FieldKind,
+  FieldOption,
+  FieldValue,
+  LinkKind,
+  Priority,
+  ProjectTemplate,
+  Resolution,
+  SprintState,
+  SprintSummary,
+  StatusCategory,
+  TicketType,
+  ViewConfig,
 } from '@bee/shared';
 
 /** Postgres bytea <-> Node Buffer (Yjs updates and snapshots). */
@@ -504,6 +516,7 @@ export const notifications = pgTable(
     folderId: uuid('folder_id').references(() => folders.id, { onDelete: 'cascade' }),
     threadId: uuid('thread_id').references(() => commentThreads.id, { onDelete: 'cascade' }),
     requestId: uuid('request_id').references(() => accessRequests.id, { onDelete: 'cascade' }),
+    ticketId: uuid('ticket_id').references(() => tickets.id, { onDelete: 'cascade' }),
     /** null for guests, who carry actorName instead */
     actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
     actorName: text('actor_name'),
@@ -593,4 +606,275 @@ export const bugReports = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('bug_reports_user_idx').on(t.userId, t.createdAt)],
+);
+
+// ---------- tickets ----------
+
+/** A ticket project in a workspace; its tickets are numbered KEY-1, KEY-2, … */
+export const projects = pgTable(
+  'projects',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    key: text('key').notNull(),
+    color: text('color').notNull().default('#e8a317'),
+    description: text('description').notNull().default(''),
+    template: text('template').$type<ProjectTemplate>().notNull().default('scrum'),
+    leadId: uuid('lead_id').references(() => users.id, { onDelete: 'set null' }),
+    usesSprints: boolean('uses_sprints').notNull().default(true),
+    restrictTransitions: boolean('restrict_transitions').notNull().default(false),
+    /** number the next ticket gets */
+    nextNumber: integer('next_number').notNull().default(1),
+    createdById: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    archivedAt: ts('archived_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('projects_ws_key').on(t.workspaceId, t.key)],
+);
+
+export const projectStatuses = pgTable(
+  'project_statuses',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    color: text('color').notNull(),
+    category: text('category').$type<StatusCategory>().notNull(),
+    position: doublePrecision('position').notNull(),
+    wipLimit: integer('wip_limit'),
+    requireResolution: boolean('require_resolution').notNull().default(false),
+  },
+  (t) => [index('statuses_project_idx').on(t.projectId)],
+);
+
+/** Allowed status changes, used only when the project restricts transitions. */
+export const projectTransitions = pgTable(
+  'project_transitions',
+  {
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    fromId: uuid('from_id')
+      .notNull()
+      .references(() => projectStatuses.id, { onDelete: 'cascade' }),
+    toId: uuid('to_id')
+      .notNull()
+      .references(() => projectStatuses.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.fromId, t.toId] })],
+);
+
+export const projectLabels = pgTable(
+  'project_labels',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    color: text('color').notNull(),
+  },
+  (t) => [index('labels_project_idx').on(t.projectId)],
+);
+
+export const projectFields = pgTable(
+  'project_fields',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    kind: text('kind').$type<FieldKind>().notNull(),
+    options: jsonb('options').$type<FieldOption[]>().notNull().default([]),
+    /** ticket types it shows on; null for all */
+    appliesTo: jsonb('applies_to').$type<TicketType[] | null>(),
+    position: doublePrecision('position').notNull(),
+  },
+  (t) => [index('fields_project_idx').on(t.projectId)],
+);
+
+export const sprints = pgTable(
+  'sprints',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    goal: text('goal').notNull().default(''),
+    startDate: text('start_date'),
+    endDate: text('end_date'),
+    state: text('state').$type<SprintState>().notNull().default('planned'),
+    capacity: integer('capacity'),
+    startedAt: ts('started_at'),
+    completedAt: ts('completed_at'),
+    summary: jsonb('summary').$type<SprintSummary>(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('sprints_project_idx').on(t.projectId),
+    uniqueIndex('sprints_one_active').on(t.projectId).where(sql`${t.state} = 'active'`),
+  ],
+);
+
+export const tickets = pgTable(
+  'tickets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    number: integer('number').notNull(),
+    type: text('type').$type<TicketType>().notNull(),
+    parentId: uuid('parent_id'),
+    title: text('title').notNull(),
+    /** Markdown */
+    description: text('description').notNull().default(''),
+    statusId: uuid('status_id')
+      .notNull()
+      .references(() => projectStatuses.id),
+    priority: text('priority').$type<Priority>().notNull().default('medium'),
+    assigneeId: uuid('assignee_id').references(() => users.id, { onDelete: 'set null' }),
+    reporterId: uuid('reporter_id').references(() => users.id, { onDelete: 'set null' }),
+    sprintId: uuid('sprint_id').references(() => sprints.id, { onDelete: 'set null' }),
+    storyPoints: doublePrecision('story_points'),
+    estimateMinutes: integer('estimate_minutes'),
+    spentMinutes: integer('spent_minutes'),
+    startDate: text('start_date'),
+    dueDate: text('due_date'),
+    /** order in the backlog and in board columns */
+    rank: doublePrecision('rank').notNull(),
+    resolution: text('resolution').$type<Resolution>(),
+    labelIds: jsonb('label_ids').$type<string[]>().notNull().default([]),
+    /** custom field id → value */
+    fields: jsonb('fields').$type<Record<string, FieldValue>>().notNull().default({}),
+    completedAt: ts('completed_at'),
+    deletedAt: ts('deleted_at'),
+    createdAt: createdAt(),
+    updatedAt: ts('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('tickets_project_number').on(t.projectId, t.number),
+    index('tickets_parent_idx').on(t.parentId),
+    index('tickets_assignee_idx').on(t.assigneeId),
+    index('tickets_sprint_idx').on(t.sprintId),
+    index('tickets_project_updated_idx').on(t.projectId, t.updatedAt),
+    foreignKey({ columns: [t.parentId], foreignColumns: [t.id] }).onDelete('set null'),
+  ],
+);
+
+export const ticketLinks = pgTable(
+  'ticket_links',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    fromId: uuid('from_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    toId: uuid('to_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<LinkKind>().notNull(),
+    createdById: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('ticket_links_key').on(t.fromId, t.toId, t.kind),
+    index('ticket_links_to_idx').on(t.toId),
+  ],
+);
+
+export const ticketWatchers = pgTable(
+  'ticket_watchers',
+  {
+    ticketId: uuid('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.ticketId, t.userId] }), index('watchers_user_idx').on(t.userId)],
+);
+
+export const ticketComments = pgTable(
+  'ticket_comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ticketId: uuid('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+    body: text('body').notNull(),
+    createdAt: createdAt(),
+    editedAt: ts('edited_at'),
+  },
+  (t) => [index('ticket_comments_ticket_idx').on(t.ticketId, t.createdAt)],
+);
+
+/** Change history; burndown and velocity are computed from it. */
+export const ticketEvents = pgTable(
+  'ticket_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ticketId: uuid('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    field: text('field').notNull(),
+    from: jsonb('from'),
+    to: jsonb('to'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('ticket_events_ticket_idx').on(t.ticketId, t.createdAt),
+    index('ticket_events_project_idx').on(t.projectId, t.field, t.createdAt),
+  ],
+);
+
+/** Documents linked to a ticket by hand, or that reference it. */
+export const ticketDocuments = pgTable(
+  'ticket_documents',
+  {
+    ticketId: uuid('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    source: text('source').$type<'manual' | 'mention'>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.ticketId, t.documentId, t.source] }),
+    index('ticket_documents_doc_idx').on(t.documentId),
+  ],
+);
+
+export const savedViews = pgTable(
+  'saved_views',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    config: jsonb('config').$type<ViewConfig>().notNull(),
+    shared: boolean('shared').notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index('saved_views_ws_idx').on(t.workspaceId)],
 );

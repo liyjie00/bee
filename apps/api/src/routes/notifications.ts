@@ -7,7 +7,10 @@ import {
   folders,
   notifications,
   permissions,
+  projects,
   templates,
+  tickets,
+  workspaceMembers,
   users,
   workspaces,
   type Db,
@@ -103,6 +106,30 @@ export async function notificationRoutes(app: FastifyInstance) {
     const folderIds = [...new Set(rows.map((r) => r.folderId).filter((x): x is string => !!x))];
     const reqIds = [...new Set(rows.map((r) => r.requestId).filter((x): x is string => !!x))];
     const wsIds = [...new Set(rows.map((r) => r.workspaceId))];
+    const ticketIds = [...new Set(rows.map((r) => r.ticketId).filter((x): x is string => !!x))];
+    // Tickets the reader can still see (still a member of the workspace, not deleted).
+    const ticketRows = ticketIds.length
+      ? await db
+          .select({
+            id: tickets.id,
+            number: tickets.number,
+            title: tickets.title,
+            key: projects.key,
+          })
+          .from(tickets)
+          .innerJoin(projects, eq(projects.id, tickets.projectId))
+          .innerJoin(
+            workspaceMembers,
+            and(
+              eq(workspaceMembers.workspaceId, projects.workspaceId),
+              eq(workspaceMembers.userId, user.id),
+            ),
+          )
+          .where(and(inArray(tickets.id, ticketIds), isNull(tickets.deletedAt)))
+      : [];
+    const ticketById = new Map(
+      ticketRows.map((t) => [t.id, { id: t.id, key: `${t.key}-${t.number}`, title: t.title }]),
+    );
     // Only what the reader can still open: access may have changed since (a folder was
     // restricted, they left a team...), and titles must not leak.
     const readable = async (ids: string[], check: (id: string) => Promise<unknown>) => {
@@ -158,6 +185,7 @@ export async function notificationRoutes(app: FastifyInstance) {
       // Documents in the trash drop out of the inbox, and so does what the reader cannot open.
       if (r.documentId && (!d || d.deletedAt || !openDocs.has(r.documentId))) continue;
       if (r.folderId && !openFolders.has(r.folderId)) continue;
+      if (r.ticketId && !ticketById.has(r.ticketId)) continue;
       const name = r.actorName ?? 'Guest';
       list.push({
         id: r.id,
@@ -168,6 +196,7 @@ export async function notificationRoutes(app: FastifyInstance) {
           : { id: '', name, avatarUrl: null, color: guestColor(name) },
         document: d ? { id: d.id, title: d.title, type: d.type } : null,
         folder: r.folderId ? (folderById.get(r.folderId) ?? null) : null,
+        ticket: r.ticketId ? (ticketById.get(r.ticketId) ?? null) : null,
         threadId: r.threadId,
         detail: r.detail,
         request: r.requestId ? (reqs.get(r.requestId) ?? null) : null,

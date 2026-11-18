@@ -1,13 +1,15 @@
 /* Email and Web Push delivery of in-app notifications. Both are off unless configured. */
 import type { FastifyInstance } from 'fastify';
-import { and, asc, eq, inArray, isNull, lt } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import nodemailer, { type Transporter } from 'nodemailer';
 import webpush from 'web-push';
 import {
   documents,
   folders,
   notifications,
+  projects,
   pushSubscriptions,
+  tickets,
   users,
   workspaces,
   type Db,
@@ -61,7 +63,7 @@ export interface Described {
 
 /** Text of a notification, as the inbox shows it. */
 export function describe(
-  n: Pick<Row, 'kind' | 'detail' | 'documentId' | 'folderId' | 'threadId'>,
+  n: Pick<Row, 'kind' | 'detail' | 'documentId' | 'folderId' | 'threadId' | 'ticketId'>,
   actor: string,
   where: string,
   lang: Lang,
@@ -107,6 +109,30 @@ export function describe(
         path: '/invites',
       };
     }
+    case 'ticket_assigned':
+      return {
+        title: zh ? `${actor} 把「${where}」分配给了你` : `${actor} assigned “${where}” to you`,
+        body: '',
+        path: `/t/${n.ticketId ?? ''}`,
+      };
+    case 'ticket_mention':
+      return {
+        title: zh ? `${actor} 在「${where}」中提到了你` : `${actor} mentioned you in “${where}”`,
+        body: n.detail ?? '',
+        path: `/t/${n.ticketId ?? ''}`,
+      };
+    case 'ticket_comment':
+      return {
+        title: zh ? `${actor} 评论了「${where}」` : `${actor} commented on “${where}”`,
+        body: n.detail ?? '',
+        path: `/t/${n.ticketId ?? ''}`,
+      };
+    case 'ticket_update':
+      return {
+        title: zh ? `${actor} 更新了「${where}」` : `${actor} updated “${where}”`,
+        body: n.detail ? (zh ? `状态：${n.detail}` : `Status: ${n.detail}`) : '',
+        path: `/t/${n.ticketId ?? ''}`,
+      };
   }
 }
 
@@ -123,7 +149,8 @@ async function names(db: Db, rows: Row[]) {
   const teamIds = [
     ...new Set(rows.filter((r) => r.kind === 'team_invite').map((r) => r.workspaceId)),
   ];
-  const [a, d, f, w] = await Promise.all([
+  const ticketIds = [...new Set(rows.map((r) => r.ticketId).filter((x): x is string => !!x))];
+  const [a, d, f, w, t] = await Promise.all([
     ids('actorId').length
       ? db
           .select({ id: users.id, name: users.name })
@@ -148,13 +175,25 @@ async function names(db: Db, rows: Row[]) {
           .from(workspaces)
           .where(inArray(workspaces.id, teamIds))
       : [],
+    ticketIds.length
+      ? db
+          .select({
+            id: tickets.id,
+            name: sql<string>`${projects.key} || '-' || ${tickets.number} || ' ' || ${tickets.title}`,
+          })
+          .from(tickets)
+          .innerJoin(projects, eq(projects.id, tickets.projectId))
+          .where(inArray(tickets.id, ticketIds))
+      : [],
   ]);
-  const m = new Map([...a, ...d, ...f, ...w].map((x) => [x.id, x.name]));
+  const m = new Map([...a, ...d, ...f, ...w, ...t].map((x) => [x.id, x.name]));
   return {
     actor: (r: Row) => (r.actorId ? m.get(r.actorId) : r.actorName) || 'Someone',
     where: (r: Row, lang: Lang) =>
       m.get(
-        r.kind === 'team_invite' ? r.workspaceId : (r.documentId ?? r.folderId ?? ''),
+        r.kind === 'team_invite'
+          ? r.workspaceId
+          : (r.ticketId ?? r.documentId ?? r.folderId ?? ''),
       ) || (lang === 'en' ? 'Untitled' : '无标题'),
   };
 }
