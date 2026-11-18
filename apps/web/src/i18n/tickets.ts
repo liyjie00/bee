@@ -369,6 +369,22 @@ export const ticketsEn = {
   'tk.kind.user': 'Person',
   'tk.kind.checkbox': 'Checkbox',
   'tk.kind.url': 'Link',
+  'tk.set.data': 'Import / export',
+  'tk.csv.export': 'Export',
+  'tk.csv.exportHint':
+    'All tickets of the project as a CSV file (opens in Excel, Numbers, Google Sheets).',
+  'tk.csv.download': 'Download {key}-tickets.csv',
+  'tk.csv.import': 'Import',
+  'tk.csv.importHint':
+    'A CSV with a Summary (or Title) column: a Jira export ("Export CSV (all fields)") or one exported here. Type, status, priority, assignee (email), parent, sprint, labels, story points and dates are read when present; missing labels and sprints are created.',
+  'tk.csv.pick': 'Choose CSV file…',
+  'tk.csv.done': '{n} tickets imported',
+  'tk.csv.problems': '{n} rows had problems:',
+  'tk.doc.menu': 'Tickets',
+  'tk.doc.menuEmpty': 'No tickets match',
+  'tk.doc.menuCreate': 'New ticket “{title}”',
+  'tk.doc.fromSelection': 'New ticket',
+  'tk.doc.noProject': 'Create a project in this space first (Projects in the sidebar)',
 } as const;
 
 export const ticketsZh: Record<keyof typeof ticketsEn, string> = {
@@ -738,4 +754,19 @@ export const ticketsZh: Record<keyof typeof ticketsEn, string> = {
   'tk.kind.user': '成员',
   'tk.kind.checkbox': '复选框',
   'tk.kind.url': '链接',
+  'tk.set.data': '导入 / 导出',
+  'tk.csv.export': '导出',
+  'tk.csv.exportHint': '把项目的所有工单导出为 CSV（可以用 Excel、Numbers、Google 表格打开）。',
+  'tk.csv.download': '下载 {key}-tickets.csv',
+  'tk.csv.import': '导入',
+  'tk.csv.importHint':
+    'CSV 需要有 Summary（或 Title / 标题）列，可以直接用 Jira 导出的文件（Export CSV (all fields)），也可以是这里导出的文件。会读取类型、状态、优先级、负责人（邮箱）、父工单、迭代、标签、故事点和日期；没有的标签和迭代会自动创建。',
+  'tk.csv.pick': '选择 CSV 文件…',
+  'tk.csv.done': '已导入 {n} 个工单',
+  'tk.csv.problems': '{n} 行有问题：',
+  'tk.doc.menu': '工单',
+  'tk.doc.menuEmpty': '没有匹配的工单',
+  'tk.doc.menuCreate': '新建工单「{title}」',
+  'tk.doc.fromSelection': '转为工单',
+  'tk.doc.noProject': '请先在这个空间新建一个项目（侧栏的「项目」）',
 };

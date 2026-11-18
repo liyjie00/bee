@@ -609,7 +609,7 @@ export function TicketDetail({
       </div>
 
       <div className="tk-dbody">
-        <div className="tk-dmain">
+        <div className="tk-dtop">
           {edit ? (
             <textarea
               className="tk-title-edit"
@@ -662,7 +662,8 @@ export function TicketDetail({
               </label>
             </div>
           )}
-
+        </div>
+        <div className="tk-dmain">
           <section className="tk-sec">
             <BeeMarkdownEditor
               key={tk.id}

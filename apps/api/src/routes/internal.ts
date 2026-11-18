@@ -9,6 +9,7 @@ import { logEdit } from '../lib/activity.js';
 import { sessionTokenFromCookieHeader, userForSession } from '../lib/auth.js';
 import { deriveCaches } from '../lib/content.js';
 import { badRequest, HttpError, notFound } from '../lib/errors.js';
+import { syncTicketMentions } from '../lib/tickets.js';
 import { idParams, parse } from '../lib/validate.js';
 import { insertVersion } from './versions.js';
 
@@ -112,6 +113,10 @@ export async function internalRoutes(app: FastifyInstance) {
       })
       .where(eq(documents.id, id));
     for (const a of authors) await logEdit(db, d.workspaceId, id, a);
+    if (caches)
+      await syncTicketMentions(db, id, d.workspaceId, caches.markdown).catch((err) =>
+        req.log.warn({ err, id }, 'could not sync ticket mentions'),
+      );
     return reply.status(204).send();
   });
 

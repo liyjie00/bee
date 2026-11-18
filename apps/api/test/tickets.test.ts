@@ -352,3 +352,179 @@ describe('ticket projects', () => {
     expect(inbox.some((n: { kind: string }) => n.kind.startsWith('ticket_'))).toBe(false);
   });
 });
+
+describe('ticket MCP tools', () => {
+  const callTool = async (token: string, name: string, args: Record<string, unknown> = {}) => {
+    const r = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json, text/event-stream',
+        authorization: `Bearer ${token}`,
+      },
+      payload: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name, arguments: args },
+      }),
+    });
+    expect(r.statusCode).toBe(200);
+    const res = r.json().result as { content: { text: string }[]; isError?: boolean };
+    return { text: res.content[0]!.text, isError: !!res.isError };
+  };
+
+  it('creates, finds, updates and reads tickets by key and names', async () => {
+    const own = await signup(app, 'tkmcp');
+    const p = await project(own.c, own.workspace.id, 'MC');
+    await own.c.post(`/api/projects/${p.id}/fields`, {
+      name: 'Customer',
+      kind: 'select',
+      options: [{ label: 'Acme' }],
+    });
+    const token = (await own.c.post('/api/tokens', { name: 't' })).json.secret as string;
+
+    const list = await callTool(token, 'list_projects');
+    expect(list.text).toContain('"key": "MC"');
+
+    const epic = await callTool(token, 'create_ticket', {
+      project: 'mc',
+      type: 'epic',
+      title: 'Launch',
+    });
+    expect(epic.text).toContain('Created MC-1');
+    const many = await callTool(token, 'create_tickets', {
+      project: 'MC',
+      items: [
+        {
+          title: 'Landing page',
+          type: 'story',
+          parent: 'MC-1',
+          assignee: 'me',
+          labels: ['web'],
+          storyPoints: 3,
+          fields: { Customer: 'Acme' },
+        },
+        { title: 'Pricing', type: 'story', parent: 'MC-1', sprint: 'MC Sprint 1' },
+        { title: 'Broken', type: 'subtask' },
+      ],
+    });
+    expect(many.text).toContain('MC-2 Landing page');
+    expect(many.text).toContain('MC-3 Pricing');
+    expect(many.text).toContain('FAILED “Broken”');
+
+    const found = await callTool(token, 'search_tickets', {
+      project: 'MC',
+      assignee: 'me',
+      labels: ['web'],
+    });
+    expect(found.text).toContain('MC-2');
+    expect(found.text).not.toContain('MC-3');
+    const byEpic = await callTool(token, 'search_tickets', { epic: 'MC-1' });
+    expect(byEpic.text.split('\n')).toHaveLength(2);
+
+    const up = await callTool(token, 'update_ticket', {
+      ticket: 'MC-2',
+      status: 'In progress',
+      priority: 'high',
+    });
+    expect(up.text).toContain('进行中, high');
+    const bad = await callTool(token, 'update_ticket', { ticket: 'MC-2', status: 'Nope' });
+    expect(bad.isError).toBe(true);
+    await callTool(token, 'comment_on_ticket', { ticket: 'MC-2', body: 'Looks good' });
+    await callTool(token, 'link_tickets', { ticket: 'MC-3', kind: 'blocks', target: 'MC-2' });
+
+    const read = await callTool(token, 'read_ticket', { ticket: 'mc-2' });
+    expect(read.text).toContain('# MC-2 Landing page');
+    expect(read.text).toContain('Customer: Acme');
+    expect(read.text).toContain('Parent: MC-1 Launch');
+    expect(read.text).toContain('is blocked by MC-3');
+    expect(read.text).toContain('Looks good');
+    const sprints = await callTool(token, 'list_sprints', { project: 'MC' });
+    expect(sprints.text).toContain('MC Sprint 1 [planned]');
+  });
+});
+
+describe('documents and tickets', () => {
+  it('records tickets a document links to, and the state store keeps them in sync', async () => {
+    const own = await signup(app, 'tkdoc');
+    const p = await project(own.c, own.workspace.id, 'DC');
+    const t = (await own.c.post(`/api/projects/${p.id}/tickets`, { title: 'Docs' })).json.ticket;
+    const md = `# Notes\n\nWorking on [${t.key} Docs](/t/${t.id}) this week.\n`;
+    const doc = (
+      await own.c.post('/api/documents', { workspaceId: own.workspace.id, markdown: md })
+    ).json.document;
+    const refs = (await own.c.get(`/api/documents/${doc.id}/tickets`)).json.tickets;
+    expect(refs.map((r: { key: string }) => r.key)).toEqual(['DC-1']);
+    const detail = (await own.c.get(`/api/tickets/${t.id}`)).json.ticket;
+    expect(detail.documents).toEqual([expect.objectContaining({ id: doc.id, source: 'mention' })]);
+    // a manual link sits next to the mention
+    await own.c.post(`/api/tickets/${t.id}/documents`, { documentId: doc.id });
+    expect((await own.c.get(`/api/tickets/${t.id}`)).json.ticket.documents).toHaveLength(1);
+    const live = (await own.c.post('/api/tickets/refs', { ids: [t.id] })).json.tickets;
+    expect(live[0]).toMatchObject({ key: 'DC-1', status: { category: 'todo' } });
+  });
+});
+
+describe('CSV import and export', () => {
+  it('imports a Jira export with parents, sprints and labels, and exports it back', async () => {
+    const own = await signup(app, 'tkcsv');
+    const p = await project(own.c, own.workspace.id, 'CV');
+    const csv = [
+      'Summary,Issue key,Issue Type,Status,Priority,Assignee,Parent,Sprint,Labels,Labels,Custom field (Story Points),Due date,Description',
+      'Login works,JRA-2,Story,In Progress,High,tkcsv@example.com,JRA-1,Sprint 7,auth,web,5,21/Nov/26 3:45 PM,"Multi, line\n""quoted"""',
+      'Accounts,JRA-1,Epic,To Do,Medium,,,,,,,,',
+      'Button,JRA-3,Sub-task,Done,Lowest,,JRA-2,,,,,,',
+      ',JRA-4,Task,,,,,,,,,,',
+    ].join('\n');
+    const r = await own.c.post(`/api/projects/${p.id}/import`, { csv });
+    expect(r.json).toMatchObject({ created: 3, errorCount: 1 });
+    const list = (await own.c.get(`/api/projects/${p.id}/tickets`)).json.tickets as {
+      title: string;
+      type: string;
+      parentId: string | null;
+      id: string;
+      priority: string;
+      storyPoints: number | null;
+      dueDate: string | null;
+      description: string;
+      labelIds: string[];
+      sprintId: string | null;
+      statusId: string;
+      assignee: { id: string } | null;
+    }[];
+    const by = (t: string) => list.find((x) => x.title === t)!;
+    expect(by('Accounts').type).toBe('epic');
+    expect(by('Login works')).toMatchObject({
+      type: 'story',
+      parentId: by('Accounts').id,
+      priority: 'high',
+      storyPoints: 5,
+      dueDate: '2026-11-21',
+      description: 'Multi, line\n"quoted"',
+    });
+    expect(by('Login works').labelIds).toHaveLength(2);
+    expect(by('Login works').assignee?.id).toBe(own.user.id);
+    expect(by('Login works').statusId).toBe(p.statuses.find((s) => s.category === 'doing')!.id);
+    expect(by('Button')).toMatchObject({
+      type: 'subtask',
+      parentId: by('Login works').id,
+      priority: 'low',
+      sprintId: by('Login works').sprintId,
+    });
+    expect(by('Button').statusId).toBe(p.statuses.find((s) => s.category === 'done')!.id);
+    const sprints = (await own.c.get(`/api/projects/${p.id}/sprints`)).json.sprints;
+    expect(sprints.map((s: { name: string }) => s.name)).toContain('Sprint 7');
+
+    const out = await own.c.get(`/api/projects/${p.id}/export.csv`);
+    expect(out.res.headers['content-type']).toContain('text/csv');
+    const body = out.res.body as string;
+    expect(body).toContain('CV-2,story,Login works');
+    expect(body).toContain('"Multi, line\n""quoted"""');
+    // Bee's own export imports back.
+    const p2 = await project(own.c, own.workspace.id, 'CW');
+    const again = await own.c.post(`/api/projects/${p2.id}/import`, { csv: body });
+    expect(again.json).toMatchObject({ created: 3, errorCount: 0 });
+  });
+});

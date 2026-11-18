@@ -446,13 +446,11 @@ function Loaded({
                       })),
                     ]
                   : bulkPick.key === 'priority'
-                    ? [...PRIORITIES]
-                        .reverse()
-                        .map((p) => ({
-                          id: p,
-                          label: t(priorityKey(p)),
-                          icon: <PriorityIcon priority={p} />,
-                        }))
+                    ? [...PRIORITIES].reverse().map((p) => ({
+                        id: p,
+                        label: t(priorityKey(p)),
+                        icon: <PriorityIcon priority={p} />,
+                      }))
                     : bulkPick.key === 'sprint'
                       ? [
                           { id: '', label: t('tk.backlog') },

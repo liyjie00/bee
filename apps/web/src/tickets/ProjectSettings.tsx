@@ -20,7 +20,7 @@ import { projectsChanged } from './useProject';
 import { forgetProjectMeta } from './TicketDetail';
 import { StatusDot, typeKey } from './ui';
 
-type Section = 'general' | 'workflow' | 'labels' | 'fields';
+type Section = 'general' | 'workflow' | 'labels' | 'fields' | 'data';
 
 export function ProjectSettings() {
   const { t } = useI18n();
@@ -35,7 +35,7 @@ export function ProjectSettings() {
   return (
     <div className="tk-settings">
       <nav className="tk-set-nav" aria-label={t('tk.view.settings')}>
-        {(['general', 'workflow', 'labels', 'fields'] as Section[]).map((s) => (
+        {(['general', 'workflow', 'labels', 'fields', 'data'] as Section[]).map((s) => (
           <button key={s} className={sec === s ? 'on' : ''} onClick={() => setSec(s)}>
             {t(`tk.set.${s}` as MessageKey)}
           </button>
@@ -46,6 +46,7 @@ export function ProjectSettings() {
         {sec === 'workflow' && <Workflow />}
         {sec === 'labels' && <Labels />}
         {sec === 'fields' && <Fields />}
+        {sec === 'data' && <DataSection />}
       </div>
     </div>
   );
@@ -694,6 +695,85 @@ function FieldRow({ f }: { f: FieldDTO }) {
           </label>
         ))}
       </div>
+    </div>
+  );
+}
+
+function DataSection() {
+  const { t } = useI18n();
+  const toast = useToast();
+  const ctx = useProjectCtx();
+  const p = ctx.project;
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{
+    created: number;
+    errors: string[];
+    errorCount: number;
+  } | null>(null);
+  return (
+    <div className="tk-form">
+      <h2>{t('tk.set.data')}</h2>
+      <h3>{t('tk.csv.export')}</h3>
+      <p className="muted">{t('tk.csv.exportHint')}</p>
+      <a
+        className="btn"
+        style={{ alignSelf: 'flex-start' }}
+        href={`/api/projects/${p.id}/export.csv`}
+        download
+      >
+        <Icon name="download" />
+        {t('tk.csv.download', { key: p.key })}
+      </a>
+      {p.canEdit && (
+        <>
+          <h3>{t('tk.csv.import')}</h3>
+          <p className="muted">{t('tk.csv.importHint')}</p>
+          <label
+            className="btn"
+            style={{ alignSelf: 'flex-start', flexDirection: 'row', cursor: 'pointer' }}
+          >
+            <Icon name="upload" />
+            {busy ? t('app.loading') : t('tk.csv.pick')}
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              hidden
+              disabled={busy}
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (!f) return;
+                setBusy(true);
+                try {
+                  const r = await api.importCsv(p.id, await f.text());
+                  setResult(r);
+                  await Promise.all([ctx.reload(), ctx.reloadProject()]);
+                  toast(t('tk.csv.done', { n: r.created }));
+                } catch (er) {
+                  toast(errMsg(er));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            />
+          </label>
+          {result && (
+            <div className="tk-csv-result">
+              <b>{t('tk.csv.done', { n: result.created })}</b>
+              {result.errorCount > 0 && (
+                <>
+                  <span className="muted">{t('tk.csv.problems', { n: result.errorCount })}</span>
+                  <ul>
+                    {result.errors.map((x, i) => (
+                      <li key={i}>{x}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

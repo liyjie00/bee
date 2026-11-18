@@ -20,3 +20,4 @@ export type { Editor } from '@tiptap/react';
 export { useTheme, type Theme } from './react/theme.js';
 export { openLinkEditor, beeDocUrl, type LinkTarget } from './react/links.js';
 export { ColorMenu } from './react/ColorMenu.js';
+export { TicketRefs, ticketIdOf, ticketHref, insertTicketLink, type TicketHit, type TicketHost } from './react/tickets.js';

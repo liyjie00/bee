@@ -21,6 +21,7 @@ import { IdleCollaborationCaret } from './caret-idle.js';
 import { TableSheet } from './table-sheet.js';
 import { TableResize, TableScrollCenter } from './table-resize.js';
 import { BeeLinks, type LinkHost } from './links.js';
+import { TicketRefs, type TicketHost } from './tickets.js';
 
 export interface BuildOptions {
   ydoc?: Y.Doc;
@@ -40,6 +41,8 @@ export interface BuildOptions {
   links?: LinkHost;
   /** Opens an image in the lightbox (click to read, double click while editing). */
   openLightbox?: (content: LightboxContent) => void;
+  /** Ticket lookups: live status on ticket links and the "#" menu. */
+  tickets?: TicketHost;
 }
 
 /** Adds `?share=` to Bee upload URLs so anonymous viewers of a public link can load them. */
@@ -113,6 +116,7 @@ export function buildExtensions(opts: BuildOptions): AnyExtension[] {
     BeeLinks.configure({ host: opts.links ?? null, editable: opts.editable }),
   ];
   if (opts.openLightbox) extensions.push(ImageLightbox.configure({ open: opts.openLightbox }));
+  if (opts.tickets) extensions.push(TicketRefs.configure({ host: opts.tickets, editable: opts.editable }));
   if (opts.placeholder) {
     extensions.push(
       Placeholder.configure({

@@ -18,6 +18,7 @@ import { ColorMenu } from './ColorMenu.js';
 import { LinkPopover, openLinkEditor, type LinkHost, type LinkPopoverState, type LinkTarget } from './links.js';
 import type { Theme } from './theme.js';
 import { Lightbox, type LightboxContent } from './Lightbox.js';
+import { insertTicketLink, type TicketHost } from './tickets.js';
 
 export interface BeeEditorProps {
   documentId: string;
@@ -74,6 +75,8 @@ export interface BeeEditorProps {
   newSlashItems?: readonly string[];
   /** Called with a slash-menu block's id when the user inserts it. */
   onSlashItemUsed?: (id: string) => void;
+  /** Ticket lookups: live status dots on ticket links, "#" to insert one, and "New ticket" from a selection. */
+  tickets?: TicketHost;
   /** Hide collaborators' carets after this many ms without movement (default 10 minutes). */
   cursorIdleMs?: number;
   className?: string;
@@ -188,6 +191,14 @@ function EditorInner(props: InnerProps) {
         cursorIdleMs: props.cursorIdleMs,
         shareToken: props.shareToken,
         openLightbox: setLightbox,
+        tickets: props.tickets
+          ? {
+              search: (q) => latest.current.tickets!.search(q),
+              resolve: (ids) => latest.current.tickets!.resolve(ids),
+              create: props.tickets.create ? (title) => latest.current.tickets!.create!(title) : undefined,
+              labels: props.tickets.labels,
+            }
+          : undefined,
       }),
     // The editor is rebuilt per connection / editability (see the key in BeeEditor).
     [],
@@ -266,7 +277,7 @@ function EditorInner(props: InnerProps) {
     <BeeEditorContext.Provider value={ctx}>
       <SheetDocContext.Provider value={conn.ydoc}>
       <div className={`bee-editor${ready ? '' : ' is-loading'} ${props.className ?? ''}`} aria-busy={!ready}>
-        {editor && <SelectionBubble editor={editor} editable={editable} canComment={canComment} messages={t} onComment={props.onCreateComment} />}
+        {editor && <SelectionBubble editor={editor} editable={editable} canComment={canComment} messages={t} onComment={props.onCreateComment} tickets={props.tickets} />}
         {editor && editable && <TableToolbar editor={editor} messages={t} />}
         {editor && editable && (
           <LinkPopover
@@ -294,12 +305,14 @@ function SelectionBubble({
   canComment,
   messages: t,
   onComment,
+  tickets,
 }: {
   editor: Editor;
   editable: boolean;
   canComment: boolean;
   messages: Messages;
   onComment?: (anchor: CommentAnchor) => void;
+  tickets?: TicketHost;
 }) {
   const showComment = canComment && !!onComment;
   const [coarse] = useState(() => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
@@ -345,6 +358,26 @@ function SelectionBubble({
           }, <span style={{ fontFamily: 'KaTeX_Math, Georgia, serif', fontStyle: 'italic', fontSize: '0.95rem', lineHeight: 1 }}>∑</span>)}
           <ColorMenu editor={editor} messages={t} />
           {btn(editor.isActive('link'), t.link, setLink, <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block' }}><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></svg>)}
+        </>
+      )}
+      {editable && tickets?.create && (
+        <>
+          <span className="bee-bubble-sep" />
+          <button
+            type="button"
+            className="bee-bubble-comment"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              const { from, to } = editor.state.selection;
+              const text = editor.state.doc.textBetween(from, to, ' ').trim().slice(0, 500);
+              if (!text) return;
+              void tickets.create!(text).then((hit) => {
+                if (hit && !editor.isDestroyed) insertTicketLink(editor, { from, to }, hit);
+              });
+            }}
+          >
+            {tickets.labels.fromSelection}
+          </button>
         </>
       )}
       {editable && showComment && <span className="bee-bubble-sep" />}

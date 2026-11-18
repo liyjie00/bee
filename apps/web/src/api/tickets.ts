@@ -216,6 +216,9 @@ export const tickets = {
       `/projects/${projectId}/workload${sprintId ? `?sprintId=${sprintId}` : ''}`,
     ),
 
+  importCsv: (projectId: string, csv: string) =>
+    req<{ created: number; errors: string[]; errorCount: number }>('POST', `/projects/${projectId}/import`, { csv }),
+
   views: async (ws: string) =>
     (await req<{ views: SavedViewDTO[] }>('GET', `/workspaces/${ws}/views`)).views,
   saveView: async (

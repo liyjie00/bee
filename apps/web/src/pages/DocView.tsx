@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BeeEditor, BeeWhiteboard, beeDocUrl, blockLink, builtinMessages, insertNewSheet, type BeeUser, type LinkTarget, type CollabStatus, type Editor, type WhiteboardHandle } from '@bee/editor';
+import { BeeEditor, BeeWhiteboard, beeDocUrl, ticketIdOf, blockLink, builtinMessages, insertNewSheet, type BeeUser, type LinkTarget, type CollabStatus, type Editor, type WhiteboardHandle } from '@bee/editor';
 import { can, parseBlockFragment } from '@bee/shared';
 import { api, guestName, HttpError } from '../api/http';
 import type { ActivityDTO, CommentAnchor, CommentThreadDTO, DocumentDTO, UserDTO } from '../api/types';
@@ -21,6 +21,7 @@ import { useLists } from '../state/lists';
 import { fileName, pendingBoardImports, pickFile, saveBlob } from '../lib/download';
 import { useSession, useTreeOrNull } from '../state/session';
 import { newSlashItems, slashItemUsed } from '../lib/whatsNew';
+import { useDocTickets } from '../tickets/docTickets';
 
 type Status = CollabStatus;
 type Presence = BeeUser;
@@ -132,8 +133,14 @@ export function DocView({
   }, [lang]);
   const onOpenLink = useCallback(
     (href: string) => {
+      if (shareToken) return false;
+      const tid = ticketIdOf(href);
+      if (tid) {
+        nav(`/t/${tid}`);
+        return true;
+      }
       const u = beeDocUrl(href);
-      if (!u || shareToken) return false;
+      if (!u) return false;
       nav(u.pathname + u.search + u.hash);
       return true;
     },
@@ -145,6 +152,8 @@ export function DocView({
 
   const loadSnapshot = useMemo(() => () => takeDocState(doc.id), [doc.id]);
   const editable = can.edit(doc.role);
+  // Ticket links: members of the document's space see live status; editors insert with "#".
+  const docTickets = useDocTickets(member ? doc.workspaceId : null, doc.id, editable && member);
   // Anonymous visitors get commenter only through a public link with guest comments on.
   const isGuest = !me && !!shareToken;
   const canComment = can.comment(doc.role) && (!!me || isGuest);
@@ -578,6 +587,7 @@ export function DocView({
                   newSlashItems={newSlashItems()}
                   onSlashItemUsed={slashItemUsed}
                   whiteboardTitle={whiteboardTitle}
+                  tickets={docTickets.host}
                   onOpenWhiteboard={(id: string) => nav(shareToken ? `/s/${shareToken}/d/${id}` : `/d/${id}`)}
                   onReady={(ed: Editor) => {
                     editorRef.current = ed;
@@ -595,6 +605,7 @@ export function DocView({
           </div>
         )}
       </main>
+      {docTickets.dialog}
       {showPanel && (
         <CommentsPanel
           me={me}

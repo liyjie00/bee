@@ -8,6 +8,7 @@ import {
   projects,
   sprints,
   ticketComments,
+  ticketDocuments,
   ticketEvents,
   ticketLinks,
   ticketWatchers,
@@ -599,3 +600,50 @@ export async function sprintTotals(db: Db, sprintId: string) {
 
 export const userRefList = (m: Map<string, UserRef>, ids: string[]) =>
   ids.map((id) => m.get(id)).filter((x): x is UserRef => !!x);
+
+const TICKET_LINK_RE = /\]\((?:https?:\/\/[^)\s]*?)?\/t\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})[)?#\s]/gi;
+
+/** Ticket ids a document's Markdown links to (`[BEE-24 …](/t/<id>)`). */
+export function ticketIdsIn(markdown: string): string[] {
+  return [...new Set([...markdown.matchAll(TICKET_LINK_RE)].map((m) => m[1]!.toLowerCase()))];
+}
+
+/**
+ * Keeps the "mention" links between a document and the tickets it references in step with its
+ * content. Only tickets of the document's own workspace count.
+ */
+export async function syncTicketMentions(db: Db, documentId: string, workspaceId: string, markdown: string) {
+  const ids = ticketIdsIn(markdown);
+  const valid = ids.length
+    ? (
+        await db
+          .select({ id: tickets.id })
+          .from(tickets)
+          .innerJoin(projects, eq(projects.id, tickets.projectId))
+          .where(and(inArray(tickets.id, ids), eq(projects.workspaceId, workspaceId)))
+      ).map((r) => r.id)
+    : [];
+  const existing = await db
+    .select({ ticketId: ticketDocuments.ticketId })
+    .from(ticketDocuments)
+    .where(and(eq(ticketDocuments.documentId, documentId), eq(ticketDocuments.source, 'mention')));
+  const have = new Set(existing.map((e) => e.ticketId));
+  const want = new Set(valid);
+  const gone = [...have].filter((x) => !want.has(x));
+  const added = valid.filter((x) => !have.has(x));
+  if (gone.length)
+    await db
+      .delete(ticketDocuments)
+      .where(
+        and(
+          eq(ticketDocuments.documentId, documentId),
+          eq(ticketDocuments.source, 'mention'),
+          inArray(ticketDocuments.ticketId, gone),
+        ),
+      );
+  if (added.length)
+    await db
+      .insert(ticketDocuments)
+      .values(added.map((ticketId) => ({ ticketId, documentId, source: 'mention' as const })))
+      .onConflictDoNothing();
+}

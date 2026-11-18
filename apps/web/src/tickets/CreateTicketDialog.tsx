@@ -380,13 +380,11 @@ export function CreateTicketDialog({
         {pk.open?.key === 'priority' && (
           <Picker
             anchor={pk.open.el}
-            options={[...PRIORITIES]
-              .reverse()
-              .map((p) => ({
-                id: p,
-                label: t(priorityKey(p)),
-                icon: <PriorityIcon priority={p} />,
-              }))}
+            options={[...PRIORITIES].reverse().map((p) => ({
+              id: p,
+              label: t(priorityKey(p)),
+              icon: <PriorityIcon priority={p} />,
+            }))}
             value={patch.priority ?? 'medium'}
             onPick={(id) => setPatch((p) => ({ ...p, priority: id as TicketPatch['priority'] }))}
             onClose={pk.close}

@@ -7,6 +7,7 @@ import { docAccess, requireDocRole, type DocRow } from '../lib/access.js';
 import { logActivity } from '../lib/activity.js';
 import { CollabClient } from '../lib/collab.js';
 import { deleteAll, describeBoard, diagramElements } from '../lib/diagram.js';
+import { syncTicketMentions } from '../lib/tickets.js';
 import { deriveCaches, markdownToYUpdate, sectionOf, yUpdateToMarkdown } from '../lib/content.js';
 import { badRequest, forbidden, notFound } from '../lib/errors.js';
 import { documentDTO, loadUserRefs, refOr } from '../lib/dto.js';
@@ -129,6 +130,7 @@ export async function insertDocument(
       contentUpdatedAt: v.state ? new Date() : null,
     })
     .returning();
+  if (caches?.markdown) await syncTicketMentions(db, doc!.id, v.workspaceId, caches.markdown).catch(() => {});
   return doc!;
 }
 

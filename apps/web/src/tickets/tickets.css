@@ -2119,3 +2119,72 @@ button.tk-val:hover {
     font-size: 16px;
   }
 }
+
+/* ---------- detail layout: title on top, fields beside (wide) or below the title (narrow) ---------- */
+.tk-dbody {
+  grid-template-columns: minmax(0, 1fr) 19.5rem;
+  grid-template-rows: auto 1fr;
+  grid-template-areas: 'top side' 'main side';
+}
+.tk-dtop {
+  grid-area: top;
+  padding: 1.25rem 1.75rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.tk-dmain {
+  grid-area: main;
+  padding-top: 1rem;
+}
+.tk-dside {
+  grid-area: side;
+}
+.tk-dates {
+  flex-wrap: wrap;
+}
+.tk-dates .tk-inline {
+  width: 6.75rem;
+  padding: 0.1875rem 0.25rem;
+  font-size: 0.75rem;
+}
+.tk-reports {
+  padding-top: 1rem;
+}
+@media (max-width: 1100px) {
+  .tk-dbody {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    grid-template-areas: 'top' 'side' 'main';
+  }
+  .tk-dside {
+    order: 0;
+    margin-top: 0.75rem;
+    border-bottom: 1px solid var(--line);
+  }
+}
+@media (max-width: 640px) {
+  .tk-dtop {
+    padding: 1rem 1rem 0;
+  }
+  .tk-dates .tk-inline {
+    font-size: 16px;
+    width: 9rem;
+  }
+}
+.tk-csv-result {
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.tk-csv-result ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.125rem;
+  color: var(--fg-2);
+  font-size: 0.75rem;
+}

@@ -11,6 +11,7 @@ import { can } from '@bee/shared';
 import { CollabClient } from '../lib/collab.js';
 import { createUploadTicket, UPLOAD_LINK_TTL_MS } from '../lib/upload-links.js';
 import { decodeBase64Image, fetchImage, ImageFetchError, imageExt, sniffImage } from '../lib/images.js';
+import { TICKET_TOOLS } from './mcp-tickets.js';
 
 /**
  * MCP server (Streamable HTTP transport, stateless, JSON responses only) so Claude and other
@@ -33,7 +34,8 @@ export const INSTRUCTIONS = `Bee is a collaborative document editor (folders, Ma
 - Diagrams: draw_diagram draws boxes with text and connecting arrows on a whiteboard (laid out automatically), on an existing board, a new one, or a new board embedded at the end of a document. read_whiteboard describes a board. For a quick diagram inside a document, a \`\`\`mermaid code block via edit_document also renders.
 - Math: LaTeX between $…$ (inline) or $$…$$ on lines of their own (block) renders as formulas; write a literal dollar as \\$.
 - Spreadsheets in a document appear as \`<!-- bee:sheet <id> name="…" -->\` followed by a table of their computed values. Keep the marker line when editing around them; the values table is read-only (changes to it are ignored).
-- Whiteboards cannot be read or edited as Markdown.`;
+- Whiteboards cannot be read or edited as Markdown.
+- Tickets (Jira-like projects with epics, stories, tasks, bugs, subtasks and sprints): list_projects, search_tickets, read_ticket, create_ticket / create_tickets, update_ticket, comment_on_ticket, link_tickets, list_sprints. Refer to tickets by key (BEE-24); statuses, sprints, labels and people by name.`;
 
 export class ToolError extends Error {}
 
@@ -698,6 +700,7 @@ export const TOOLS: Tool[] = [
       return a.resolved ? 'Thread resolved.' : 'Thread reopened.';
     },
   }),
+  ...TICKET_TOOLS,
 ];
 
 const toolList = TOOLS.map((t) => {

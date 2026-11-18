@@ -46,6 +46,8 @@ import {
   type ProjectRow,
 } from '../lib/tickets.js';
 import { loadUserRefs } from '../lib/dto.js';
+import { exportTickets, parseCsv, readImport } from '../lib/ticket-csv.js';
+import { createTicket, projectContext } from '../lib/ticket-ops.js';
 import { idParams, parse } from '../lib/validate.js';
 import { requireUser } from './auth.js';
 
@@ -788,6 +790,127 @@ export async function projectRoutes(app: FastifyInstance) {
         (x, y) => y.todo + y.doing + y.done - (x.todo + x.doing + x.done),
       ),
     };
+  });
+
+  // ---------- CSV ----------
+
+  app.get('/projects/:id/export.csv', async (req, reply) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    const a = await projectAccess(db, id, user.id);
+    const ctx = await projectContext(db, a.project);
+    const [rows, members, labels] = await Promise.all([
+      db
+        .select()
+        .from(tickets)
+        .where(and(eq(tickets.projectId, id), isNull(tickets.deletedAt)))
+        .orderBy(asc(tickets.number)),
+      workspaceUsers(db, a.project.workspaceId),
+      db.select().from(projectLabels).where(eq(projectLabels.projectId, id)),
+    ]);
+    const people = new Map(members.map((m) => [m.id, { name: m.name, email: m.email }]));
+    return reply
+      .header('content-type', 'text/csv; charset=utf-8')
+      .header('content-disposition', `attachment; filename="${a.project.key}-tickets.csv"`)
+      .send(exportTickets(ctx, rows, people, labels));
+  });
+
+  /** Imports tickets from CSV text (Bee's export or a Jira "Export CSV (all fields)"). */
+  app.post('/projects/:id/import', async (req) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    const a = await projectAccess(db, id, user.id);
+    if (!a.canEdit) throw forbidden();
+    const { csv } = parse(z.object({ csv: z.string().min(1).max(8_000_000) }), req.body);
+    const table = parseCsv(csv);
+    if (table.length > 5001) throw badRequest('At most 5000 tickets per import');
+    let ctx = await projectContext(db, a.project);
+    const members = await workspaceUsers(db, a.project.workspaceId);
+    const { rows, errors } = readImport(table, ctx, members);
+    // Labels and sprints named in the file are created when missing.
+    const labelNames = [...new Set(rows.flatMap((r) => r.labels))];
+    const existing = await db.select().from(projectLabels).where(eq(projectLabels.projectId, id));
+    const labelId = new Map(existing.map((l) => [l.name.toLowerCase(), l.id]));
+    const colors = ['#3b7dd8', '#1e6b2a', '#c2410c', '#7c3aed', '#e8a317', '#0e7490', '#be185d'];
+    for (const name of labelNames)
+      if (!labelId.has(name.toLowerCase())) {
+        const [l] = await db
+          .insert(projectLabels)
+          .values({ projectId: id, name, color: colors[labelId.size % colors.length]! })
+          .returning();
+        labelId.set(name.toLowerCase(), l!.id);
+      }
+    const sprintId = new Map(
+      [...ctx.sprints.values()]
+        .filter((s) => s.state !== 'closed')
+        .map((s) => [s.name.toLowerCase(), s.id]),
+    );
+    if (a.project.usesSprints)
+      for (const name of new Set(rows.map((r) => r.sprintName).filter((x): x is string => !!x)))
+        if (!sprintId.has(name.toLowerCase())) {
+          const [s] = await db.insert(sprints).values({ projectId: id, name }).returning();
+          sprintId.set(name.toLowerCase(), s!.id);
+        }
+    ctx = await projectContext(db, a.project);
+    // Parents first: epics, then stories / tasks / bugs, then subtasks.
+    const order = { epic: 0, story: 1, task: 1, bug: 1, subtask: 2 } as const;
+    const sorted = [...rows].sort((x, y) => order[x.type] - order[y.type]);
+    const byKey = new Map<string, string>();
+    const byTitle = new Map<string, string>();
+    const keyRows = await db
+      .select({ id: tickets.id, number: tickets.number, title: tickets.title })
+      .from(tickets)
+      .where(and(eq(tickets.projectId, id), isNull(tickets.deletedAt)));
+    for (const t of keyRows) {
+      byKey.set(`${a.project.key}-${t.number}`.toLowerCase(), t.id);
+      byTitle.set(t.title.toLowerCase(), t.id);
+    }
+    let created = 0;
+    for (const r of sorted) {
+      const parentId = r.parentKey
+        ? (byKey.get(r.parentKey.toLowerCase()) ?? byTitle.get(r.parentKey.toLowerCase()) ?? null)
+        : null;
+      const base = {
+        type: r.type,
+        title: r.title,
+        description: r.description,
+        statusId: r.statusId,
+        priority: r.priority,
+        assigneeId: r.assigneeId,
+        reporterId: r.reporterId ?? user.id,
+        sprintId: r.sprintName ? (sprintId.get(r.sprintName.toLowerCase()) ?? null) : null,
+        storyPoints: r.storyPoints,
+        estimateMinutes: r.estimateMinutes,
+        spentMinutes: r.spentMinutes,
+        startDate: r.startDate,
+        dueDate: r.dueDate && r.startDate && r.dueDate < r.startDate ? r.startDate : r.dueDate,
+        labelIds: r.labels.map((n) => labelId.get(n.toLowerCase())!).filter(Boolean),
+      };
+      try {
+        let t;
+        try {
+          t = await createTicket(db, ctx, { ...base, parentId }, user.id);
+        } catch (e) {
+          if (!parentId && r.type !== 'subtask') throw e;
+          // A parent that does not fit (or a subtask without one): import it as a task on its own.
+          t = await createTicket(
+            db,
+            ctx,
+            { ...base, type: r.type === 'subtask' ? 'task' : r.type, parentId: null },
+            user.id,
+          );
+          errors.push(
+            `Line ${r.line}: parent “${r.parentKey ?? ''}” not usable, imported without it`,
+          );
+        }
+        created++;
+        if (r.key) byKey.set(r.key.toLowerCase(), t.id);
+        byTitle.set(r.title.toLowerCase(), t.id);
+      } catch (e) {
+        errors.push(`Line ${r.line}: ${(e as Error).message}`);
+      }
+    }
+    return { created, errors: errors.slice(0, 50), errorCount: errors.length };
   });
 
   // ---------- saved views ----------
