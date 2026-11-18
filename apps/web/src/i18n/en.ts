@@ -1,3 +1,5 @@
+import { ticketsEn } from './tickets';
+
 /** English UI strings (default locale). Keys are shared with zh-CN.ts. `{name}` marks a variable. */
 export const en = {
   'app.loading': 'Loading…',
@@ -752,6 +754,7 @@ export const en = {
   "share.allCan": "Everyone: {role}",
   "share.teamMember": "Team {role}",
   "share.external": "External",
+  ...ticketsEn,
 } as const;
 
 export type MessageKey = keyof typeof en;

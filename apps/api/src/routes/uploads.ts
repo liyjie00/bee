@@ -5,10 +5,11 @@ import { createWriteStream } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { uploads } from '@bee/db';
 import { can } from '@bee/shared';
 import { docAccess } from '../lib/access.js';
+import { ticketAccess } from '../lib/tickets.js';
 import { imageExt, sniffImage } from '../lib/images.js';
 import { readUploadTicket } from '../lib/upload-links.js';
 import { badRequest, forbidden, HttpError, notFound } from '../lib/errors.js';
@@ -23,6 +24,64 @@ const INLINE =
 export async function uploadRoutes(app: FastifyInstance) {
   const { db, config } = app;
   const root = resolve(config.uploadDir);
+
+  /** Stores the multipart file of the request under the workspace; returns its row values. */
+  const receive = async (req: FastifyRequest, workspaceId: string) => {
+    const file = await req.file();
+    if (!file) throw badRequest('Missing file');
+    const fileId = randomUUID();
+    const key = join(workspaceId, fileId);
+    await mkdir(join(root, workspaceId), { recursive: true });
+    const dest = join(root, key);
+    await pipeline(file.file, createWriteStream(dest));
+    if (file.file.truncated) {
+      await unlink(dest).catch(() => {});
+      throw new HttpError(
+        413,
+        'too_large',
+        `File is larger than ${Math.round(config.maxUploadBytes / 1048576)} MB`,
+      );
+    }
+    return {
+      id: fileId,
+      workspaceId,
+      storageKey: key,
+      size: file.file.bytesRead,
+      filename: (file.filename || 'file').slice(0, 255),
+      mime: (file.mimetype || 'application/octet-stream').slice(0, 100),
+    };
+  };
+
+  /** Ticket attachments, and images pasted into ticket descriptions. */
+  app.post('/tickets/:id/uploads', async (req, reply) => {
+    const user = requireUser(req);
+    const { id } = parse(idParams, req.params);
+    const a = await ticketAccess(db, id, user.id);
+    if (!a.canEdit) throw forbidden('You cannot upload to this ticket');
+    const f = await receive(req, a.project.workspaceId);
+    await db.insert(uploads).values({ ...f, ticketId: id, createdById: user.id });
+    return reply.status(201).send({
+      id: f.id,
+      url: `/api/uploads/${f.id}`,
+      filename: f.filename,
+      mime: f.mime,
+      size: f.size,
+    });
+  });
+
+  app.delete('/tickets/:id/uploads/:uploadId', async (req) => {
+    const user = requireUser(req);
+    const { id, uploadId } = parse(z.object({ id: z.uuid(), uploadId: z.uuid() }), req.params);
+    const a = await ticketAccess(db, id, user.id);
+    if (!a.canEdit) throw forbidden();
+    const [u] = await db
+      .delete(uploads)
+      .where(and(eq(uploads.id, uploadId), eq(uploads.ticketId, id)))
+      .returning();
+    if (!u) throw notFound('File not found');
+    await unlink(join(root, u.storageKey)).catch(() => {});
+    return { ok: true };
+  });
 
   app.post('/documents/:id/uploads', async (req, reply) => {
     const user = requireUser(req);
@@ -119,12 +178,14 @@ export async function uploadRoutes(app: FastifyInstance) {
   app.get('/uploads/:id', async (req, reply) => {
     const { id } = parse(idParams, req.params);
     const [u] = await db.select().from(uploads).where(eq(uploads.id, id));
-    if (!u || !u.documentId) throw notFound('File not found');
-    await docAccess(db, {
-      userId: req.user?.id ?? null,
-      documentId: u.documentId,
-      shareToken: req.shareToken,
-    });
+    if (!u || (!u.documentId && !u.ticketId)) throw notFound('File not found');
+    if (u.ticketId && !u.documentId) await ticketAccess(db, u.ticketId, req.user?.id ?? null);
+    else
+      await docAccess(db, {
+        userId: req.user?.id ?? null,
+        documentId: u.documentId!,
+        shareToken: req.shareToken,
+      });
     const inline = INLINE.test(u.mime);
     return reply
       .header('content-type', inline ? u.mime : 'application/octet-stream')

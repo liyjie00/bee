@@ -100,6 +100,10 @@ const KIND_LABEL: Record<NotificationKind, MessageKey> = {
   share: 'settings.notif.share',
   access_request: 'settings.notif.request',
   team_invite: 'settings.notif.teamInvite',
+  ticket_assigned: 'settings.notif.ticketAssigned',
+  ticket_mention: 'settings.notif.ticketMention',
+  ticket_comment: 'settings.notif.ticketComment',
+  ticket_update: 'settings.notif.ticketUpdate',
 };
 
 /** Browser (Web Push) notifications for this browser, email (coming soon), and which events notify. */

@@ -1,5 +1,5 @@
 {
-  "id": "a74f0c13-370e-4282-8cb1-6f7d92ace63c",
+  "id": "75528f5e-305f-4cb8-807f-fce1e75206bd",
   "prevId": "181b0846-e28b-4784-a226-cdc8ff9369f4",
   "version": "7",
   "dialect": "postgresql",
@@ -4175,6 +4175,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "filename": {
           "name": "filename",
           "type": "text",
@@ -4250,6 +4256,19 @@
           "tableTo": "documents",
           "columnsFrom": [
             "document_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "uploads_ticket_id_tickets_id_fk": {
+          "name": "uploads_ticket_id_tickets_id_fk",
+          "tableFrom": "uploads",
+          "tableTo": "tickets",
+          "columnsFrom": [
+            "ticket_id"
           ],
           "columnsTo": [
             "id"

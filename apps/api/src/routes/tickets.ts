@@ -13,6 +13,7 @@ import {
   ticketLinks,
   ticketWatchers,
   tickets,
+  uploads,
   workspaceMembers,
   type Db,
 } from '@bee/db';
@@ -167,7 +168,7 @@ export async function ticketDetail(
 ): Promise<TicketDetailDTO> {
   const a = await ticketAccess(db, ticketId, userId);
   const t = a.ticket;
-  const [[dto], childRows, outLinks, inLinks, docRows, watcherRows, commentRows, eventRows] =
+  const [[dto], childRows, outLinks, inLinks, docRows, watcherRows, commentRows, eventRows, files] =
     await Promise.all([
       ticketDTOs(db, [t]),
       db
@@ -200,6 +201,11 @@ export async function ticketDetail(
         .where(eq(ticketEvents.ticketId, t.id))
         .orderBy(desc(ticketEvents.createdAt))
         .limit(200),
+      db
+        .select()
+        .from(uploads)
+        .where(eq(uploads.ticketId, t.id))
+        .orderBy(asc(uploads.createdAt)),
     ]);
   const refs = await ticketRefs(db, [
     ...(t.parentId ? [t.parentId] : []),
@@ -246,6 +252,14 @@ export async function ticketDetail(
     children: await ticketDTOs(db, childRows),
     links,
     documents: docs,
+    attachments: files.map((f) => ({
+      id: f.id,
+      url: `/api/uploads/${f.id}`,
+      filename: f.filename,
+      mime: f.mime,
+      size: f.size,
+      createdAt: f.createdAt.toISOString(),
+    })),
     watchers: userRefList(
       people,
       watcherRows.map((w) => w.userId),

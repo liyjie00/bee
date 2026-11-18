@@ -1,4 +1,5 @@
 export { BeeEditor, type BeeEditorProps } from './react/BeeEditor.js';
+export { BeeMarkdownEditor, type BeeMarkdownEditorProps } from './react/MarkdownEditor.js';
 export { BeeWhiteboard, type BeeWhiteboardProps, type WhiteboardHandle, WHITEBOARD_ELEMENTS, WHITEBOARD_FILES } from './react/Whiteboard.js';
 export { BeeVersionPreview, type BeeVersionPreviewProps, restoreVersion } from './react/VersionPreview.js';
 export { buildExtensions, type BuildOptions } from './react/extensions.js';

@@ -241,12 +241,22 @@ export interface TicketEventDTO {
   createdAt: string;
 }
 
+export interface TicketAttachmentDTO {
+  id: string;
+  url: string;
+  filename: string;
+  mime: string;
+  size: number;
+  createdAt: string;
+}
+
 export interface TicketDetailDTO extends TicketDTO {
   project: { id: string; key: string; name: string; color: string; workspaceId: string };
   parent: TicketRefDTO | null;
   children: TicketDTO[];
   links: TicketLinkDTO[];
   documents: TicketDocumentDTO[];
+  attachments: TicketAttachmentDTO[];
   watchers: UserRef[];
   watching: boolean;
   comments: TicketCommentDTO[];

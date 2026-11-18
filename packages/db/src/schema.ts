@@ -364,6 +364,8 @@ export const uploads = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     documentId: uuid('document_id').references(() => documents.id, { onDelete: 'set null' }),
+    /** set for ticket attachments and images in ticket descriptions */
+    ticketId: uuid('ticket_id').references(() => tickets.id, { onDelete: 'set null' }),
     filename: text('filename').notNull(),
     mime: text('mime').notNull(),
     size: integer('size').notNull(),

@@ -149,6 +149,7 @@ CREATE TABLE "tickets" (
 );
 --> statement-breakpoint
 ALTER TABLE "notifications" ADD COLUMN "ticket_id" uuid;--> statement-breakpoint
+ALTER TABLE "uploads" ADD COLUMN "ticket_id" uuid;--> statement-breakpoint
 ALTER TABLE "project_fields" ADD CONSTRAINT "project_fields_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "project_labels" ADD CONSTRAINT "project_labels_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "project_statuses" ADD CONSTRAINT "project_statuses_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -199,4 +200,5 @@ CREATE INDEX "tickets_parent_idx" ON "tickets" USING btree ("parent_id");--> sta
 CREATE INDEX "tickets_assignee_idx" ON "tickets" USING btree ("assignee_id");--> statement-breakpoint
 CREATE INDEX "tickets_sprint_idx" ON "tickets" USING btree ("sprint_id");--> statement-breakpoint
 CREATE INDEX "tickets_project_updated_idx" ON "tickets" USING btree ("project_id","updated_at");--> statement-breakpoint
-ALTER TABLE "notifications" ADD CONSTRAINT "notifications_ticket_id_tickets_id_fk" FOREIGN KEY ("ticket_id") REFERENCES "public"."tickets"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_ticket_id_tickets_id_fk" FOREIGN KEY ("ticket_id") REFERENCES "public"."tickets"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "uploads" ADD CONSTRAINT "uploads_ticket_id_tickets_id_fk" FOREIGN KEY ("ticket_id") REFERENCES "public"."tickets"("id") ON DELETE set null ON UPDATE no action;

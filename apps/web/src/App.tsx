@@ -12,6 +12,8 @@ import { LegalPage } from './pages/LegalPage';
 import { SharePage } from './pages/SharePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { ProjectPage } from './tickets/ProjectPage';
+import { MyTicketsPage, ProjectsPage, TicketPage } from './tickets/pages';
 import { SessionProvider } from './state/session';
 import { ToastProvider } from './state/toast';
 import { I18nProvider } from './i18n';
@@ -46,6 +48,11 @@ export function App() {
                 <Route path="/settings/:section" element={<SettingsPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/invites" element={<InvitesPage />} />
+                <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/projects/:id" element={<ProjectPage />} />
+                <Route path="/projects/:id/:view" element={<ProjectPage />} />
+                <Route path="/t/:id" element={<TicketPage />} />
+                <Route path="/my-tickets" element={<MyTicketsPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

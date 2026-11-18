@@ -22,6 +22,7 @@ export function NotifAvatar({ n }: { n: NotificationDTO }) {
 /** What a notification is about: the document or folder, or the team for invitations. */
 export function notifTarget(n: NotificationDTO, untitled: string): string {
   if (n.kind === 'team_invite') return n.workspace?.name ?? '';
+  if (n.ticket) return `${n.ticket.key} ${n.ticket.title}`;
   return n.document ? n.document.title || untitled : (n.folder?.name ?? '');
 }
 
@@ -32,11 +33,16 @@ export const VERB: Record<NotificationDTO['kind'], MessageKey> = {
   share: 'notif.share',
   access_request: 'notif.request',
   team_invite: 'notif.teamInvite',
+  ticket_assigned: 'notif.ticketAssigned',
+  ticket_mention: 'notif.ticketMention',
+  ticket_comment: 'notif.ticketComment',
+  ticket_update: 'notif.ticketUpdate',
 };
 
 /** Where a notification leads: the comment thread, the shared doc or folder. */
 export function notificationPath(n: NotificationDTO): string | null {
   if (n.kind === 'team_invite') return '/invites';
+  if (n.ticket) return `/t/${n.ticket.id}`;
   if (n.document) return `/d/${n.document.id}${n.threadId ? `?comment=${n.threadId}` : ''}`;
   if (n.folder) return `/f/${n.folder.id}`;
   return null;
@@ -135,7 +141,8 @@ export function NotificationsPage() {
                         <span className="notif-role">{t(`role.${n.request.role}` as MessageKey)}</span>
                       )}
                     </div>
-                    {n.kind !== 'share' && n.kind !== 'team_invite' && n.detail && <div className="notif-quote">{n.detail}</div>}
+                    {n.kind === 'ticket_update' && n.detail && <span className="notif-role">{n.detail}</span>}
+                    {n.kind !== 'share' && n.kind !== 'team_invite' && n.kind !== 'ticket_update' && n.kind !== 'ticket_assigned' && n.detail && <div className="notif-quote">{n.detail}</div>}
                     <time dateTime={n.createdAt}>
                       {n.request ? n.request.user.email + ' · ' : ''}
                       {n.workspace && n.kind !== 'team_invite' ? spaceName(n.workspace) + ' · ' : ''}

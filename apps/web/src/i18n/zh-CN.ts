@@ -1,4 +1,5 @@
 import type { MessageKey } from './en';
+import { ticketsZh } from './tickets';
 
 /** Simplified Chinese UI strings. Must cover every key in en.ts (enforced by the type). */
 export const zhCN: Record<MessageKey, string> = {
@@ -754,4 +755,5 @@ export const zhCN: Record<MessageKey, string> = {
   "share.allCan": "全体{role}",
   "share.teamMember": "团队{role}",
   "share.external": "外部",
+  ...ticketsZh,
 };

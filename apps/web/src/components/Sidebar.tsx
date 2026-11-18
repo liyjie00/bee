@@ -16,6 +16,7 @@ import { SpaceSwitcher } from './Spaces';
 import { MoveToSpaceDialog } from './MoveToSpaceDialog';
 import { FolderAccessDialog } from './FolderAccessDialog';
 import { SidebarResizer } from './SidebarResizer';
+import { SidebarProjects } from '../tickets/SidebarProjects';
 
 const EXPANDED_KEY = 'bee-tree-open';
 const COLLAPSED_KEY = 'bee-side-collapsed';
@@ -309,7 +310,7 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
     </div>
   );
 
-  const navItem = (to: string, icon: 'home' | 'folder' | 'clock' | 'star' | 'trash' | 'globe' | 'bell' | 'board', label: string, count?: number, total?: number) => (
+  const navItem = (to: string, icon: 'home' | 'folder' | 'clock' | 'star' | 'trash' | 'globe' | 'bell' | 'board' | 'task', label: string, count?: number, total?: number) => (
     <NavLink to={to} end className={({ isActive }) => (isActive ? 'on' : '')} onClick={onClose}>
       <Icon name={icon} className={icon === 'board' ? 't-board' : undefined} />
       {label}
@@ -400,10 +401,12 @@ export function Sidebar({ open, onClose, onSearch }: { open: boolean; onClose():
         {navItem('/notifications', 'bell', t('nav.notifications'), lists?.unread)}
         {navItem('/shared', 'globe', t('nav.shared'))}
         {navItem('/boards', 'board', t('nav.boards'), undefined, tree.documents.filter((d) => d.type === 'whiteboard' && !d.deletedAt).length)}
+        {navItem('/my-tickets', 'task', t('tk.my.title'))}
       </nav>
       <div className="side-scroll">
       {quickList('starred', t('nav.starred'), lists?.starred ?? [], t('nav.starredEmpty'))}
       {quickList('recent', t('nav.recentSection'), lists?.recent ?? [], t('nav.recentEmpty'), '/recent')}
+      {workspace && <SidebarProjects workspaceId={workspace.id} open={!collapsed.has('projects')} onToggle={() => toggleSection('projects')} onNavigate={onClose} />}
       <div className="sec">
         {t('nav.folders')}
         <button
