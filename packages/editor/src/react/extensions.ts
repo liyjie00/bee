@@ -55,7 +55,15 @@ export function withShareToken(src: string, shareToken: string | undefined): str
 export function buildExtensions(opts: BuildOptions): AnyExtension[] {
   const collaborative = !!opts.ydoc;
   const base = schemaExtensions({ collaborative }).map((ext) => {
-    if (ext.name === 'codeBlock') return ext.extend({ addNodeView: () => ReactNodeViewRenderer(CodeBlockView) });
+    if (ext.name === 'codeBlock') {
+      return ext.extend({
+        addNodeView: () =>
+          ReactNodeViewRenderer(CodeBlockView, {
+            // The Mermaid resize handle owns its drag; ProseMirror must not start a selection or node drag.
+            stopEvent: ({ event }) => !!(event.target as HTMLElement | null)?.closest?.('.bee-mermaid-resize'),
+          }),
+      });
+    }
     if (ext.name === 'inlineMath') return ext.extend({ addNodeView: () => ReactNodeViewRenderer(InlineMathView, { as: 'span' }) });
     if (ext.name === 'blockMath') return ext.extend({ addNodeView: () => ReactNodeViewRenderer(BlockMathView) });
     if (ext.name === 'whiteboard') {

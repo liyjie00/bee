@@ -1,7 +1,8 @@
 import { NodeViewContent, NodeViewWrapper, type ReactNodeViewProps } from '@tiptap/react';
-import { useState } from 'react';
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { MermaidPreview } from './Mermaid.js';
 import { useMessages } from './i18n.js';
+import { useBeeEditorContext } from './context.js';
 
 const LANGUAGES: [string, string][] = [
   // '' and 'mermaid' are labelled from messages.
@@ -28,6 +29,8 @@ const LANGUAGES: [string, string][] = [
   ['yaml', 'YAML'],
 ];
 
+const MIN_DIAGRAM_WIDTH = 15;
+
 /** Code block with language picker, copy button, line-number gutter and Mermaid preview. */
 export function CodeBlockView({ node, updateAttributes, editor }: ReactNodeViewProps) {
   const language = (node.attrs.language as string | null) ?? '';
@@ -39,6 +42,46 @@ export function CodeBlockView({ node, updateAttributes, editor }: ReactNodeViewP
   const t = useMessages();
   const options: [string, string][] = [['', t.plainText], ['mermaid', t.mermaidLabel], ...LANGUAGES];
   const known = options.some(([v]) => v === language);
+  // From the editor context, not editor.isEditable: the editor starts read-only until the document
+  // syncs, and this node view is not re-rendered when it turns editable.
+  const ctx = useBeeEditorContext();
+  const editable = ctx ? ctx.editable : editor.isEditable;
+  const saved = Number(node.attrs.diagramWidth) || null;
+  // Width while dragging the handle; written to the node on release.
+  const [draft, setDraft] = useState<number | null>(null);
+  const diagramWidth = draft ?? saved;
+  const frame = useRef<HTMLDivElement>(null);
+
+  // Drag the corner to set the diagram's width (a percentage of the block); the diagram stays centred,
+  // so it grows on both sides. Double click goes back to the natural size.
+  const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = frame.current;
+    const box = el?.parentElement;
+    if (!el || !box) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const handle = e.currentTarget;
+    handle.setPointerCapture(e.pointerId);
+    const cs = getComputedStyle(box);
+    const total = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) || el.offsetWidth;
+    const start = { x: e.clientX, w: el.offsetWidth };
+    let last = diagramWidth;
+    const move = (ev: PointerEvent) => {
+      const w = start.w + 2 * (ev.clientX - start.x);
+      last = Math.round(Math.min(100, Math.max(MIN_DIAGRAM_WIDTH, (w / total) * 100)));
+      setDraft(last);
+    };
+    const up = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+      if (last !== saved) updateAttributes({ diagramWidth: last });
+      setDraft(null);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  };
 
   const copy = async () => {
     await navigator.clipboard?.writeText(text);
@@ -49,7 +92,7 @@ export function CodeBlockView({ node, updateAttributes, editor }: ReactNodeViewP
   return (
     <NodeViewWrapper className={`bee-code${isMermaid ? ' bee-code-mermaid' : ''}`} data-language={language}>
       <div className="bee-code-header" contentEditable={false}>
-        {editor.isEditable ? (
+        {editable ? (
           <select
             className="bee-code-lang"
             value={language}
@@ -89,7 +132,21 @@ export function CodeBlockView({ node, updateAttributes, editor }: ReactNodeViewP
       </div>
       {isMermaid && (
         <div className="bee-code-preview" contentEditable={false}>
-          <MermaidPreview code={text} />
+          <div
+            ref={frame}
+            className={`bee-mermaid-frame${diagramWidth ? ' is-sized' : ''}${draft != null ? ' is-resizing' : ''}`}
+            style={diagramWidth ? { width: `${diagramWidth}%` } : undefined}
+          >
+            <MermaidPreview code={text} />
+            {editable && text.trim() && (
+              <div
+                className="bee-mermaid-resize"
+                title={t.diagramResize}
+                onPointerDown={startResize}
+                onDoubleClick={() => updateAttributes({ diagramWidth: null })}
+              />
+            )}
+          </div>
         </div>
       )}
     </NodeViewWrapper>

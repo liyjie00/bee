@@ -436,6 +436,34 @@ body.bee-table-grabbing * {
   max-width: 100%;
   height: auto;
 }
+/* Mermaid resize: the frame wraps the diagram; a set width scales the SVG (also past its natural size). */
+.bee-mermaid-frame {
+  position: relative;
+  max-width: 100%;
+  min-width: 0;
+}
+.bee-mermaid-frame.is-sized .bee-mermaid svg {
+  width: 100% !important;
+  max-width: none !important;
+}
+.bee-mermaid-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1rem;
+  height: 1rem;
+  cursor: nwse-resize;
+  touch-action: none;
+  opacity: 0;
+  background: linear-gradient(135deg, transparent 50%, var(--be-honey) 50%);
+}
+.bee-code-preview:hover .bee-mermaid-resize,
+.bee-mermaid-frame.is-resizing .bee-mermaid-resize {
+  opacity: 1;
+}
+.bee-mermaid-frame.is-resizing .bee-mermaid {
+  pointer-events: none;
+}
 .bee-mermaid-error {
   color: var(--be-del-ink);
   font-size: 0.8125rem;

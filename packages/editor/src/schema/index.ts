@@ -54,7 +54,22 @@ export function schemaExtensions({ collaborative = true }: SchemaOptions = {}): 
     StyledTableCell,
     StyledTableHeader,
     Image.configure({ inline: false, allowBase64: false }),
-    CodeBlockLowlight.configure({ lowlight, defaultLanguage: null }),
+    CodeBlockLowlight.extend({
+      addAttributes() {
+        return {
+          ...this.parent?.(),
+          // Mermaid diagrams: display width as a percentage of the block (null = natural size).
+          diagramWidth: {
+            default: null,
+            parseHTML: (el: HTMLElement) => {
+              const n = Number(el.getAttribute('data-diagram-width'));
+              return n > 0 ? n : null;
+            },
+            renderHTML: (attrs: Record<string, unknown>) => (attrs.diagramWidth ? { 'data-diagram-width': String(attrs.diagramWidth) } : {}),
+          },
+        };
+      },
+    }).configure({ lowlight, defaultLanguage: null }),
     InlineMath,
     BlockMath,
     Whiteboard,
