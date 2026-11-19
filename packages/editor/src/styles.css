@@ -442,7 +442,8 @@ body.bee-table-grabbing * {
   max-width: 100%;
   min-width: 0;
 }
-.bee-mermaid-frame.is-sized .bee-mermaid svg {
+.bee-mermaid-frame .bee-mermaid svg {
+  display: block;
   width: 100% !important;
   max-width: none !important;
 }

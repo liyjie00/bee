@@ -51,6 +51,10 @@ export function CodeBlockView({ node, updateAttributes, editor }: ReactNodeViewP
   const [draft, setDraft] = useState<number | null>(null);
   const diagramWidth = draft ?? saved;
   const frame = useRef<HTMLDivElement>(null);
+  // Without a set width the diagram shows at its own size, capped at the block width. (The SVG has
+  // width="100%", which in the centred, shrink-to-fit frame fell back to 300px: big diagrams were tiny.)
+  const [natural, setNatural] = useState<number | null>(null);
+  const frameWidth = diagramWidth ? `${diagramWidth}%` : natural ? `min(100%, ${natural}px)` : undefined;
 
   // Drag the corner to set the diagram's width (a percentage of the block); the diagram stays centred,
   // so it grows on both sides. Double click goes back to the natural size.
@@ -135,9 +139,9 @@ export function CodeBlockView({ node, updateAttributes, editor }: ReactNodeViewP
           <div
             ref={frame}
             className={`bee-mermaid-frame${diagramWidth ? ' is-sized' : ''}${draft != null ? ' is-resizing' : ''}`}
-            style={diagramWidth ? { width: `${diagramWidth}%` } : undefined}
+            style={frameWidth ? { width: frameWidth } : undefined}
           >
-            <MermaidPreview code={text} />
+            <MermaidPreview code={text} onNaturalWidth={setNatural} />
             {editable && text.trim() && (
               <div
                 className="bee-mermaid-resize"

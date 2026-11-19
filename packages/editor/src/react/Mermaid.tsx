@@ -11,8 +11,16 @@ function loadMermaid(): Promise<MermaidApi> {
   return mermaidPromise;
 }
 
-/** Renders Mermaid source to SVG (lazy-loaded; strict security level sanitizes the output). */
-export function MermaidPreview({ code }: { code: string }) {
+// Lazy-loaded; the strict security level sanitizes the output.
+/** The diagram's own width in px, from the SVG's viewBox (Mermaid sizes it with width="100%"). */
+function naturalWidth(svg: string): number | null {
+  const m = /viewBox="[\d.-]+[ ,]+[\d.-]+[ ,]+([\d.]+)/.exec(svg);
+  const w = m ? Number(m[1]) : NaN;
+  return w > 0 ? w : null;
+}
+
+/** Renders Mermaid source to SVG. `onNaturalWidth` reports the diagram's own width once rendered. */
+export function MermaidPreview({ code, onNaturalWidth }: { code: string; onNaturalWidth?: (px: number | null) => void }) {
   const id = `bee-mermaid-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const t = useMessages();
   const ctx = useBeeEditorContext();
@@ -36,6 +44,7 @@ export function MermaidPreview({ code }: { code: string }) {
         if (!cancelled) {
           setSvg(result.svg);
           setError(null);
+          onNaturalWidth?.(naturalWidth(result.svg));
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
