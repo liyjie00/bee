@@ -9,6 +9,25 @@ Claude and other MCP clients can read and edit your documents.
 
 A hosted instance runs at [bee.zippyzoo.dev](https://bee.zippyzoo.dev).
 
+## Features
+
+- **Documents**: real-time collaborative editing with Markdown shortcuts, templates,
+  version history, and export to Markdown, Word or PDF (import from Markdown and Word too).
+- **Rich content**: images (click to enlarge), Mermaid diagrams you can resize, LaTeX math,
+  spreadsheet tables with formulas and cross-table references, and embedded whiteboards.
+- **Whiteboards**: freeform boards for sketches and diagrams, standalone or linked into
+  documents; export as PNG, JPG or `.excalidraw`.
+- **Comments and mentions**: inline comments pinned to text, @mentions, and browser
+  notifications; guests can comment on public links.
+- **Organizing and sharing**: folder tree, team workspaces with roles, invites and
+  restricted folders, and private / member / public-link sharing.
+- **Tickets**: Jira-style projects with epics, stories, tasks, bugs and subtasks; board,
+  backlog, sprints, timeline and reports; ticket references in documents; CSV import/export.
+- **AI**: Ask AI inside documents with your own AI account (OpenRouter sign-in or an API
+  key), and a built-in remote MCP server so Claude can read and edit documents, draw
+  diagrams, insert images and manage tickets.
+- **Everywhere**: works on phones, and supports email/password or Google sign-in.
+
 Bee is built with [Claude Code](https://claude.com/claude-code): most of the code
 was written by Claude, with a human directing, reviewing and testing it. Commits
 that Claude wrote carry a `Co-Authored-By: Claude` trailer.

@@ -8,6 +8,22 @@ Claude 等 MCP 客户端可以读取和编辑你的文档。
 
 官方托管实例：[bee.zippyzoo.dev](https://bee.zippyzoo.dev)。
 
+## 功能
+
+- **文档**：实时协同编辑，支持 Markdown 快捷输入、模板、版本历史，可导出为 Markdown、
+  Word 或 PDF（也能导入 Markdown 和 Word）。
+- **丰富内容**：图片（点击放大）、可拖动调整大小的 Mermaid 图、LaTeX 公式、
+  支持公式和跨表引用的表格，以及嵌入的白板。
+- **白板**：自由绘制草图和图表，可单独使用，也可链接到文档中；可导出 PNG、JPG 或 `.excalidraw`。
+- **评论与提及**：针对文字的行内评论、@提及、浏览器通知；访客可以在公开链接上评论。
+- **组织与分享**：文件夹树，带角色、邀请和受限文件夹的团队工作区，
+  以及私有 / 成员 / 公开链接分享。
+- **工单**：类似 Jira 的项目，支持史诗、故事、任务、缺陷和子任务；看板、待办列表、
+  迭代、时间线和报表；文档中可引用工单；支持 CSV 导入导出。
+- **AI**：在文档里使用 Ask AI，接入你自己的 AI 账号（OpenRouter 登录或 API Key）；
+  内置远程 MCP 服务器，Claude 可以读写文档、画图、插入图片、管理工单。
+- **随处可用**：支持手机浏览器，可用邮箱密码或 Google 账号登录。
+
 Bee 是用 [Claude Code](https://claude.com/claude-code) 开发的：大部分代码由 Claude 编写，
 由人来指导方向、审查和测试。Claude 参与编写的提交都带有 `Co-Authored-By: Claude` 署名。
 
